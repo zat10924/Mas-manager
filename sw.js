@@ -1,5 +1,5 @@
 /* sw.js — تسريع التحميل: المكتبات والخطوط من الكاش، وملفات البرنامج من النت أولًا (عشان التحديثات تظهر) */
-const V="mas-v2.1.2",LIB="mas-lib";
+const V="mas-v2.1.3",LIB="mas-lib";
 addEventListener("install",e=>{skipWaiting()});
 addEventListener("activate",e=>{e.waitUntil((async()=>{
   for(const k of await caches.keys())if(k!==V&&k!==LIB)await caches.delete(k);
@@ -9,7 +9,8 @@ const timeout=(p,ms)=>new Promise((res,rej)=>{const t=setTimeout(()=>rej(new Err
 addEventListener("fetch",e=>{
   const r=e.request;if(r.method!=="GET")return;
   const u=new URL(r.url);
-  if(u.hostname.endsWith("supabase.co"))return; // البيانات دايمًا مباشرة
+  if(u.hostname.endsWith("supabase.co"))return;
+  if(u.searchParams.has("_chk"))return; // فحص الإصدار دايمًا من النت // البيانات دايمًا مباشرة
   // مكتبات وخطوط خارجية: من الكاش فورًا وتتحدث في الخلفية
   if(u.origin!==location.origin){
     if(!/jsdelivr|googleapis|gstatic/.test(u.hostname))return;
@@ -22,7 +23,7 @@ addEventListener("fetch",e=>{
   // ملفات البرنامج: النت أولًا (سريع) ولو بطيء أو مفيش نت نرجع للنسخة المحفوظة
   e.respondWith(caches.open(V).then(async c=>{
     try{
-      const x=await timeout(fetch(r),3000);
+      const x=await timeout(fetch(r,{cache:"no-cache"}),3000);
       if(x.ok)c.put(r,x.clone());
       return x;
     }catch(err){

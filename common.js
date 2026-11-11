@@ -808,3 +808,32 @@ function quickWaste(done){
   const upd=()=>{const g=parseInt(document.getElementById("m-g").value)||0,q=parseInt(document.getElementById("m-q").value)||0;document.getElementById("m-pct").innerHTML=g+q>0?`الإجمالي <b>${g+q}</b> · نسبة الهالك <b>${(q/(g+q)*100).toFixed(1)}%</b>`:""};
   document.getElementById("m-g").oninput=upd;document.getElementById("m-q").oninput=upd;
 }
+
+
+/* ===== تحديث تلقائي: يقارن رقم الإصدار على GitHub بالإصدار الشغال ===== */
+(function(){
+  if(typeof APP_VERSION==="undefined"||!/^https?:$/.test(location.protocol))return;
+  let busy=false;
+  const typing=()=>{const a=document.activeElement;return a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)};
+  async function check(){
+    if(busy||!navigator.onLine||typing())return;
+    busy=true;
+    try{
+      const r=await fetch("config.js?_chk="+Date.now(),{cache:"no-store"});
+      const m=(await r.text()).match(/APP_VERSION\s*=\s*"([^"]+)"/);
+      if(!m||m[1]===APP_VERSION)return;
+      let tried="";try{tried=sessionStorage.getItem("upd_try")||""}catch(e){}
+      if(tried===m[1])return; // منع التكرار لو التحديث ماخلصش
+      try{sessionStorage.setItem("upd_try",m[1])}catch(e){}
+      if(typeof toast==="function")toast("جاري تحديث البرنامج للنسخة "+m[1]+"…");
+      try{
+        for(const k of await caches.keys())await caches.delete(k);
+        for(const g of await navigator.serviceWorker.getRegistrations())await g.unregister();
+      }catch(e){}
+      setTimeout(()=>location.reload(),1200);
+    }catch(e){}finally{busy=false}
+  }
+  addEventListener("load",()=>setTimeout(check,1500));
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")check()});
+  setInterval(check,5*60*1000);
+})();
