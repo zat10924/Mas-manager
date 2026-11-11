@@ -58,9 +58,9 @@ const sumQ=r=>r.data.reduce((a,x)=>a+(+x.qty||0),0);
 const openCount=async t=>{const r=await db.from(t).select("id",{count:"exact",head:true}).eq("status","open");if(r.error)throw r.error;return r.count};
 const todayQty=async(t,col)=>{const r=await db.from(t).select("qty").eq(col,today());if(r.error)throw r.error;return sumQ(r)};
 const SUMMARY={
-  "glaze.html":async()=>[await openCount("glaze_orders"),"طلبية مفتوحة",await todayQty("glaze_production","prod_date")+await freeTodayQty("glaze")],
-  "decoration.html":async()=>[await openCount("deco_orders"),"طلبية مفتوحة",await todayQty("deco_production","prod_date")+await freeTodayQty("deco")],
-  "spray.html":async()=>[await openCount("spray_status"),"طلبية مفتوحة",await todayQty("spray_production","prod_date")+await freeTodayQty("spray")],
+  "glaze.html":async()=>{const[o,a,b]=await Promise.all([openCount("glaze_orders"),todayQty("glaze_production","prod_date"),freeTodayQty("glaze")]);return[o,"طلبية مفتوحة",a+b]},
+  "decoration.html":async()=>{const[o,a,b]=await Promise.all([openCount("deco_orders"),todayQty("deco_production","prod_date"),freeTodayQty("deco")]);return[o,"طلبية مفتوحة",a+b]},
+  "spray.html":async()=>{const[o,a,b]=await Promise.all([openCount("spray_status"),todayQty("spray_production","prod_date"),freeTodayQty("spray")]);return[o,"طلبية مفتوحة",a+b]},
   "repair.html":async()=>{const q=await todayQty("repair_log","repair_date");return[q,"تصليح النهارده",q,true]}
 };
 // تنبيه الطلبيات المتأخرة (حسب تاريخ التسليم، أو أكتر من 14 يوم من غير تسليم)

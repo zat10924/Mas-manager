@@ -1,5 +1,5 @@
 /* sw.js — تسريع التحميل: المكتبات والخطوط من الكاش، وملفات البرنامج من النت أولًا (عشان التحديثات تظهر) */
-const V="mas-v2.2.0",LIB="mas-lib";
+const V="mas-v2.2.1",LIB="mas-lib";
 addEventListener("install",e=>{skipWaiting()});
 addEventListener("activate",e=>{e.waitUntil((async()=>{
   for(const k of await caches.keys())if(k!==V&&k!==LIB)await caches.delete(k);
@@ -20,17 +20,12 @@ addEventListener("fetch",e=>{
       return hit||net;
     }));return;
   }
-  // ملفات البرنامج: النت أولًا (سريع) ولو بطيء أو مفيش نت نرجع للنسخة المحفوظة
+  // ملفات البرنامج: من الكاش فورًا (تشغيل سريع) وتتحدث في الخلفية. النسخ الجديدة بيلقطها فحص الإصدار في common.js
   e.respondWith(caches.open(V).then(async c=>{
-    try{
-      const x=await timeout(fetch(r,{cache:"no-cache"}),3000);
-      if(x.ok)c.put(r,x.clone());
-      return x;
-    }catch(err){
-      const hit=await c.match(r,{ignoreSearch:true});
-      if(hit)return hit;
-      return fetch(r);
-    }
+    const hit=await c.match(r,{ignoreSearch:true});
+    const net=fetch(r,{cache:"no-cache"}).then(x=>{if(x&&x.ok)c.put(r,x.clone());return x}).catch(()=>null);
+    if(hit){e.waitUntil(net);return hit}
+    return (await net)||fetch(r);
   }));
 });
 

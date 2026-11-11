@@ -827,8 +827,8 @@ function quickWaste(done){
       try{sessionStorage.setItem("upd_try",m[1])}catch(e){}
       if(typeof toast==="function")toast("جاري تحديث البرنامج للنسخة "+m[1]+"…");
       try{
-        for(const k of await caches.keys())await caches.delete(k);
-        for(const g of await navigator.serviceWorker.getRegistrations())await g.unregister();
+        for(const k of await caches.keys())if(k!=="mas-lib")await caches.delete(k);
+        try{const g=await navigator.serviceWorker.getRegistration();if(g)await g.update()}catch(e){}
       }catch(e){}
       setTimeout(()=>location.reload(),1200);
     }catch(e){}finally{busy=false}
@@ -891,9 +891,9 @@ addEventListener("load",()=>setTimeout(async()=>{
     if(!PUSH_OK()||Notification.permission!=="granted")return;
     const{data:{session}}=await db.auth.getSession();if(!session)return;
     const same=localStorage.getItem("push_uid")===session.user.id,last=+localStorage.getItem("push_sync")||0;
-    if(same&&Date.now()-last<864e5)return;
     const reg=await navigator.serviceWorker.ready;
     let sub=await reg.pushManager.getSubscription();
+    if(sub&&same&&Date.now()-last<864e5)return;
     if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:_b64(VAPID_PUBLIC)});
     if(await pushSave(sub)){localStorage.setItem("push_uid",session.user.id);localStorage.setItem("push_sync",String(Date.now()))}
   }catch(e){}
