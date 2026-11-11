@@ -451,7 +451,13 @@ function ask(msg,yes="نعم، احذف"){return new Promise(res=>{
   const T=o.querySelector("b"),S=o.querySelector("small");let hide=null;
   document.addEventListener("DOMContentLoaded",()=>document.body.appendChild(o));
   const pend=()=>{try{return Q_.get().length}catch(e){return 0}};
+  /* نسخة صغيرة من عدد التسجيلات المعلقة في IndexedDB عشان الـ sw.js يقراها (هو مش بيشوف localStorage) */
+  const meta=(()=>{let p=null;const open=()=>p||(p=new Promise(res=>{try{const q=indexedDB.open("mas-meta",1);q.onupgradeneeded=()=>q.result.createObjectStore("k");q.onsuccess=()=>res(q.result);q.onerror=q.onblocked=()=>res(null)}catch(e){res(null)}}));return{put:async(k,v)=>{const d=await open();if(!d)return;try{d.transaction("k","readwrite").objectStore("k").put(v,k)}catch(e){}}}})();
+  window.masMeta=meta;
+  /* Background Sync: نسجّل طلب "نبّهني لما النت يرجع" والنت واقع، والمتصفح بيصحّي الـ sw.js لما الاتصال يرجع حتى لو البرنامج مقفول */
+  const regSync=()=>{try{navigator.serviceWorker.ready.then(r=>r.sync&&r.sync.register("net-back")).catch(()=>{})}catch(e){}};
   function down(){
+    regSync();
     clearTimeout(hide);o.classList.remove("back","show");void o.offsetWidth;
     const n=pend();
     T.textContent="انقطع الاتصال بالإنترنت";
@@ -465,8 +471,46 @@ function ask(msg,yes="نعم، احذف"){return new Promise(res=>{
     try{Snd.play("success")}catch(e){}
     clearTimeout(hide);hide=setTimeout(()=>o.classList.remove("show","back"),2600);
   }
-  addEventListener("offline",down);addEventListener("online",up);
-  document.addEventListener("DOMContentLoaded",()=>{if(!navigator.onLine)down()});
+  /* إشعار نظام (يظهر والبرنامج في الخلفية) بانقطاع/رجوع النت، وبيختفي لوحده من الـ sw.js */
+  const sysNote=(kind,body)=>{
+    try{
+      if(!("Notification" in window)||Notification.permission!=="granted")return;
+      if(localStorage.getItem("net_notify")==="0")return; // المستخدم قفل التنبيه من الإعدادات
+      if(document.visibilityState==="visible")return; // البرنامج قدامك: الشريط جوه البرنامج كفاية
+      navigator.serviceWorker.ready.then(r=>{r.active&&r.active.postMessage({type:"net",kind,body})}).catch(()=>{});
+    }catch(e){}
+  };
+  /* فحص حقيقي للإنترنت (navigator.onLine بيقول متصل بالشبكة بس، مش بالضرورة فيه نت) */
+  async function probe(){
+    if(!navigator.onLine)return false;
+    const c=new AbortController(),t=setTimeout(()=>c.abort(),6000);
+    try{await fetch("icon.svg?_chk="+Date.now(),{method:"HEAD",cache:"no-store",signal:c.signal});return true}
+    catch(e){return false}finally{clearTimeout(t)}
+  }
+  let st=navigator.onLine?"on":"off",busy=false;
+  function setNet(next){
+    if(next===st)return;st=next;
+    if(next==="off"){
+      down();
+      const n=pend();
+      sysNote("off",n?n+" تسجيل محفوظ هيتبعت لما يرجع الاتصال":"تقدر تكمل شغل بدون إنترنت، والتسجيلات بتتحفظ على الجهاز");
+    }else{
+      const n=pend();
+      up();
+      sysNote("on",n?"جاري إرسال "+n+" تسجيل محفوظ":"تم الاتصال بالإنترنت من جديد");
+    }
+  }
+  async function check(){
+    if(busy)return;busy=true;
+    try{setNet(await probe()?"on":"off")}finally{busy=false}
+  }
+  addEventListener("offline",()=>setNet("off"));
+  addEventListener("online",async()=>{ // "online" ممكن تيجي قبل ما النت يشتغل فعلًا: نعيد الفحص كذا مرة
+    for(let i=0;i<6;i++){await check();if(st==="on")return;await new Promise(r=>setTimeout(r,4000))}
+  });
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")check()});
+  let tick=0;setInterval(()=>{tick++;if(st==="off"||tick%3===0)check()},10000); // أوفلاين: كل 10 ثواني، متصل: كل 30
+  document.addEventListener("DOMContentLoaded",()=>{meta.put("pend",pend());try{meta.put("netnotify",localStorage.getItem("net_notify")==="0"?"0":"1")}catch(e){}if(!navigator.onLine)down()});
   if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol))addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 })();
 
@@ -550,8 +594,8 @@ function postponeOrder(sec,table,o,reload){
 /* ===== القوائم الثابتة: اقتراحات + تصحيح الأخطاء الإملائية قبل الحفظ ===== */
 let CAT=null,_catP=null;
 const PAGE_KIND=/decoration/.test(location.pathname)?"code":"color";
-const NAME_SEL="#m-item,#m-color,#m-color2,#m-name,#m-code,.nr .c,.it";
-const kindOf=el=>(el.id==="m-item"||el.classList.contains("it"))?"item":el.id==="m-code"?"code":PAGE_KIND;
+const NAME_SEL="#m-item,#m-color,#m-color2,#m-name,#m-code,.nr .c,.it,.sb";
+const kindOf=el=>(el.id==="m-item"||el.classList.contains("it"))?"item":el.id==="m-code"?"code":el.dataset.kind||PAGE_KIND;
 const CATM={item:new Map(),color:new Map(),code:new Map()};
 function catReady(){
   if(!_catP)_catP=(async()=>{
@@ -605,7 +649,7 @@ async function checkNames(root){
 }
 
 /* ===== الشغل بدون إنترنت: التسجيلات بتتحفظ على الجهاز وتتبعت لوحدها ===== */
-const Q_={k:"pendingQ",get(){try{return JSON.parse(localStorage.getItem(this.k)||"[]")}catch(e){return[]}},set(v){try{localStorage.setItem(this.k,JSON.stringify(v))}catch(e){}},add(it){const q=this.get();q.push(it);this.set(q)}};
+const Q_={k:"pendingQ",get(){try{return JSON.parse(localStorage.getItem(this.k)||"[]")}catch(e){return[]}},set(v){try{localStorage.setItem(this.k,JSON.stringify(v))}catch(e){}try{masMeta.put("pend",v.length)}catch(e){}},add(it){const q=this.get();q.push(it);this.set(q)}};
 const uuid=()=>crypto.randomUUID?crypto.randomUUID():"xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==="x"?r:(r&3|8)).toString(16)});
 const isNet=e=>!navigator.onLine||/fetch|network|load failed/i.test((e&&e.message)||"");
 let CID=true;
@@ -848,25 +892,63 @@ async function freeTodayQty(sec){
 const NEED_V2=m=>/free_production|relation|does not exist|schema cache|could not find/i.test(m||"");
 function freeProduction(sec,done){
   if(!SEC_AR[sec]||sec==="repair")return;
-  const deco=sec==="deco",lab=deco?"كود الرسمة":"اللون",sid=deco?"m-code":"m-color";
+  const deco=sec==="deco",lab=deco?"كود الرسمة":"اللون",kind=deco?"code":"color";
+  const rowHtml=()=>`<div class="itemblk mrow"><div class="ih"><b class="mn"></b><button type="button" class="rmi" aria-label="حذف الصنف">✕ حذف</button></div>
+    <label>الصنف</label><input class="it" placeholder="اسم الصنف" autocomplete="off">
+    <div class="two"><div><label>${lab} (اختياري)</label><input class="sb" data-kind="${kind}" placeholder="${lab}" autocomplete="off"></div>
+    <div><label>الكمية</label><input type="number" class="mq2" min="1" inputmode="numeric"></div></div></div>`;
   openModal("إنتاج بدون طلبية · "+SEC_AR[sec],
-    `<div class="hint" style="margin:0 0 6px">بيتسجّل في إنتاج القسم وتقاريره من غير ما يتربط بطلبية.</div>
-    <label>الصنف</label><input id="m-item" placeholder="اسم الصنف" autocomplete="off">
-    <label>${lab} (اختياري)</label><input id="${sid}" placeholder="${lab}" autocomplete="off">
-    <label>الكمية</label><input type="number" id="m-q" min="1" inputmode="numeric">
+    `<div class="hint" style="margin:0 0 6px">سجّل أكتر من صنف مرة واحدة. بيتسجّل في إنتاج القسم وتقاريره من غير ما يتربط بطلبية.</div>
+    <div id="mrows"></div>
+    <button type="button" class="btn ghost sm" id="madd" style="margin:6px 0 10px">＋ إضافة صنف آخر</button>
     <label>التاريخ</label><input type="date" id="m-d" value="${today()}">${XF(deco)}`,async()=>{
-    const item=document.getElementById("m-item").value.trim(),sub=document.getElementById(sid).value.trim(),q=parseInt(document.getElementById("m-q").value);
-    if(!item){toast("اكتب الصنف");return false}
-    if(!q||q<1){toast("اكتب كمية صحيحة");return false}
-    const id=uuid(),row={section:sec,item,sub:sub||null,qty:q,prod_date:document.getElementById("m-d").value||today(),client_id:id,...xfRead()};
-    let res;try{res=await insertRow("free_production",row)}catch(e){res={error:{message:String(e)}}}
-    if(res.error&&isNet(res.error)){
-      Q_.add({id,table:"free_production",row,sec,rid:"free",qty:q,txt:item+(sub?" · "+sub:"")+" (بدون طلبية)"});updateBadge();
-      toast("مفيش نت: اتحفظ على الجهاز وهيتسجل لوحده لما النت يرجع","warn");if(done)await done();return;
+    const box=document.getElementById("mrows"),els=[...box.querySelectorAll(".mrow")];
+    const todo=[];
+    for(let i=0;i<els.length;i++){
+      const el=els[i],item=el.querySelector(".it").value.trim(),sub=el.querySelector(".sb").value.trim(),qv=el.querySelector(".mq2").value.trim();
+      if(!item&&!sub&&!qv)continue;
+      if(!item){toast("اكتب اسم الصنف رقم "+(i+1));return false}
+      const q=parseInt(qv);
+      if(!q||q<1){toast("اكتب كمية صحيحة للصنف: "+item);return false}
+      todo.push({el,item,sub,q});
     }
-    if(res.error){toast(NEED_V2(res.error.message)?"لازم تشغّل ملف setup_v2.sql في Supabase الأول":"خطأ: "+res.error.message,"bad");return false}
-    toast("تم تسجيل الإنتاج");if(done)await done();
-  });
+    if(!todo.length){toast("اكتب صنف واحد على الأقل");return false}
+    const d=document.getElementById("m-d").value||today(),xf=xfRead();
+    let ok=0,off=0;const bad=[];
+    for(const t of todo){
+      const id=uuid(),row={section:sec,item:t.item,sub:t.sub||null,qty:t.q,prod_date:d,client_id:id,...xf};
+      let res;try{res=await insertRow("free_production",row)}catch(e){res={error:{message:String(e)}}}
+      if(res.error&&isNet(res.error)){
+        Q_.add({id,table:"free_production",row,sec,rid:"free",qty:t.q,txt:t.item+(t.sub?" · "+t.sub:"")+" (بدون طلبية)"});updateBadge();
+        off++;ok++;t.el.remove();continue;
+      }
+      if(res.error){bad.push(NEED_V2(res.error.message)?"لازم تشغّل ملف setup_v2.sql في Supabase الأول":t.item+": "+res.error.message);continue}
+      ok++;t.el.remove();
+    }
+    if(ok&&done)await done();
+    // اللي اتسجل اتشال من الشاشة؛ اللي فشل بس فاضل عشان تعيد المحاولة من غير تكرار
+    if(bad.length){toast((ok?"اتسجل "+ok+" وفشل "+bad.length+" — ":"")+bad[0],"bad");renum();return false}
+    toast(off?"مفيش نت: اتحفظ "+ok+" صنف على الجهاز وهيتسجلوا لما النت يرجع":"تم تسجيل "+ok+" صنف",off?"warn":undefined);
+  },"تسجيل الكل");
+  const box=document.getElementById("mrows");
+  const renum=()=>{const r=[...box.querySelectorAll(".mrow")];r.forEach((e,i)=>{e.querySelector(".mn").textContent="صنف "+(i+1);e.querySelector(".rmi").hidden=r.length<2})};
+  const add=(focus)=>{
+    box.insertAdjacentHTML("beforeend",rowHtml());
+    const el=box.lastElementChild;enhanceAll(el);renum();
+    el.querySelector(".rmi").onclick=()=>{el.remove();renum()};
+    // Enter: ينقل للحقل اللي بعده، ومن الكمية في آخر صنف يفتح صنف جديد (من غير ما يحفظ بالغلط)
+    el.addEventListener("keydown",e=>{
+      if(e.key!=="Enter"||e.target.tagName!=="INPUT"||e.defaultPrevented)return;
+      e.preventDefault();e.stopPropagation();
+      const f=[...el.querySelectorAll("input:not([type=hidden])")],i=f.indexOf(e.target);
+      if(i>=0&&i<f.length-1)f[i+1].focus();
+      else if(el===box.lastElementChild)add(true);
+      else{const n=el.nextElementSibling;if(n)n.querySelector(".it").focus()}
+    });
+    if(focus){el.querySelector(".it").focus();el.scrollIntoView({block:"nearest",behavior:"smooth"})}
+  };
+  add(true);
+  document.getElementById("madd").onclick=()=>add(true);
 }
 /* ===== تسجيل هالك سريع (جليز) — من غير طلبية ===== */
 function quickWaste(done){

@@ -1,5 +1,5 @@
 /* sw.js — تسريع التحميل: المكتبات والخطوط من الكاش، وملفات البرنامج من النت أولًا (عشان التحديثات تظهر) */
-const V="mas-v2.3.1",LIB="mas-lib";
+const V="mas-v2.3.4",LIB="mas-lib";
 addEventListener("install",e=>{skipWaiting()});
 addEventListener("activate",e=>{e.waitUntil((async()=>{
   for(const k of await caches.keys())if(k!==V&&k!==LIB)await caches.delete(k);
@@ -38,6 +38,56 @@ addEventListener("push",e=>{
     tag:d.tag||"mas",renotify:true,dir:"rtl",lang:"ar",
     data:{url:d.url||"index.html"}
   }));
+});
+/* إشعار حالة الإنترنت: بيظهر وبعد ثواني بيختفي لوحده (الصفحة بتبعتله الرسالة) */
+addEventListener("message",e=>{
+  const d=e.data||{};
+  if(d.type!=="net")return;
+  const off=d.kind==="off";
+  e.waitUntil((async()=>{
+    await registration.showNotification(off?"انقطع الاتصال بالإنترنت":"رجع الاتصال بالإنترنت",{
+      body:d.body||"",icon:"icon-192.png",badge:"icon-192.png",
+      tag:"net-status",renotify:true,dir:"rtl",lang:"ar",silent:false,
+      vibrate:off?[120,80,120]:[200],data:{url:"index.html",kind:d.kind}
+    });
+    await new Promise(r=>setTimeout(r,off?6000:9000));
+    for(const n of await registration.getNotifications({tag:"net-status"}))n.close();
+  })());
+});
+/* ===== رجوع النت والبرنامج مقفول (Background Sync) =====
+   الصفحة بتسجّل "net-back" وهي أوفلاين، والمتصفح بيشغّل الحدث ده أول ما الاتصال يرجع حتى لو البرنامج مقفول. */
+const metaGet=k=>new Promise(res=>{
+  try{
+    const q=indexedDB.open("mas-meta",1);
+    q.onupgradeneeded=()=>q.result.createObjectStore("k");
+    q.onerror=()=>res(null);
+    q.onsuccess=()=>{
+      try{const g=q.result.transaction("k").objectStore("k").get(k);g.onsuccess=()=>res(g.result===undefined?null:g.result);g.onerror=()=>res(null)}
+      catch(e){res(null)}
+    };
+  }catch(e){res(null)}
+});
+const pendCount=async()=>+(await metaGet("pend"))||0;
+addEventListener("sync",e=>{
+  if(e.tag!=="net-back")return;
+  e.waitUntil((async()=>{
+    if(await metaGet("netnotify")==="0")return; // المستخدم قفل التنبيه من الإعدادات
+    await fetch("icon.svg?_chk="+Date.now(),{method:"HEAD",cache:"no-store"}); // لو فشل (مفيش نت فعلي) المتصفح بيعيد المحاولة بعدين
+    const cs=await clients.matchAll({type:"window",includeUncontrolled:true});
+    if(cs.some(c=>c.visibilityState==="visible"))return; // البرنامج مفتوح قدامك: هو بيعرّفك لوحده
+    const ex=await registration.getNotifications({tag:"net-status"});
+    if(ex.some(n=>n.data&&n.data.kind==="on"))return;   // الصفحة نبّهت قبل كده
+    const n=await pendCount();
+    await registration.showNotification("رجع الاتصال بالإنترنت",{
+      body:n?n+" تسجيل محفوظ على الجهاز، افتح البرنامج عشان يتبعتوا":"تم الاتصال بالإنترنت من جديد",
+      icon:"icon-192.png",badge:"icon-192.png",tag:"net-status",renotify:true,dir:"rtl",lang:"ar",
+      vibrate:[200],data:{url:"index.html",kind:"on"}
+    });
+    if(!n){ // مفيش تسجيلات معلقة: الإشعار يختفي لوحده، ولو فيه تسجيلات بيفضل لحد ما تفتح البرنامج
+      await new Promise(r=>setTimeout(r,9000));
+      for(const x of await registration.getNotifications({tag:"net-status"}))x.close();
+    }
+  })());
 });
 addEventListener("notificationclick",e=>{
   e.notification.close();

@@ -57,12 +57,16 @@ window.masCacheClear=()=>{try{localStorage.removeItem("masc_uid")}catch(e){}retu
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {global:{fetch:MASC.fetch}});
 
 /* ===== إصدار البرنامج (غيّر الرقم هنا عند كل تحديث) ===== */
-const APP_VERSION = "2.3.1";
+const APP_VERSION = "2.3.5";
 // مفتاح الإشعارات العام (آمن إنه يبقى ظاهر)
 const VAPID_PUBLIC = "BMI1dksSzpLuotH8TRjMLlwd53SaAltxeJkdfGYnb0GNTjQLbqXy-HDXbWZUlA5jtahNrND9TZRV7afcjnDfLhs";
 const APP_BUILD = "2026-11-11";
 // آخر التحديثات (الأحدث أولاً) — بتظهر في الإعدادات > البرنامج > «ما الجديد»
 const APP_CHANGES = [
+  ["2.3.4", "2026-11-11", [
+    "تنبيه لما النت يقع ولما يرجع، حتى والبرنامج في الخلفية أو مقفول، ويختفي لوحده",
+    "تقدر تقفل أو تفتح التنبيه ده من الإعدادات ← الإشعارات"
+  ]],
   ["2.3.1", "2026-11-11", [
     "شغل أفضل لما النت يقطع: البرنامج بيفضل مفتوح ببيانات الجهاز من غير ما يطلّعك لصفحة الدخول"
   ]],

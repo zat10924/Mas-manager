@@ -108,6 +108,9 @@
     <div class="sethead"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><h3>الإشعارات</h3></div>
     <dl class="kv2"><dt>الحالة</dt><dd id="s_pstate">—</dd></dl>
     <div class="row"><button class="btn" id="s_pon" style="flex:1" hidden>تفعيل الإشعارات</button><button class="btn ghost" id="s_ptest" style="flex:1" hidden>إشعار تجريبي</button><button class="btn ghost" id="s_poff" style="flex:1;color:var(--bad)" hidden>إيقاف</button></div>
+    <dl class="kv2" style="margin-top:10px"><dt>تنبيه انقطاع/رجوع النت</dt><dd id="s_nstate">—</dd></dl>
+    <div class="row"><button class="btn ghost" id="s_ntoggle" style="flex:1">—</button></div>
+    <div class="hint" style="margin-top:6px">بيظهر إشعار لما النت يقع أو يرجع والبرنامج في الخلفية، ويختفي لوحده. محتاج الإشعارات تكون مفعّلة.</div>
     <div class="hint" style="margin-top:6px">بتوصلك إشعارات الإنتاج والطلبيات ورسائل المسؤول والنسخ الجديدة، حتى لو البرنامج مقفول.</div>
     <div id="s_padmin" hidden style="margin-top:12px">
       <label>إرسال إشعار لكل المستخدمين</label>
@@ -232,7 +235,11 @@ async function pushErr(error){
   try{const r=error&&error.context;if(r&&r.status){let t="";try{const j=await r.clone().json();t=j.error||j.message||JSON.stringify(j)}catch(e){t=await r.text()}m=r.status+" "+String(t).slice(0,120)}}catch(e){}
   return "تعذر الإرسال: "+(m||"غير معروف");
 }
+const netOn=()=>{try{return localStorage.getItem("net_notify")!=="0"}catch(e){return true}};
+function drawNet(){const on=netOn();s_nstate.textContent=on?"مفعّل":"متوقف";s_ntoggle.textContent=on?"إيقاف التنبيه":"تفعيل التنبيه";}
+s_ntoggle.onclick=()=>{const on=!netOn();try{localStorage.setItem("net_notify",on?"1":"0")}catch(e){}try{masMeta.put("netnotify",on?"1":"0")}catch(e){}toast(on?"تم تفعيل تنبيه الإنترنت":"اتقفل تنبيه الإنترنت");drawNet()};
 async function drawPush(){
+  drawNet();
   const st=await pushState();
   s_pstate.textContent={on:"مفعّلة على الجهاز ده",off:"غير مفعّلة",denied:"مرفوضة من إعدادات الجهاز",unsupported:"الجهاز ده مش بيدعمها"}[st];
   s_pon.hidden=st==="on"||st==="unsupported"||st==="denied";

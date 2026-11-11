@@ -26,7 +26,7 @@
   <div class="row noprint" style="margin:0 0 8px"><button class="btn ghost sm" id="mbtn" type="button">☑ تحديد متعدد</button><button class="btn ghost sm" id="mall" type="button" hidden>تحديد الكل</button></div>
   <div class="prodact noprint"><button class="btn" id="freeBtn" type="button">＋ إنتاج بدون طلبية</button><button class="btn ghost" id="wasteBtn" type="button" hidden>＋ تسجيل هالك</button></div>
   <div id="list"></div>
-  <h3 style="margin:18px 2px 8px">تسجيلات النهارده</h3>
+  <div class="noprint" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin:18px 2px 8px"><h3 id="logh" style="margin:0">تسجيلات النهارده</h3><input type="date" id="logd" aria-label="تاريخ التسجيلات" style="width:auto;margin:0"></div>
   <div id="today"></div>
 </div>
 <div id="mbar" class="noprint" hidden><button class="btn" id="mgo" type="button"></button><button class="btn ghost" id="mx" type="button">إلغاء</button></div>
@@ -39,46 +39,47 @@ const SEC={
  glaze:{name:"جليز",color:"#2E6F80",o:"glaze_orders",l:"glaze_lines_status",p:"glaze_production",lab:x=>x.color},
  deco:{name:"زخرفة",color:"#5E5A8C",o:"deco_orders",l:"deco_lines_status",p:"deco_production",lab:x=>"كود "+x.code},
  spray:{name:"رش",color:"#B8862B"}};
-let multi=false,sel=new Set(),selSec="",sec="",allowed=[],rows=[],tod=[],Q="",stale=0;
+let multi=false,sel=new Set(),selSec="",sec="",allowed=[],rows=[],tod=[],Q="",stale=0,D="";
 
 async function load(){
-  const c=SEC[sec],t=today();
+  if(!D)D=today();
+  const c=SEC[sec],t=D;
   try{
     if(c.o){
       const[o,l,p]=await Promise.all([db.from(c.o).select("*"),db.from(c.l).select("*").order("id"),
-        db.from(c.p).select("id,line_id,qty").eq("prod_date",t).order("id",{ascending:false})]);
+        db.from(c.p).select("*").eq("prod_date",t).order("id",{ascending:false})]);
       if(o.error||l.error)throw new Error("load");
       const om=new Map(o.data.map(x=>[x.id,x])),lm=new Map(l.data.map(x=>[x.id,x]));
       rows=l.data.filter(x=>om.get(x.order_id)?.status==="open").map(x=>({id:x.id,oid:x.order_id,title:om.get(x.order_id).item,sub:c.lab(x),req:x.total_required,done:x.produced,date:om.get(x.order_id).order_date,due:om.get(x.order_id).due_date}));
-      tod=(p.data||[]).map(e=>{const x=lm.get(e.line_id),o2=x&&om.get(x.order_id);return{qty:e.qty,txt:o2?o2.item+" · "+c.lab(x):"—"}});
+      tod=(p.data||[]).map(e=>{const x=lm.get(e.line_id),o2=x&&om.get(x.order_id);return{k:"line",tb:c.p,id:e.id,qty:e.qty,date:e.prod_date,worker:e.worker||"",note:e.note||"",design:e.design||"",txt:o2?o2.item+" · "+c.lab(x):"—",max:x?x.total_required-x.produced+e.qty:0,sync:x?{lv:c.l,o:c.o,oid:x.order_id}:null}});
     }else{
-      const[o,p]=await Promise.all([db.from("spray_status").select("*"),db.from("spray_production").select("id,order_id,qty").eq("prod_date",t).order("id",{ascending:false})]);
+      const[o,p]=await Promise.all([db.from("spray_status").select("*"),db.from("spray_production").select("*").eq("prod_date",t).order("id",{ascending:false})]);
       if(o.error)throw new Error("load");
       const om=new Map(o.data.map(x=>[x.id,x]));
       rows=o.data.filter(x=>x.status==="open").map(x=>({id:x.id,oid:x.id,title:x.item,sub:x.color,req:x.qty_required,done:x.produced,date:x.order_date}));
-      tod=(p.data||[]).map(e=>{const x=om.get(e.order_id);return{qty:e.qty,txt:x?x.item+" · "+x.color:"—"}});
+      tod=(p.data||[]).map(e=>{const x=om.get(e.order_id);return{k:"line",tb:"spray_production",id:e.id,qty:e.qty,date:e.prod_date,worker:e.worker||"",note:e.note||"",design:"",txt:x?x.item+" · "+x.color:"—",max:x?x.qty_required-x.produced+e.qty:0,sync:x?{sv:"spray_status",o:"spray_orders",oid:x.id}:null}});
     }
     // الإنتاج بدون طلبية (لو الجدول موجود)
     try{
-      const f=await db.from("free_production").select("id,item,sub,qty").eq("section",sec).eq("prod_date",t).order("id",{ascending:false});
-      if(!f.error)tod.unshift(...(f.data||[]).map(e=>({qty:e.qty,txt:e.item+(e.sub?" · "+e.sub:"")+" · بدون طلبية",fid:e.id})));
+      const f=await db.from("free_production").select("*").eq("section",sec).eq("prod_date",t).order("id",{ascending:false});
+      if(!f.error)tod.unshift(...(f.data||[]).map(e=>({k:"free",tb:"free_production",id:e.id,qty:e.qty,date:e.prod_date,item:e.item,sub:e.sub||"",worker:e.worker||"",note:e.note||"",design:e.design||"",txt:e.item+(e.sub?" · "+e.sub:"")+" · بدون طلبية"})));
     }catch(e){}
     try{localStorage.setItem("pc_"+sec,JSON.stringify({rows,tod,at:Date.now()}))}catch(e){}
     stale=0;
   }catch(e){
     let ch=null;try{ch=JSON.parse(localStorage.getItem("pc_"+sec))}catch(x){}
     if(!ch){fail("list",load);return}
-    rows=ch.rows;tod=ch.tod;stale=ch.at;
+    rows=ch.rows;tod=D===today()?ch.tod:[];stale=ch.at;
   }
   // التسجيلات اللي لسه ما اتبعتتش بتتحسب في الأرقام
-  Q_.get().filter(i=>i.sec===sec).forEach(i=>{const r=rows.find(x=>x.id===i.rid);if(r)r.done+=i.qty;tod.unshift({qty:i.qty,txt:i.txt+" ⏳"})});
+  Q_.get().filter(i=>i.sec===sec).forEach(i=>{const r=rows.find(x=>x.id===i.rid);if(r)r.done+=i.qty;if((i.row&&i.row.prod_date||today())===D)tod.unshift({qty:i.qty,txt:i.txt+" ⏳",pend:1})});
   draw();
 }
 function draw(){
   const c=SEC[sec],q=Q.trim().toLowerCase();
   if(selSec!==sec){sel.clear();selSec=sec}
   const list=rows.filter(r=>!q||(r.title+" "+r.sub).toLowerCase().includes(q)).sort((a,b)=>String(a.due||a.date).localeCompare(String(b.due||b.date)));
-  kpis("stats",[["بنود مفتوحة",rows.length],["المتبقي",rows.reduce((a,r)=>a+Math.max(r.req-r.done,0),0)],["إنتاج النهارده",tod.reduce((a,e)=>a+e.qty,0),"var(--ok)"]]);
+  kpis("stats",[["بنود مفتوحة",rows.length],["المتبقي",rows.reduce((a,r)=>a+Math.max(r.req-r.done,0),0)],[D===today()?"إنتاج النهارده":"إنتاج اليوم",tod.reduce((a,e)=>a+e.qty,0),"var(--ok)"]]);
   document.getElementById("list").innerHTML=list.length?list.map(r=>{
     const rem=Math.max(r.req-r.done,0),p=r.req>0?Math.min(100,Math.round(r.done/r.req*100)):0,late=r.due?today()>r.due:isLate("open",r.date);
     return `<div class="card pr ${multi&&sel.has(r.id)?"sel":""}" data-id="${r.id}" style="cursor:pointer"><div class="top"><span style="display:flex;gap:8px;align-items:center;min-width:0">${multi?`<span class="ck ${sel.has(r.id)?"on":""}"></span>`:""}<b>${esc(r.title)}</b></span><span>${late?'<span class="tag late">متأخرة</span> ':""}<span class="tag">${esc(r.sub)}</span></span></div>
@@ -87,7 +88,10 @@ function draw(){
   updBar();
   wasteBtn.hidden=sec!=="glaze";
   if(stale)document.getElementById("list").insertAdjacentHTML("afterbegin",`<div class="card" style="border-color:var(--warn)"><b>⚠ مفيش اتصال</b><div class="nums">بيانات محفوظة من آخر اتصال (${new Date(stale).toLocaleTimeString("ar-EG",{hour:"2-digit",minute:"2-digit"})}). تسجيلاتك هتتحفظ وتتبعت لما النت يرجع.</div></div>`);
-  document.getElementById("today").innerHTML=tod.length?`<div class="card">${tod.slice(0,10).map(e=>`<div class="line fe"><span>${esc(e.txt)}</span><span style="display:flex;align-items:center;gap:8px"><b>${nf(e.qty)}</b>${e.fid&&can("delete")?`<button class="btn ghost sm" type="button" onclick="delFree(${e.fid})">حذف</button>`:""}</span></div>`).join("")}</div>`:`<div class="empty">لسه مفيش تسجيل النهارده</div>`;
+  const ce=can("edit")&&!stale,cd=can("delete")&&!stale;
+  document.getElementById("logh").textContent=D===today()?"تسجيلات النهارده":"تسجيلات يوم "+fmtD(D);
+  document.getElementById("logd").value=D;
+  document.getElementById("today").innerHTML=tod.length?`<div class="card">${tod.map((e,i)=>`<div class="line fe"><span>${esc(e.txt)}${e.worker?` <span class="nums">· ${esc(e.worker)}</span>`:""}</span><span style="display:flex;align-items:center;gap:6px"><b>${nf(e.qty)}</b>${e.k&&!e.pend&&ce?`<button class="btn ghost sm" type="button" onclick="editEnt(${i})">تعديل</button>`:""}${e.k&&!e.pend&&cd?`<button class="btn ghost sm" type="button" onclick="delEntry(${i})">حذف</button>`:""}</span></div>`).join("")}</div>`:`<div class="empty">${D===today()?"لسه مفيش تسجيل النهارده":"مفيش تسجيل في اليوم ده"}</div>`;
 }
 // ===== تحديد متعدد: تسجيل إنتاج أكتر من بند في مرة واحدة =====
 function updBar(){
@@ -139,15 +143,53 @@ function multiModal(){
 mbtn.onclick=()=>{multi=!multi;sel.clear();draw()};
 freeBtn.onclick=()=>freeProduction(sec,load);
 wasteBtn.onclick=()=>quickWaste(load);
-async function delFree(id){
-  if(!await ask("حذف تسجيل الإنتاج ده؟"))return;
-  const{data:dd,error}=await db.from("free_production").delete().eq("id",id).select();
-  if(error||!dd.length){toast(error?"خطأ: "+error.message:"لم يتم الحذف، راجع الصلاحيات");return}
-  await load();toast("تم الحذف");
+// ===== تعديل / حذف تسجيل إنتاج اتسجّل بالغلط =====
+async function resync(e){
+  const x=e.sync;if(!x)return;
+  if(x.lv){await syncAfter(e);return}
+  const{data}=await db.from(x.sv).select("*").eq("id",x.oid).single();
+  const done=!!data&&data.produced>=data.qty_required;
+  if(data&&data.status!==(done?"done":"open"))await db.from(x.o).update({status:done?"done":"open"}).eq("id",x.oid);
+}
+async function delEntry(i){
+  const e=tod[i];if(!e||!e.k||e.pend)return;
+  if(!await ask("حذف تسجيل الإنتاج ده؟ ("+esc(e.txt)+")"))return;
+  const{data:dd,error}=await db.from(e.tb).delete().eq("id",e.id).select();
+  if(error||!dd.length){toast(error?(isNet(error)?"الحذف محتاج اتصال بالإنترنت":"خطأ: "+error.message):"لم يتم الحذف، راجع الصلاحيات","bad");return}
+  await resync(e);await load();toast("تم الحذف");
+}
+function editEnt(i){
+  const e=tod[i];if(!e||!e.k||e.pend)return;
+  const deco=sec==="deco",free=e.k==="free",lab=deco?"كود الرسمة":"اللون",sid=deco?"m-code":"m-color";
+  openModal("تعديل تسجيل الإنتاج",
+    (free?`<label>الصنف</label><input id="m-item" autocomplete="off"><label>${lab} (اختياري)</label><input id="${sid}" autocomplete="off">`
+         :`<div class="nums"><b>${esc(e.txt)}</b></div>`)+
+    `<label>الكمية</label><input type="number" id="m-q" min="1" ${e.max?`max="${e.max}"`:""} inputmode="numeric" value="${e.qty}">`+
+    (e.max?`<div class="hint" style="margin:0">أقصى كمية ممكنة للبند ده: ${nf(e.max)}</div>`:"")+
+    `<label>التاريخ</label><input type="date" id="m-d" value="${e.date||today()}">${XF(deco)}`,async()=>{
+    const q=parseInt(document.getElementById("m-q").value);
+    if(!q||q<1){toast("اكتب كمية صحيحة");return false}
+    if(e.max&&q>e.max){toast("الكمية أكبر من المتاح ("+e.max+")");return false}
+    const v=id=>((document.getElementById(id)||{}).value||"").trim();
+    const d=v("m-d")||e.date||today();
+    const patch={qty:q,prod_date:d,worker:v("m-w")||null,note:v("m-n")||null};
+    if(deco)patch.design=v("m-ds")||null;
+    if(free){const item=v("m-item");if(!item){toast("اكتب الصنف");return false}patch.item=item;patch.sub=v(sid)||null}
+    let r=await db.from(e.tb).update(patch).eq("id",e.id).select();
+    if(r.error&&/worker|note|design/.test(r.error.message||"")){const{worker,note,design,...rest}=patch;r=await db.from(e.tb).update(rest).eq("id",e.id).select()}
+    if(r.error){toast(isNet(r.error)?"التعديل محتاج اتصال بالإنترنت":"خطأ: "+r.error.message,"bad");return false}
+    if(!r.data||!r.data.length){toast("لم يتم التعديل، راجع الصلاحيات","bad");return false}
+    await resync(e);await load();
+    toast(d!==D?"تم التعديل — التسجيل اتنقل ليوم "+fmtD(d):"تم التعديل");
+  },"حفظ التعديل");
+  const set=(id,val)=>{const el=document.getElementById(id);if(el&&val)el.value=val};
+  if(free){set("m-item",e.item);set(sid,e.sub)}
+  set("m-w",e.worker);set("m-n",e.note);set("m-ds",e.design);
 }
 mall.onclick=()=>{const q=Q.trim().toLowerCase();rows.filter(r=>r.req-r.done>0&&(!q||(r.title+" "+r.sub).toLowerCase().includes(q))).forEach(r=>sel.add(r.id));draw()};
 mx.onclick=()=>{multi=false;sel.clear();draw()};
 mgo.onclick=multiModal;
+logd.onchange=()=>{D=logd.value||today();skel("today",1);load()};
 function quick(r){
   if(!r)return;
   const rem=r.req-r.done;
