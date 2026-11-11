@@ -3,10 +3,13 @@ const SUPABASE_KEY = "sb_publishable_NDJle8iKFHVTezQ_CTjeqg_Usd42lkZ";
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /* ===== إصدار البرنامج (غيّر الرقم هنا عند كل تحديث) ===== */
-const APP_VERSION = "2.1.3";
+const APP_VERSION = "2.1.4";
 const APP_BUILD = "2026-11-11";
 // آخر التحديثات (الأحدث أولاً) — بتظهر في الإعدادات > البرنامج > «ما الجديد»
 const APP_CHANGES = [
+  ["2.1.4", "2026-11-11", [
+    "مشاركة البرنامج بقت بتشارك رابط تحميل التطبيق نفسه بدل رابط المتصفح"
+  ]],
   ["2.1.3", "2026-11-11", [
     "تحديث تلقائي: البرنامج بيكتشف النسخة الجديدة ويحدّث نفسه من غير ما تضغط أي زر"
   ]],

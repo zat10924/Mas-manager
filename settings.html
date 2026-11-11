@@ -52,9 +52,9 @@
   <div class="card">
     <div class="sethead"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg><h3>مشاركة البرنامج</h3></div>
     <div class="shbox"><div class="shl" id="s_link"></div></div>
-    <div class="row"><button class="btn" id="s_shapp" style="flex:1.4">مشاركة الرابط</button><button class="btn ghost" id="s_cp" style="flex:1">نسخ</button><button class="btn ghost" id="s_wa" style="flex:1">واتساب</button></div>
+    <div class="row"><button class="btn" id="s_shapp" style="flex:1.4">مشاركة التطبيق</button><button class="btn ghost" id="s_cp" style="flex:1">نسخ</button><button class="btn ghost" id="s_wa" style="flex:1">واتساب</button></div>
     <label>رسالة الدعوة</label><textarea id="s_msg" rows="2" maxlength="200" placeholder="رسالة بتتبعت مع الرابط"></textarea>
-    <div class="hint" style="margin-top:4px">اللي هيفتح الرابط لازم يكون له حساب ودخول من مسؤول النظام.</div>
+    <div class="hint" style="margin-top:4px">الرابط بينزّل ملف التطبيق (APK) مباشرة. اللي هيثبّته لازم يكون له حساب ودخول من مسؤول النظام.</div>
   </div>
   <div class="card">
     <div class="sethead"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M16 6l-4-4-4 4M12 2v13"/></svg><h3>مشاركة التقارير</h3></div>
@@ -165,9 +165,9 @@ s_jump.onclick=e=>{const b=e.target.closest("button");if(!b)return;showGroup(b.d
 {let g="";try{g=sessionStorage.getItem("set_tab")||""}catch(e){}showGroup(g)}
 
 /* ===== المشاركة ===== */
-const APP_LINK=new URL("index.html",location.href).href;
+const APP_LINK=new URL("MAS-Manager.apk",location.href).href; // رابط تحميل ملف التطبيق (APK)
 s_link.textContent=APP_LINK;
-const defMsg="افتح برنامج إدارة الأقسام من الرابط ده:";
+const defMsg="حمّل برنامج إدارة الأقسام وثبّته من الرابط ده (لو طلب السماح بالتثبيت من مصادر غير معروفة وافق):";
 s_msg.value=SET.get("invmsg",defMsg);s_msg.oninput=()=>SET.set("invmsg",s_msg.value);
 const invText=()=>(s_msg.value.trim()||defMsg)+"\n"+APP_LINK;
 async function copyTxt(t){

@@ -1,5 +1,5 @@
 /* sw.js — تسريع التحميل: المكتبات والخطوط من الكاش، وملفات البرنامج من النت أولًا (عشان التحديثات تظهر) */
-const V="mas-v2.1.3",LIB="mas-lib";
+const V="mas-v2.1.4",LIB="mas-lib";
 addEventListener("install",e=>{skipWaiting()});
 addEventListener("activate",e=>{e.waitUntil((async()=>{
   for(const k of await caches.keys())if(k!==V&&k!==LIB)await caches.delete(k);
@@ -10,7 +10,7 @@ addEventListener("fetch",e=>{
   const r=e.request;if(r.method!=="GET")return;
   const u=new URL(r.url);
   if(u.hostname.endsWith("supabase.co"))return;
-  if(u.searchParams.has("_chk"))return; // فحص الإصدار دايمًا من النت // البيانات دايمًا مباشرة
+  if(u.searchParams.has("_chk")||u.pathname.endsWith(".apk"))return; // فحص الإصدار دايمًا من النت // البيانات دايمًا مباشرة
   // مكتبات وخطوط خارجية: من الكاش فورًا وتتحدث في الخلفية
   if(u.origin!==location.origin){
     if(!/jsdelivr|googleapis|gstatic/.test(u.hostname))return;
