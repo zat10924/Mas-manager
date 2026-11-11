@@ -75,6 +75,7 @@ const ICONS={
   deco:'<path d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/>',
   spray:'<rect x="7" y="10" width="9" height="11" rx="2"/><path d="M9 10V7h5v3M11.5 7V4h3"/><path d="M18 5h.01M20 8h.01M19 11h.01"/>',
   repair:'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+  casting:'<path d="M5 8h14l-1.5 11a2 2 0 0 1-2 1.7h-7a2 2 0 0 1-2-1.7L5 8z"/><path d="M4 8h16M9 4.5c.8 1 2 1 3 0s2.200-1 3 0"/>',
   chart:'<path d="M4 20V11M10 20V4M16 20v-6M22 20H2"/>',
   sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   moon:'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
@@ -97,7 +98,7 @@ const ACTIVITY=["activity.html","سجل النشاط والنسخ","log","#5b6b8
 const PROFILE=["profile.html","ملفي الشخصي","user","#642631"];
 const SETTINGS=["settings.html","الإعدادات","cog","#5b6b8c"];
 const USERS=["users.html","المستخدمين والصلاحيات","users","#7a5ea8"];
-const SEC_AR={glaze:"جليز",deco:"زخرفة",spray:"رش",repair:"تصليح"};
+const SEC_AR={glaze:"جليز",deco:"زخرفة",spray:"رش",repair:"تصليح",casting:"الصب اليدوي"};
 const ROLE_DESC={admin:"صلاحية كاملة: كل الأقسام والتقارير والمستخدمين",manager:"مسؤول عن قسم أو أكتر: يشوف ويدير أقسامه بس",worker:"يسجّل الإنتاج في قسمه بس"};
 // صلاحيات تفصيلية: الافتراضي حسب الدور، والمدير يقدر يخصصها لكل مستخدم
 const PERM_LBL={view:["عرض صفحة القسم والطلبيات","فتح صفحة القسم ومشاهدة الطلبيات. لو مقفولة يقدر يسجّل إنتاج بس من صفحة «تسجيل الإنتاج»"],edit:["تعديل الطلبيات والسجلات","تعديل بيانات الطلبية واللون والهالك والتصليح"],delete:["الحذف","حذف الطلبيات والألوان وسجلات الإنتاج والهالك"],increase:["زيادة وتأجيل الطلبيات","زيادة الكمية وتأجيل تاريخ التسليم"],reports:["تقارير القسم","فتح تبويب التقارير داخل القسم"]};
@@ -105,7 +106,7 @@ const PERM_DEF={manager:{view:true,edit:true,delete:false,increase:true,reports:
 const can=k=>{if(!ME||!ME.role)return false;if(ME.role==="admin")return true;const v=(ME.perms||{})[k];return typeof v==="boolean"?v:!!(PERM_DEF[ME.role]||{})[k]};
 const subsOf=f=>(SUBS[f]||[]).filter(x=>x[1]!=="prod"||can("reports"));
 function applyPerms(){Object.keys(PERM_LBL).forEach(k=>document.body.classList.toggle("np-"+k,!can(k)))}
-const SECTIONS=[["glaze.html","جليز","glaze","#2E6F80"],["decoration.html","زخرفة","deco","#5E5A8C"],["spray.html","رش","spray","#B8862B"],["repair.html","تصليح","repair","#5D6B7A"]];
+const SECTIONS=[["glaze.html","جليز","glaze","#2E6F80"],["decoration.html","زخرفة","deco","#5E5A8C"],["spray.html","رش","spray","#B8862B"],["repair.html","تصليح","repair","#5D6B7A"],["casting.html","الصب اليدوي","casting","#8A5A3C"]];
 
 /* ===== بريد داخلي (للمستخدم بالاسم فقط) + صورة الملف الشخصي ===== */
 const NOMAIL=/@(noemail\.mas\.app|example\.com)$/i;
@@ -129,7 +130,7 @@ function photoToData(file,size=320,q=.82){return new Promise((res,rej)=>{
 })}
 
 /* ===== الجلسة والتنقل ===== */
-const KEY={"glaze.html":"glaze","decoration.html":"deco","spray.html":"spray","repair.html":"repair"};
+const KEY={"glaze.html":"glaze","decoration.html":"deco","spray.html":"spray","repair.html":"repair","casting.html":"casting"};
 let ME=null,_today=null;
 // يجيب دور المستخدم وقسمه + تاريخ السيرفر. لو جدول profiles لسه مش متعمل (قبل تشغيل setup_roles.sql) بيشتغل كمدير عشان البرنامج ما يقفش.
 // جلسة الدخول: لو مفيش نت والتوكن منتهي نكمل بآخر جلسة محفوظة بدل ما نرجّع المستخدم لصفحة الدخول
@@ -167,7 +168,7 @@ async function loadMe(){
 const secList=r=>{const a=[];if(r&&Array.isArray(r.sections))r.sections.forEach(x=>{if(SEC_AR[x]&&!a.includes(x))a.push(x)});if(r&&r.section&&SEC_AR[r.section]&&!a.includes(r.section))a.unshift(r.section);return a};
 const mySecs=()=>ME?(ME.role==="admin"?Object.keys(SEC_AR):secList(ME)):[];
 const secNames=l=>(l||[]).map(k=>SEC_AR[k]).filter(Boolean).join("، ");
-const canSee=f=>!!ME&&!!ME.role&&(f==="index.html"||f==="production.html"||f==="profile.html"||f==="settings.html"||ME.role==="admin"||(KEY[f]&&mySecs().includes(KEY[f])&&(f==="repair.html"||can("view"))));
+const canSee=f=>!!ME&&!!ME.role&&(f==="index.html"||f==="production.html"||f==="profile.html"||f==="settings.html"||ME.role==="admin"||(KEY[f]&&mySecs().includes(KEY[f])&&(f==="repair.html"||f==="casting.html"||can("view"))));
 const visibleSections=()=>SECTIONS.filter(s=>canSee(s[0]));
 const canReports=()=>!!ME&&ME.role==="admin";
 function noAccess(){
@@ -891,7 +892,7 @@ async function freeTodayQty(sec){
 }
 const NEED_V2=m=>/free_production|relation|does not exist|schema cache|could not find/i.test(m||"");
 function freeProduction(sec,done){
-  if(!SEC_AR[sec]||sec==="repair")return;
+  if(!SEC_AR[sec]||sec==="repair"||sec==="casting")return;
   const deco=sec==="deco",lab=deco?"كود الرسمة":"اللون",kind=deco?"code":"color";
   const rowHtml=()=>`<div class="itemblk mrow"><div class="ih"><b class="mn"></b><button type="button" class="rmi" aria-label="حذف الصنف">✕ حذف</button></div>
     <label>الصنف</label><input class="it" placeholder="اسم الصنف" autocomplete="off">
