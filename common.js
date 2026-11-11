@@ -842,6 +842,12 @@ function quickWaste(done){
 /* ===== الإشعارات (Web Push) ===== */
 const PUSH_OK=()=>"serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window&&typeof VAPID_PUBLIC!=="undefined"&&!!VAPID_PUBLIC;
 const _b64=s=>{const p="=".repeat((4-s.length%4)%4),r=atob((s+p).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from([...r].map(c=>c.charCodeAt(0)))};
+async function pushSub(reg){
+  let sub=await reg.pushManager.getSubscription();
+  if(sub)return sub;
+  try{return await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:_b64(VAPID_PUBLIC)})}
+  catch(e){const o=await reg.pushManager.getSubscription();if(o){await o.unsubscribe();return reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:_b64(VAPID_PUBLIC)})}throw e}
+}
 async function pushSave(sub){
   const o=sub.toJSON();
   const{error}=await db.rpc("save_push_sub",{p_endpoint:o.endpoint,p_p256dh:o.keys.p256dh,p_auth:o.keys.auth,p_ua:navigator.userAgent});
@@ -851,8 +857,7 @@ async function pushEnable(){
   if(!PUSH_OK())throw new Error("unsupported");
   if(await Notification.requestPermission()!=="granted")throw new Error("denied");
   const reg=await navigator.serviceWorker.ready;
-  let sub=await reg.pushManager.getSubscription();
-  if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:_b64(VAPID_PUBLIC)});
+  const sub=await pushSub(reg);
   if(!await pushSave(sub))throw new Error("save");
   try{const{data:{session}}=await db.auth.getSession();localStorage.setItem("push_uid",session.user.id);localStorage.setItem("push_sync",String(Date.now()))}catch(e){}
   return true;
@@ -892,9 +897,9 @@ addEventListener("load",()=>setTimeout(async()=>{
     const{data:{session}}=await db.auth.getSession();if(!session)return;
     const same=localStorage.getItem("push_uid")===session.user.id,last=+localStorage.getItem("push_sync")||0;
     const reg=await navigator.serviceWorker.ready;
-    let sub=await reg.pushManager.getSubscription();
-    if(sub&&same&&Date.now()-last<864e5)return;
-    if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:_b64(VAPID_PUBLIC)});
+    const had=await reg.pushManager.getSubscription();
+    if(had&&same&&Date.now()-last<864e5)return;
+    const sub=await pushSub(reg);
     if(await pushSave(sub)){localStorage.setItem("push_uid",session.user.id);localStorage.setItem("push_sync",String(Date.now()))}
   }catch(e){}
 },4000));

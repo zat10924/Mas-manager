@@ -226,6 +226,11 @@ s_rst.onclick=async()=>{
   location.reload();
 };
 /* ===== الإشعارات ===== */
+async function pushErr(error){
+  let m=error&&error.message||"";
+  try{const r=error&&error.context;if(r&&r.status){let t="";try{const j=await r.clone().json();t=j.error||j.message||JSON.stringify(j)}catch(e){t=await r.text()}m=r.status+" "+String(t).slice(0,120)}}catch(e){}
+  return "تعذر الإرسال: "+(m||"غير معروف");
+}
 async function drawPush(){
   const st=await pushState();
   s_pstate.textContent={on:"مفعّلة على الجهاز ده",off:"غير مفعّلة",denied:"مرفوضة من إعدادات الجهاز",unsupported:"الجهاز ده مش بيدعمها"}[st];
@@ -242,8 +247,8 @@ s_pon.onclick=async()=>{
 s_poff.onclick=async()=>{await pushDisable();toast("اتقفلت الإشعارات");drawPush()};
 s_ptest.onclick=async()=>{
   s_ptest.disabled=true;
-  const{data,error}=await db.functions.invoke("send-push",{body:{kind:"test"}});
-  toast(error?"تعذر الإرسال":(data&&data.sent?"اتبعت إشعار تجريبي":"مفيش جهاز مسجّل"),error?"warn":undefined);
+  const{data,error}=await db.functions.invoke("hyper-worker",{body:{kind:"test"}});
+  toast(error?await pushErr(error):(data&&data.sent?"اتبعت إشعار تجريبي":"مفيش جهاز مسجّل"),error?"warn":undefined);
   s_ptest.disabled=false;
 };
 s_psend.onclick=async()=>{
@@ -251,9 +256,9 @@ s_psend.onclick=async()=>{
   if(!t&&!b){toast("اكتب عنوان أو نص","warn");return}
   if(!await ask("إرسال الإشعار لكل المستخدمين؟","إرسال"))return;
   s_psend.disabled=true;
-  const{data,error}=await db.functions.invoke("send-push",{body:{kind:"manual",title:t,body:b}});
+  const{data,error}=await db.functions.invoke("hyper-worker",{body:{kind:"manual",title:t,body:b}});
   s_psend.disabled=false;
-  if(error){toast("تعذر الإرسال","warn");return}
+  if(error){toast(await pushErr(error),"warn");return}
   toast("اتبعت لـ "+((data&&data.sent)||0)+" جهاز");s_pt.value=s_pb.value="";
 };
 
@@ -262,7 +267,7 @@ s_psend.onclick=async()=>{
     renderNav("settings.html");drawFonts();drawHero();netNow();drawPush();s_dev.textContent=matchMedia("(display-mode: standalone)").matches||navigator.standalone?"تطبيق مثبّت":"متصفح";
     s_ver.textContent="v"+APP_VERSION;
     s_bld.textContent=new Date(APP_BUILD+"T00:00:00").toLocaleDateString("ar-EG",{day:"numeric",month:"long",year:"numeric"});
-    s_log.innerHTML=APP_CHANGES.map(c=>`<div class="chver"><span class="verbadge">v${esc(c[0])}</span><small>${new Date(c[1]+"T00:00:00").toLocaleDateString("ar-EG",{day:"numeric",month:"long",year:"numeric"})}</small></div><ul class="chlog">${c[2].map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`).join("");
+    s_log.innerHTML=APP_CHANGES.slice(0,1).map(c=>`<div class="chver"><span class="verbadge">v${esc(c[0])}</span><small>${new Date(c[1]+"T00:00:00").toLocaleDateString("ar-EG",{day:"numeric",month:"long",year:"numeric"})}</small></div><ul class="chlog">${c[2].map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`).join("");
     settle();
   }
 })();

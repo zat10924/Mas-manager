@@ -3,12 +3,21 @@ const SUPABASE_KEY = "sb_publishable_NDJle8iKFHVTezQ_CTjeqg_Usd42lkZ";
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /* ===== إصدار البرنامج (غيّر الرقم هنا عند كل تحديث) ===== */
-const APP_VERSION = "2.2.1";
+const APP_VERSION = "2.2.4";
 // مفتاح الإشعارات العام (آمن إنه يبقى ظاهر)
-const VAPID_PUBLIC = "BMwvZSfiHr0lHn7bf-Us3eo77fB_euX9mBgRKl0JgfFwX9mOqWIF_47zud91s2uj8s0zNtqbNTVdbKmSWcK_L2g";
+const VAPID_PUBLIC = "BMI1dksSzpLuotH8TRjMLlwd53SaAltxeJkdfGYnb0GNTjQLbqXy-HDXbWZUlA5jtahNrND9TZRV7afcjnDfLhs";
 const APP_BUILD = "2026-11-11";
 // آخر التحديثات (الأحدث أولاً) — بتظهر في الإعدادات > البرنامج > «ما الجديد»
 const APP_CHANGES = [
+  ["2.2.4", "2026-11-11", [
+    "ربط الإشعارات بدالة السيرفر الجديدة"
+  ]],
+  ["2.2.3", "2026-11-11", [
+    "مفتاح إشعارات جديد وإعداد سيرفر الإشعارات"
+  ]],
+  ["2.2.2", "2026-11-11", [
+    "رسالة خطأ واضحة لما إرسال الإشعار يفشل"
+  ]],
   ["2.2.1", "2026-11-11", [
     "تسريع التشغيل: الملفات بتفتح من الجهاز فورًا وتتحدث في الخلفية",
     "إصلاح الإشعارات: التحديث التلقائي كان بيمسح اشتراك الإشعارات، ودلوقتي بيتجدد لوحده"
