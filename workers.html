@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#642631">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="الأقسام">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>العمال</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<div id="splash"><svg class="gears" viewBox="0 0 120 80" aria-hidden="true"><path class="g1" fill-rule="evenodd" fill="#D7B96F" d="M56.5,42.0 L63.4,44.7 L62.8,48.1 L55.4,48.3 L54.0,51.2 L58.6,57.0 L56.4,59.7 L49.9,56.1 L47.2,58.0 L48.4,65.3 L45.1,66.5 L41.3,60.2 L38.0,60.5 L35.3,67.4 L31.9,66.8 L31.7,59.4 L28.8,58.0 L23.0,62.6 L20.3,60.4 L23.9,53.9 L22.0,51.2 L14.7,52.4 L13.5,49.1 L19.8,45.3 L19.5,42.0 L12.6,39.3 L13.2,35.9 L20.6,35.7 L22.0,32.8 L17.4,27.0 L19.6,24.3 L26.1,27.9 L28.8,26.0 L27.6,18.7 L30.9,17.5 L34.7,23.8 L38.0,23.5 L40.7,16.6 L44.1,17.2 L44.3,24.6 L47.2,26.0 L53.0,21.4 L55.7,23.6 L52.1,30.1 L54.0,32.8 L61.3,31.6 L62.5,34.9 L56.2,38.7Z M45,42 a7,7 0 1,0 -14,0 a7,7 0 1,0 14,0Z"/><path class="g2" fill-rule="evenodd" fill="#E8D49B" d="M85.6,30.0 L90.2,32.7 L89.3,36.2 L83.9,36.2 L81.9,38.9 L83.2,44.1 L80.2,45.9 L76.3,42.2 L73.0,42.6 L70.3,47.2 L66.8,46.3 L66.8,40.9 L64.1,38.9 L58.9,40.2 L57.1,37.2 L60.8,33.3 L60.4,30.0 L55.8,27.3 L56.7,23.8 L62.1,23.8 L64.1,21.1 L62.8,15.9 L65.8,14.1 L69.7,17.8 L73.0,17.4 L75.7,12.8 L79.2,13.7 L79.2,19.1 L81.9,21.1 L87.1,19.8 L88.9,22.8 L85.2,26.7Z M78,30 a5,5 0 1,0 -10,0 a5,5 0 1,0 10,0Z"/><path class="g3" fill-rule="evenodd" fill="#B9984C" d="M95.2,52.5 L98.6,54.8 L97.7,57.6 L93.7,57.7 L91.8,59.7 L92.0,63.7 L89.3,64.8 L86.7,61.7 L83.9,61.5 L81.0,64.2 L78.4,62.8 L79.3,58.8 L77.7,56.5 L73.7,55.9 L73.2,53.0 L76.9,51.2 L77.7,48.5 L75.7,45.0 L77.7,42.8 L81.3,44.5 L83.9,43.5 L85.4,39.8 L88.4,40.0 L89.3,43.9 L91.8,45.3 L95.6,44.1 L97.3,46.6 L94.8,49.7Z M90,52.5 a4,4 0 1,0 -8,0 a4,4 0 1,0 8,0Z"/></svg><img src="icon.svg" alt=""><b>إدارة الأقسام</b><div class="ld"><i></i></div><small class="ldt">جاري التحميل…</small></div>
+<script>try{var n=performance.getEntriesByType("navigation")[0];if(sessionStorage.getItem("sp")&&!(n&&n.type==="reload"))document.getElementById("splash").remove()}catch(e){}</script>
+<div class="wrap">
+  <h1>العمال</h1>
+  <div class="kpis mini three" id="stats"></div>
+  <div class="tabs noprint" id="tb"><button class="btn on" data-k="">الكل</button><button class="btn ghost" data-k="glaze">جليز</button><button class="btn ghost" data-k="deco">زخرفة</button><button class="btn ghost" data-k="spray">رش</button><button class="btn ghost" data-k="repair">تصليح</button></div>
+  <div class="nums" style="margin-bottom:8px">العمال بيظهروا كاقتراحات في خانة «اسم العامل» وقت تسجيل الإنتاج، وفي التقرير اليومي.</div>
+  <button class="btn" id="add" style="width:100%;margin-bottom:10px">+ إضافة عامل</button>
+  <div class="search"><input type="search" id="q" placeholder="بحث عن عامل…" aria-label="بحث"></div>
+  <div id="list"></div>
+</div>
+<div id="toast"></div><div id="offline">لا يوجد اتصال بالإنترنت</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+let sec="",all=[],Q="",prodToday=new Map();
+const SECN={glaze:"جليز",deco:"زخرفة",spray:"رش",repair:"تصليح"};
+const secOpts=v=>'<option value="">كل الأقسام</option>'+Object.entries(SECN).map(([k,n])=>`<option value="${k}" ${k===v?"selected":""}>${n}</option>`).join("");
+async function load(){
+  skel("list",3);
+  const{data,error}=await db.from("workers").select("*").order("name");
+  if(error){
+    document.getElementById("list").innerHTML='<div class="empty err-state">جدول العمال غير موجود. شغّل ملف create_workers.sql من Supabase (SQL Editor) مرة واحدة.<br><button class="btn sm" onclick="load()">إعادة المحاولة</button></div>';return}
+  all=data;
+  // إنتاج النهارده لكل عامل (لو الأعمدة موجودة)
+  prodToday=new Map();
+  try{
+    const t=today();
+    for(const tb of ["glaze_production","deco_production","spray_production","free_production"]){
+      const r=await db.from(tb).select("worker,qty").eq("prod_date",t).not("worker","is",null);
+      (r.data||[]).forEach(x=>prodToday.set(x.worker,(prodToday.get(x.worker)||0)+(+x.qty||0)));
+    }
+  }catch(e){}
+  draw();
+}
+function tgt(x){
+  const t=+x.daily_target||0;if(!t)return"";
+  const p=prodToday.get(x.name)||0,pc=Math.round(p/t*100),c=pc>=100?"var(--ok)":pc>=70?"var(--gold-d,#b9984c)":"var(--bad,#c0392b)";
+  return `<div class="nums" style="margin-top:4px">المعدل المطلوب يوميًا: <b>${nf(t)}</b> · ${pc>=100?"حقق المعدل ✓":"ناقص "+nf(t-p)}</div><div style="height:7px;border-radius:6px;background:var(--line);margin:4px 0 2px;overflow:hidden"><i style="display:block;height:100%;width:${Math.min(100,pc)}%;background:${c};border-radius:6px"></i></div><div class="nums" style="color:${c}">${pc}% من المعدل</div>`}
+function draw(){
+  const act=all.filter(x=>x.active).length;
+  kpis("stats",[["إجمالي العمال",all.length],["نشطين",act,"var(--ok)"],["إنتاج اليوم (بالأسماء)",[...prodToday.values()].reduce((a,b)=>a+b,0)]]);
+  const rs=all.filter(x=>(!sec||x.section===sec)&&hit(norm(Q),x.name,x.phone||""));
+  document.getElementById("list").innerHTML=rs.length?`<div class="card">${rs.map(x=>`<div class="line ${x.active?"":"full"}" style="${x.active?"":"opacity:.6"}"><div class="r"><b>${esc(x.name)}</b><span>${x.section?`<span class="tag">${SECN[x.section]||esc(x.section)}</span> `:""}${x.active?"":'<span class="tag late">موقوف</span>'}</span></div>
+    <div class="nums">${x.phone?"📞 "+esc(x.phone)+" · ":""}${prodToday.get(x.name)?"إنتاج النهارده: <b>"+nf(prodToday.get(x.name))+"</b>":"لسه مفيش إنتاج النهارده"}</div>${tgt(x)}
+    <div class="row" style="margin-top:4px"><button class="btn ghost sm" data-e="${x.id}">تعديل</button><button class="btn ghost sm" data-t="${x.id}">${x.active?"إيقاف":"تفعيل"}</button><button class="btn ghost sm" data-d="${x.id}">حذف</button></div></div>`).join("")}</div>`:`<div class="empty">${Q?"مفيش نتائج":"مفيش عمال. اضغط «إضافة عامل»."}</div>`;
+}
+function form(x){
+  x=x||{};
+  return `<label>اسم العامل</label><input id="m-wn" value="${esc(x.name||"")}" maxlength="60"><label>القسم (اختياري)</label><select id="m-ws">${secOpts(x.section||"")}</select><label>المعدل المطلوب يوميًا (اختياري)</label><input id="m-wt" type="number" min="0" inputmode="numeric" value="${x.daily_target||""}" placeholder="أقل إنتاج مطلوب منه في اليوم"><div class="hint" style="margin:2px 0 0">بيتقارن بإنتاجه كل يوم عشان تقيس مستواه.</div><label>رقم الموبايل (اختياري)</label><input id="m-wp" type="tel" inputmode="tel" value="${esc(x.phone||"")}" maxlength="20">`;
+}
+function read(){return{name:document.getElementById("m-wn").value.trim(),section:document.getElementById("m-ws").value||null,phone:document.getElementById("m-wp").value.trim()||null,daily_target:parseInt(document.getElementById("m-wt").value)||null}}
+function addW(){
+  openModal("إضافة عامل",form(),async()=>{
+    const r=read();if(!r.name){toast("اكتب اسم العامل");return false}
+    if(all.some(w=>norm(w.name)===norm(r.name))){toast("العامل ده موجود قبل كده");return false}
+    let{error}=await db.from("workers").insert(r);if(error&&/daily_target/.test(error.message)){toast("شغّل ملف setup_v2.sql الأول عشان المعدل اليومي");return false}
+    if(error){toast("خطأ: "+error.message);return false}
+    wkReset();await load();toast("تمت إضافة العامل");
+  });
+}
+function editW(id){
+  const x=all.find(w=>w.id===id);
+  openModal("تعديل العامل",form(x),async()=>{
+    const r=read();if(!r.name){toast("اكتب اسم العامل");return false}
+    if(all.some(w=>w.id!==id&&norm(w.name)===norm(r.name))){toast("الاسم ده موجود لعامل تاني");return false}
+    let{error}=await db.from("workers").update(r).eq("id",id);if(error&&/daily_target/.test(error.message)){toast("شغّل ملف setup_v2.sql الأول عشان المعدل اليومي");return false}
+    if(error){toast("خطأ: "+error.message);return false}
+    wkReset();await load();toast("تم التعديل");
+  });
+}
+const wkReset=()=>{try{WK=null}catch(e){}};
+document.getElementById("list").onclick=async e=>{
+  const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.e)return editW(+b.dataset.e);
+  if(b.dataset.t){
+    const x=all.find(w=>w.id===+b.dataset.t);
+    const{error}=await db.from("workers").update({active:!x.active}).eq("id",x.id);
+    if(error){toast("خطأ: "+error.message);return}
+    wkReset();await load();toast(x.active?"تم إيقاف العامل":"تم تفعيل العامل");return;
+  }
+  if(b.dataset.d){
+    const x=all.find(w=>w.id===+b.dataset.d);
+    if(!await ask("حذف «"+x.name+"»؟ سجلات الإنتاج القديمة هتفضل زي ما هي."))return;
+    const{data,error}=await db.from("workers").delete().eq("id",x.id).select();
+    if(error||!data.length){toast(error?"خطأ: "+error.message:"لم يتم الحذف، راجع الصلاحيات");return}
+    wkReset();await load();toast("تم الحذف");
+  }
+};
+document.getElementById("add").onclick=addW;
+document.getElementById("q").oninput=e=>{Q=e.target.value;draw()};
+document.querySelectorAll("#tb button").forEach(b=>b.onclick=()=>{sec=b.dataset.k;document.querySelectorAll("#tb button").forEach(x=>x.className="btn "+(x===b?"on":"ghost"));draw()});
+(async()=>{if(await requireAuth("workers.html")){renderNav("workers.html");load().finally(settle)}})();
+</script>
+<script src="install.js" defer></script>
+</body>
+</html>

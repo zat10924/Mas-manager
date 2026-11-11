@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#642631">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="الأقسام">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>رش</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<div id="splash"><svg class="gears" viewBox="0 0 120 80" aria-hidden="true"><path class="g1" fill-rule="evenodd" fill="#D7B96F" d="M56.5,42.0 L63.4,44.7 L62.8,48.1 L55.4,48.3 L54.0,51.2 L58.6,57.0 L56.4,59.7 L49.9,56.1 L47.2,58.0 L48.4,65.3 L45.1,66.5 L41.3,60.2 L38.0,60.5 L35.3,67.4 L31.9,66.8 L31.7,59.4 L28.8,58.0 L23.0,62.6 L20.3,60.4 L23.9,53.9 L22.0,51.2 L14.7,52.4 L13.5,49.1 L19.8,45.3 L19.5,42.0 L12.6,39.3 L13.2,35.9 L20.6,35.7 L22.0,32.8 L17.4,27.0 L19.6,24.3 L26.1,27.9 L28.8,26.0 L27.6,18.7 L30.9,17.5 L34.7,23.8 L38.0,23.5 L40.7,16.6 L44.1,17.2 L44.3,24.6 L47.2,26.0 L53.0,21.4 L55.7,23.6 L52.1,30.1 L54.0,32.8 L61.3,31.6 L62.5,34.9 L56.2,38.7Z M45,42 a7,7 0 1,0 -14,0 a7,7 0 1,0 14,0Z"/><path class="g2" fill-rule="evenodd" fill="#E8D49B" d="M85.6,30.0 L90.2,32.7 L89.3,36.2 L83.9,36.2 L81.9,38.9 L83.2,44.1 L80.2,45.9 L76.3,42.2 L73.0,42.6 L70.3,47.2 L66.8,46.3 L66.8,40.9 L64.1,38.9 L58.9,40.2 L57.1,37.2 L60.8,33.3 L60.4,30.0 L55.8,27.3 L56.7,23.8 L62.1,23.8 L64.1,21.1 L62.8,15.9 L65.8,14.1 L69.7,17.8 L73.0,17.4 L75.7,12.8 L79.2,13.7 L79.2,19.1 L81.9,21.1 L87.1,19.8 L88.9,22.8 L85.2,26.7Z M78,30 a5,5 0 1,0 -10,0 a5,5 0 1,0 10,0Z"/><path class="g3" fill-rule="evenodd" fill="#B9984C" d="M95.2,52.5 L98.6,54.8 L97.7,57.6 L93.7,57.7 L91.8,59.7 L92.0,63.7 L89.3,64.8 L86.7,61.7 L83.9,61.5 L81.0,64.2 L78.4,62.8 L79.3,58.8 L77.7,56.5 L73.7,55.9 L73.2,53.0 L76.9,51.2 L77.7,48.5 L75.7,45.0 L77.7,42.8 L81.3,44.5 L83.9,43.5 L85.4,39.8 L88.4,40.0 L89.3,43.9 L91.8,45.3 L95.6,44.1 L97.3,46.6 L94.8,49.7Z M90,52.5 a4,4 0 1,0 -8,0 a4,4 0 1,0 8,0Z"/></svg><img src="icon.svg" alt=""><b>إدارة الأقسام</b><div class="ld"><i></i></div><small class="ldt">جاري التحميل…</small></div>
+<script>try{var n=performance.getEntriesByType("navigation")[0];if(sessionStorage.getItem("sp")&&!(n&&n.type==="reload"))document.getElementById("splash").remove()}catch(e){}</script>
+<div class="wrap">
+  <h1>رش</h1>
+  <div class="tabs noprint">
+    <button class="btn on" id="t-open">مفتوحة</button>
+    <button class="btn ghost" id="t-done">مكتملة</button>
+    <button class="btn ghost" id="t-prod">تقارير</button>
+  </div>
+  <div id="ordersView">
+  <button class="btn" id="newOrder" style="width:100%;margin-bottom:12px">+ طلبية جديدة</button>
+  <div class="row noprint" id="freeRow" style="margin:-4px 0 12px"><button class="btn ghost" id="freeBtn" type="button" style="flex:1">＋ إنتاج بدون طلبية</button></div>
+  <div class="kpis mini three" id="stats"></div>
+  <div id="orders"></div>
+  </div>
+  <div id="prodRep" style="display:none"></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script src="reports.js"></script>
+<script>
+let orders=[],prods=[],tab=location.hash==="#reports"?"prod":"open",Q="",repCtl=null;
+function logHtml(id){
+  const p=prods.filter(x=>x.order_id===id);
+  if(!p.length)return"";
+  return '<div class="nums" style="font-size:.85rem">'+p.slice(0,6).map(e=>`${e.qty} (${fmtD(e.prod_date)})`).join(" · ")+(p.length>6?` · +${p.length-6}`:"")+"</div>";
+}
+
+
+async function load(){
+  const[o,p,d,ft]=await Promise.all([db.from("spray_status").select("*").order("created_at",{ascending:false}),db.from("spray_production").select("id,order_id,qty,prod_date").order("prod_date",{ascending:false}).order("id",{ascending:false}),db.from("spray_orders").select("id,due_date,postponed_count"),freeTodayQty("spray")]);
+  if(o.error){fail("orders",load);return}
+  FREE_T=ft;const dm=new Map((d.data||[]).map(x=>[x.id,x]));orders=o.data.map(x=>({...x,...(dm.get(x.id)||{})}));prods=p.data||[];renderOrders();
+}
+
+function postpone(id){postponeOrder("spray","spray_orders",orders.find(x=>x.id===id),load)}
+function drawStats(){
+  const open=orders.filter(o=>o.status==="open"),t=today();
+  kpis("stats",[["طلبيات مفتوحة",open.length],["المتبقي للإنجاز",open.reduce((a,o)=>a+Math.max(o.qty_required-o.produced,0),0)],["إنتاج النهارده",prods.filter(p=>p.prod_date===t).reduce((a,p)=>a+p.qty,0)+FREE_T,"var(--ok)"]]);
+}
+function renderOrders(){
+  drawStats();
+  const list=orders.filter(o=>o.status===tab&&hit(Q,o.item,o.color)),box=document.getElementById("orders");
+  if(!list.length){box.innerHTML=`<div class="empty">${Q?"مفيش نتائج للبحث":tab==="open"?"مفيش طلبيات مفتوحة. اضغط «طلبية جديدة».":"مفيش طلبيات مكتملة."}</div>`;return}
+  box.innerHTML=list.map(o=>{
+    const rem=Math.max(o.qty_required-o.produced,0),pct=Math.min(100,Math.round(o.produced/o.qty_required*100)),done=o.status==="done";
+    return `<div class="card ${done?"done":""}">
+      <div class="top"><b>${esc(o.item)} · ${esc(o.color)}</b><span>${lateOrder(o)?'<span class="tag late">متأخرة</span> ':""}<span class="tag ${done?"ok":""}">${done?"مكتملة":"مفتوحة"}</span></span></div>
+      <div class="nums">${dueTag(o)}${o.postponed_count?` <span class="tag">اتأجلت ${o.postponed_count} مرة</span>`:""}</div>
+      <div class="nums">تاريخ الطلبية: <b>${fmtD(o.order_date)}</b>${done?"":` · ${ageTxt(o.order_date)}`}</div>
+      ${done?'<div class="banner">الطلبية خلصت ✅</div>':""}
+      <div class="nums">مطلوب <b>${o.qty_required}</b> · تم <b>${o.produced}</b> · متبقي <b>${rem}</b></div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      ${logHtml(o.id)}
+      <div class="row">
+        ${rem>0?`<button class="btn sm" onclick="produce(${o.id})">تسجيل إنتاج</button>`:""}
+        <button class="btn ghost sm" onclick="increase(${o.id})">زيادة الطلبية</button>
+        <button class="btn ghost sm" onclick="edit(${o.id})">تعديل / سجل</button>
+        ${done?"":`<button class="btn ghost sm" onclick="postpone(${o.id})">تأجيل</button>`}<button class="btn ghost sm" onclick="delOrder(${o.id})">حذف الطلبية</button>
+      </div></div>`;
+  }).join("");
+}
+
+async function syncStatus(id){
+  const{data}=await db.from("spray_status").select("*").eq("id",id).single();
+  const done=data.produced>=data.qty_required,st=done?"done":"open";
+  if(data.status!==st)await db.from("spray_orders").update({status:st}).eq("id",id);
+  return done;
+}
+
+function produce(id){
+  const o=orders.find(x=>x.id===id),rem=o.qty_required-o.produced;
+  openModal(`إنتاج ${esc(o.item)} · ${esc(o.color)}`,`<div class="nums">المتبقي: <b>${rem}</b></div><label>الكمية اللي رشيتها</label><input type="number" id="m-q" min="1" max="${rem}" inputmode="numeric"><label>التاريخ</label><input type="date" id="m-d" value="${today()}">${XF()}`,async()=>{
+    const q=parseInt(document.getElementById("m-q").value);
+    if(!q||q<1){toast("اكتب كمية صحيحة");return false}
+    if(q>rem){toast("الكمية أكبر من المتبقي ("+rem+")");return false}
+    const{error}=await insertRow("spray_production",{order_id:id,qty:q,prod_date:document.getElementById("m-d").value||today(),...xfRead()});
+    if(error){toast("خطأ: "+error.message);return false}
+    const done=await syncStatus(id);await load();toast(done?"الطلبية خلصت ✅":"تم التسجيل");
+  });
+}
+
+function increase(id){
+  const o=orders.find(x=>x.id===id);
+  openModal("زيادة الطلبية",`<div class="nums">المطلوب حاليًا: <b>${o.qty_required}</b></div><label>الكمية المضافة</label><input type="number" id="m-q" min="1" inputmode="numeric">`,async()=>{
+    const q=parseInt(document.getElementById("m-q").value);
+    if(!q||q<1){toast("اكتب كمية صحيحة");return false}
+    const{error}=await db.from("spray_orders").update({qty_required:o.qty_required+q}).eq("id",id);
+    if(error){toast("خطأ: "+error.message);return false}
+    await syncStatus(id);await load();toast("تمت الزيادة");
+  });
+}
+
+async function edit(id){
+  const o=orders.find(x=>x.id===id);
+  const{data}=await db.from("spray_production").select("*").eq("order_id",id).order("prod_date",{ascending:false});
+  const log=(data||[]).length?data.map(e=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0"><span><b>${e.qty}</b> <span class="nums">${fmtD(e.prod_date)}</span></span><button class="btn ghost sm" onclick="delEntry(${e.id},${id})">حذف</button></div>`).join(""):'<div class="nums">لا يوجد</div>';
+  openModal("تعديل الطلبية",`<label>الصنف</label><input id="m-item" value="${esc(o.item)}"><label>اللون</label><input id="m-color" value="${esc(o.color)}"><label>الكمية المطلوبة</label><input type="number" id="m-req" min="1" inputmode="numeric" value="${o.qty_required}"><label>تاريخ الطلبية</label><input type="date" id="m-od" value="${o.order_date||today()}"><label>تاريخ التسليم (اختياري)</label><input type="date" id="m-due" value="${o.due_date||''}">
+    <div class="itemblk"><div class="ih"><b>+ إضافة لون جديد لنفس الصنف</b></div><div class="two"><div><label>اللون الجديد</label><input id="m-color2" placeholder="اتركه فاضي لو مش عايز"></div><div><label>الكمية</label><input type="number" id="m-req2" min="1" inputmode="numeric"></div></div><div class="hint">بيتعمل له طلبية مستقلة بنفس الصنف والتواريخ.</div></div>
+    <h3>سجل الإنتاج</h3>${log}`,async()=>{
+    const item=document.getElementById("m-item").value.trim(),color=document.getElementById("m-color").value.trim(),q=parseInt(document.getElementById("m-req").value);
+    if(!item||!color||!(q>0)){toast("كمّل البيانات");return false}
+    const c2=document.getElementById("m-color2").value.trim(),q2=parseInt(document.getElementById("m-req2").value);
+    if((c2||q2)&&(!c2||!(q2>0))){toast("كمّل اللون الجديد وكميته، أو سيبهم فاضيين");return false}
+    const od=document.getElementById("m-od").value||today(),due=document.getElementById("m-due").value||null;
+    let{error}=await db.from("spray_orders").update({item,color,qty_required:q,order_date:od,due_date:due}).eq("id",id);
+    if(error){toast("خطأ: "+error.message);return false}
+    if(c2){({error}=await db.from("spray_orders").insert({item,color:c2,qty_required:q2,order_date:od,due_date:due}));if(error){toast("خطأ: "+error.message);return false}}
+    await syncStatus(id);await load();toast(c2?"تم التعديل وإضافة اللون الجديد":"تم التعديل");
+  });
+}
+
+async function delEntry(eid,id){
+  if(!await ask("حذف السجل ده؟"))return;
+  const{data:dd,error}=await db.from("spray_production").delete().eq("id",eid).select();
+  if(error||!dd.length){toast(error?"خطأ: "+error.message:"لم يتم الحذف، راجع الصلاحيات");return}
+  await syncStatus(id);await load();edit(id);
+}
+async function delOrder(id){
+  if(!await ask("حذف الطلبية بكل بياناتها؟"))return;
+  const{data:dd,error}=await db.from("spray_orders").delete().eq("id",id).select();
+  if(error||!dd.length){toast(error?"خطأ: "+error.message:"لم يتم الحذف، راجع الصلاحيات");return}
+  await load();toast("تم الحذف");
+}
+
+function newOrder(){
+  const crow=()=>`<div class="two nr"><input placeholder="اللون" class="c"><input placeholder="الكمية" class="q" type="number" min="1" inputmode="numeric"></div>`;
+  const blk=n=>`<div class="itemblk"><div class="ih"><b>الصنف ${n}</b><button type="button" class="rmi" style="display:${n>1?"block":"none"}">حذف الصنف ✕</button></div><input class="it" placeholder="اسم الصنف"><label>الألوان والكميات</label><div class="rows">${crow()}</div><button class="btn ghost sm addc" type="button">+ لون</button></div>`;
+  openModal("طلبية جديدة",`<label>تاريخ الطلبية</label><input type="date" id="m-od" value="${today()}"><label>تاريخ التسليم (اختياري)</label><input type="date" id="m-due"><div id="m-items">${blk(1)}</div><button class="btn sm" id="m-addi" type="button" style="width:100%;margin-top:4px">+ إضافة صنف</button>`,async()=>{
+    const blocks=[...document.querySelectorAll("#m-items .itemblk")].map(b=>({
+      item:b.querySelector(".it").value.trim(),
+      rs:[...b.querySelectorAll(".nr")].map(r=>({sub:r.querySelector(".c").value.trim(),qty:parseInt(r.querySelector(".q").value)})).filter(r=>r.sub||r.qty)
+    })).filter(b=>b.item||b.rs.length);
+    if(!blocks.length){toast("اكتب الصنف");return false}
+    for(const [i,b] of blocks.entries()){
+      if(!b.item){toast("اكتب اسم الصنف رقم "+(i+1));return false}
+      if(!b.rs.length||b.rs.some(r=>!r.sub||!(r.qty>0))){toast("كمّل بيانات الصنف: "+b.item);return false}
+    }
+    const od=document.getElementById("m-od").value||today(),due=document.getElementById("m-due").value||null,made=[];
+    const rows=blocks.flatMap(b=>b.rs.map(r=>({item:b.item,color:r.sub,qty_required:r.qty,order_date:od,due_date:due})));
+    const{error}=await db.from("spray_orders").insert(rows);
+    if(error){toast("خطأ: "+error.message);return false}
+    tab="open";setTab();await load();toast(blocks.length>1?"تمت إضافة "+blocks.length+" أصناف في الطلبية":"تمت إضافة الطلبية");
+  });
+  const box=document.getElementById("m-items");
+  const renum=()=>[...box.querySelectorAll(".itemblk")].forEach((b,i)=>{b.querySelector(".ih b").textContent="الصنف "+(i+1);b.querySelector(".rmi").style.display=i>0?"block":"none"});
+  document.getElementById("m-addi").onclick=()=>{
+    box.insertAdjacentHTML("beforeend",blk(box.children.length+1));
+    const nb=box.lastElementChild;if(typeof attachLists==="function")try{attachLists(nb)}catch(e){}
+    nb.scrollIntoView({behavior:"smooth",block:"nearest"});nb.querySelector(".it").focus({preventScroll:true});
+  };
+  box.addEventListener("click",e=>{
+    const t=e.target;
+    if(t.classList.contains("addc"))t.parentElement.querySelector(".rows").insertAdjacentHTML("beforeend",crow());
+    else if(t.classList.contains("rmi")){t.closest(".itemblk").remove();renum()}
+  });
+}
+
+function setTab(){
+  ["open","done","prod"].forEach(k=>document.getElementById("t-"+k).className="btn "+(k===tab?"on":"ghost"));
+  document.getElementById("ordersView").style.display=tab==="prod"?"none":"block";
+  document.getElementById("prodRep").style.display=tab==="prod"?"block":"none";
+  document.getElementById("newOrder").style.display=tab==="open"?"block":"none";
+  document.getElementById("freeRow").style.display=tab==="open"?"flex":"none";
+  try{history.replaceState(null,"","#"+tab);window.markSub&&markSub()}catch(e){}
+  if(tab==="prod"){repCtl?repCtl.refresh():repCtl=Reports.mount("prodRep","spray")}
+  else renderOrders();
+}
+document.getElementById("t-open").onclick=()=>{tab="open";setTab()};
+document.getElementById("t-done").onclick=()=>{tab="done";setTab()};
+document.getElementById("t-prod").onclick=()=>{tab="prod";setTab()};
+document.getElementById("newOrder").onclick=newOrder;
+document.getElementById("freeBtn").onclick=()=>freeProduction("spray",load);
+(async()=>{if(await requireAuth("spray.html")){renderNav("spray.html");searchBox("orders",q=>{Q=q;renderOrders()});skel("orders",3);if(tab==="prod")setTab();load().finally(settle)}})();
+</script>
+<script src="install.js" defer></script>
+</body>
+</html>

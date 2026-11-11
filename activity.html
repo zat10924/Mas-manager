@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#642631">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="الأقسام">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>سجل النشاط</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<div id="splash"><svg class="gears" viewBox="0 0 120 80" aria-hidden="true"><path class="g1" fill-rule="evenodd" fill="#D7B96F" d="M56.5,42.0 L63.4,44.7 L62.8,48.1 L55.4,48.3 L54.0,51.2 L58.6,57.0 L56.4,59.7 L49.9,56.1 L47.2,58.0 L48.4,65.3 L45.1,66.5 L41.3,60.2 L38.0,60.5 L35.3,67.4 L31.9,66.8 L31.7,59.4 L28.8,58.0 L23.0,62.6 L20.3,60.4 L23.9,53.9 L22.0,51.2 L14.7,52.4 L13.5,49.1 L19.8,45.3 L19.5,42.0 L12.6,39.3 L13.2,35.9 L20.6,35.7 L22.0,32.8 L17.4,27.0 L19.6,24.3 L26.1,27.9 L28.8,26.0 L27.6,18.7 L30.9,17.5 L34.7,23.8 L38.0,23.5 L40.7,16.6 L44.1,17.2 L44.3,24.6 L47.2,26.0 L53.0,21.4 L55.7,23.6 L52.1,30.1 L54.0,32.8 L61.3,31.6 L62.5,34.9 L56.2,38.7Z M45,42 a7,7 0 1,0 -14,0 a7,7 0 1,0 14,0Z"/><path class="g2" fill-rule="evenodd" fill="#E8D49B" d="M85.6,30.0 L90.2,32.7 L89.3,36.2 L83.9,36.2 L81.9,38.9 L83.2,44.1 L80.2,45.9 L76.3,42.2 L73.0,42.6 L70.3,47.2 L66.8,46.3 L66.8,40.9 L64.1,38.9 L58.9,40.2 L57.1,37.2 L60.8,33.3 L60.4,30.0 L55.8,27.3 L56.7,23.8 L62.1,23.8 L64.1,21.1 L62.8,15.9 L65.8,14.1 L69.7,17.8 L73.0,17.4 L75.7,12.8 L79.2,13.7 L79.2,19.1 L81.9,21.1 L87.1,19.8 L88.9,22.8 L85.2,26.7Z M78,30 a5,5 0 1,0 -10,0 a5,5 0 1,0 10,0Z"/><path class="g3" fill-rule="evenodd" fill="#B9984C" d="M95.2,52.5 L98.6,54.8 L97.7,57.6 L93.7,57.7 L91.8,59.7 L92.0,63.7 L89.3,64.8 L86.7,61.7 L83.9,61.5 L81.0,64.2 L78.4,62.8 L79.3,58.8 L77.7,56.5 L73.7,55.9 L73.2,53.0 L76.9,51.2 L77.7,48.5 L75.7,45.0 L77.7,42.8 L81.3,44.5 L83.9,43.5 L85.4,39.8 L88.4,40.0 L89.3,43.9 L91.8,45.3 L95.6,44.1 L97.3,46.6 L94.8,49.7Z M90,52.5 a4,4 0 1,0 -8,0 a4,4 0 1,0 8,0Z"/></svg><img src="icon.svg" alt=""><b>إدارة الأقسام</b><div class="ld"><i></i></div><small class="ldt">جاري التحميل…</small></div>
+<script>try{var n=performance.getEntriesByType("navigation")[0];if(sessionStorage.getItem("sp")&&!(n&&n.type==="reload"))document.getElementById("splash").remove()}catch(e){}</script>
+<div class="wrap">
+  <h1>سجل النشاط</h1>
+  <div class="tabs noprint" id="tb"><button class="btn on" data-t="log">سجل النشاط</button><button class="btn ghost" data-t="bk">النسخ الاحتياطي</button></div>
+  <div id="logv">
+    <div class="card noprint">
+      <div class="two"><div><label>من</label><input type="date" id="f-from"></div><div><label>إلى</label><input type="date" id="f-to"></div></div>
+      <div class="two"><div><label>القسم</label><select id="f-sec"><option value="">الكل</option><option value="glaze">جليز</option><option value="deco">زخرفة</option><option value="spray">رش</option><option value="repair">تصليح</option><option value="other">تأجيل / مستخدمين</option></select></div>
+      <div><label>العملية</label><select id="f-act"><option value="">الكل</option><option value="insert">إضافة</option><option value="update">تعديل</option><option value="delete">حذف</option></select></div></div>
+      <label>المستخدم</label><select id="f-user"><option value="">الكل</option></select>
+    </div>
+    <div id="list"></div>
+    <button class="btn ghost more" id="more" hidden>عرض المزيد</button>
+  </div>
+  <div id="bkv" hidden>
+    <div class="card">
+      <h3>نسخة احتياطية كاملة</h3>
+      <div class="nums">بتنزّل ملف واحد (JSON) فيه كل بيانات الأقسام والمستخدمين. احتفظ بيه في مكان آمن (جوجل درايف مثلًا). يفضل تنزّل نسخة كل أسبوع.</div>
+      <div class="nums" style="margin-top:8px">آخر نسخة: <b id="last">لسه ما اتعملتش</b></div>
+      <div class="nums" id="prog" style="min-height:1.5em;margin-top:6px"></div>
+      <button class="btn" id="bk" style="width:100%;margin-top:6px">تنزيل نسخة احتياطية</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div><div id="offline">لا يوجد اتصال بالإنترنت</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+const PS=60;
+let page=0,rowsAll=[];const users=new Set();
+const TBL={glaze_orders:["جليز","طلبية"],glaze_order_lines:["جليز","لون"],glaze_production:["جليز","إنتاج"],glaze_order_increases:["جليز","زيادة"],glaze_waste:["جليز","هالك"],
+ deco_orders:["زخرفة","طلبية"],deco_lines:["زخرفة","كود"],deco_production:["زخرفة","إنتاج"],deco_increases:["زخرفة","زيادة"],
+ spray_orders:["رش","طلبية"],spray_production:["رش","إنتاج"],repair_log:["تصليح","تسجيل"],free_production:["","إنتاج بدون طلبية"],order_postponements:["","تأجيل طلبية"],profiles:["","مستخدم"]};
+const SECT={};Object.keys(TBL).forEach(t=>{const k=t.startsWith("glaze")?"glaze":t.startsWith("deco")?"deco":t.startsWith("spray")?"spray":t==="repair_log"?"repair":"other";(SECT[k]=SECT[k]||[]).push(t)});
+const VERB={insert:"إضافة",update:"تعديل",delete:"حذف"};
+const LBL={sub:"اللون/الكود",worker:"العامل",phone:"الهاتف",whatsapp:"واتساب",item:"الصنف",color:"اللون",code:"الكود",qty:"الكمية",qty_required:"المطلوب",good_qty:"السليم",status:"الحالة",order_date:"تاريخ الطلبية",due_date:"التسليم",prod_date:"تاريخ الإنتاج",waste_date:"تاريخ الهالك",repair_date:"التاريخ",reason:"السبب",full_name:"الاسم",role:"الدور",section:"القسم",postponed_count:"مرات التأجيل",new_date:"التاريخ الجديد",old_date:"التاريخ القديم"};
+const STAT={open:"مفتوحة",done:"مكتملة"};
+const val=(k,v)=>v==null||v===""?"—":k==="status"?(STAT[v]||v):String(v);
+function details(r){
+  const o=r.old_data||{},n=r.new_data||{};
+  if(r.action==="update")return Object.keys(n).filter(k=>LBL[k]&&JSON.stringify(n[k])!==JSON.stringify(o[k])).map(k=>`${LBL[k]}: <b>${esc(val(k,o[k]))}</b> ← <b>${esc(val(k,n[k]))}</b>`).join(" · ");
+  const d=r.action==="delete"?o:n;
+  return Object.keys(LBL).filter(k=>d[k]!=null&&d[k]!=="").map(k=>`${LBL[k]}: <b>${esc(val(k,d[k]))}</b>`).join(" · ");
+}
+const iso=(d,end)=>new Date(d+(end?"T23:59:59.999":"T00:00:00")).toISOString();
+
+async function load(more){
+  if(!more){page=0;rowsAll=[];skel("list",4);document.getElementById("more").hidden=true}
+  const f=document.getElementById("f-from").value,t=document.getElementById("f-to").value,s=document.getElementById("f-sec").value,a=document.getElementById("f-act").value,u=document.getElementById("f-user").value;
+  let q=db.from("activity_log").select("*").order("id",{ascending:false}).range(page*PS,page*PS+PS-1);
+  if(f)q=q.gte("at",iso(f));if(t)q=q.lte("at",iso(t,1));
+  if(s)q=q.in("tbl",SECT[s]);if(a)q=q.eq("action",a);
+  if(u)q=u==="__sys"?q.is("user_name",null):q.eq("user_name",u);
+  const{data,error}=await q;
+  if(error){fail("list",()=>load(more));return}
+  rowsAll=rowsAll.concat(data);data.forEach(r=>users.add(r.user_name||"__sys"));
+  const su=document.getElementById("f-user"),cur=su.value;
+  su.innerHTML='<option value="">الكل</option>'+[...users].map(x=>`<option value="${esc(x)}">${x==="__sys"?"النظام":esc(x)}</option>`).join("");su.value=cur;
+  draw();document.getElementById("more").hidden=data.length<PS;
+}
+function groups(){
+  const out=[],seen=new Map();
+  for(const r of rowsAll){
+    if(r.action==="delete"&&r.tx!=null){
+      const g=seen.get(r.tx);
+      if(g){g.n++;if(/_orders$/.test(r.tbl))g.r=r;continue}
+      const g2={r,n:1};seen.set(r.tx,g2);out.push(g2);
+    }else out.push({r,n:1});
+  }
+  return out;
+}
+function draw(){
+  const g=groups();
+  document.getElementById("list").innerHTML=g.length?g.map(({r,n})=>{
+    const t=TBL[r.tbl]||["",r.tbl],cls=r.action==="insert"?"ok":r.action==="delete"?"late":"";
+    const tm=new Date(r.at).toLocaleString("ar-EG",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+    return `<div class="card"><div class="top"><b>${t[0]?t[0]+" · ":""}${t[1]}</b><span class="tag ${cls}">${VERB[r.action]||r.action}</span></div>
+      <div class="nums">${details(r)||"—"}</div>${n>1?`<div class="nums">+ ${n-1} سجل تابع اتحذف معاه</div>`:""}
+      <div class="nums" style="margin-top:4px">${r.user_name?esc(r.user_name):"النظام"} · ${tm}</div>
+      ${r.action==="delete"&&r.tx!=null&&r.tbl!=="profiles"?`<div class="row"><button class="btn ghost sm" data-tx="${r.tx}">استرجاع</button></div>`:""}</div>`}).join(""):'<div class="empty">مفيش نشاط في الفترة دي</div>';
+}
+document.getElementById("list").onclick=async e=>{
+  const b=e.target.closest("[data-tx]");if(!b)return;
+  if(!await ask("استرجاع المحذوف؟ هيرجع بكل البيانات التابعة له.","استرجاع"))return;
+  b.disabled=true;
+  const{data,error}=await db.rpc("restore_tx",{p_tx:+b.dataset.tx});
+  if(error){toast("خطأ: "+error.message);b.disabled=false;return}
+  toast(data);load(false);
+};
+document.getElementById("more").onclick=()=>{page++;load(true)};
+["f-from","f-to","f-sec","f-act","f-user"].forEach(i=>document.getElementById(i).onchange=()=>load(false));
+
+/* ---------- النسخ الاحتياطي ---------- */
+const BK=["glaze_orders","glaze_order_lines","glaze_production","glaze_order_increases","glaze_waste","deco_orders","deco_lines","deco_production","deco_increases","spray_orders","spray_production","repair_log","order_postponements","profiles","free_production","catalog"];
+async function allRows(t){const out=[];for(let f=0;;f+=1000){const{data,error}=await db.from(t).select("*").order("id").range(f,f+999);if(error)throw error;out.push(...data);if(data.length<1000)break}return out}
+function showLast(){let v=null;try{v=localStorage.getItem("lastBackup")}catch(e){}document.getElementById("last").textContent=v?new Date(v).toLocaleString("ar-EG"):"لسه ما اتعملتش"}
+document.getElementById("bk").onclick=async()=>{
+  const b=document.getElementById("bk"),p=document.getElementById("prog");b.disabled=true;b.classList.add("loading");
+  try{
+    const out={app:"sections",at:new Date().toISOString(),tables:{}};let n=0;
+    for(const t of BK){p.textContent="جاري تحميل: "+t;out.tables[t]=await allRows(t);n+=out.tables[t].length}
+    const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(out)],{type:"application/json"}));a.download="backup-"+today()+".json";a.click();
+    try{localStorage.setItem("lastBackup",out.at)}catch(e){}
+    showLast();p.textContent="تم تنزيل النسخة: "+nf(n)+" سجل";toast("تم تنزيل النسخة الاحتياطية");
+  }catch(e){p.textContent="";toast("خطأ: "+e.message)}
+  finally{b.disabled=false;b.classList.remove("loading")}
+};
+document.querySelectorAll("#tb button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("#tb button").forEach(x=>x.className="btn "+(x===b?"on":"ghost"));
+  document.getElementById("logv").hidden=b.dataset.t!=="log";document.getElementById("bkv").hidden=b.dataset.t!=="bk";
+});
+showLast();
+(async()=>{if(await requireAuth("activity.html")){renderNav("activity.html");dateChips("f-from","f-to",()=>load(false));load(false).finally(settle)}})();
+</script>
+<script src="install.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#642631">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="الأقسام">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>تسجيل الإنتاج</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<div id="splash"><svg class="gears" viewBox="0 0 120 80" aria-hidden="true"><path class="g1" fill-rule="evenodd" fill="#D7B96F" d="M56.5,42.0 L63.4,44.7 L62.8,48.1 L55.4,48.3 L54.0,51.2 L58.6,57.0 L56.4,59.7 L49.9,56.1 L47.2,58.0 L48.4,65.3 L45.1,66.5 L41.3,60.2 L38.0,60.5 L35.3,67.4 L31.9,66.8 L31.7,59.4 L28.8,58.0 L23.0,62.6 L20.3,60.4 L23.9,53.9 L22.0,51.2 L14.7,52.4 L13.5,49.1 L19.8,45.3 L19.5,42.0 L12.6,39.3 L13.2,35.9 L20.6,35.7 L22.0,32.8 L17.4,27.0 L19.6,24.3 L26.1,27.9 L28.8,26.0 L27.6,18.7 L30.9,17.5 L34.7,23.8 L38.0,23.5 L40.7,16.6 L44.1,17.2 L44.3,24.6 L47.2,26.0 L53.0,21.4 L55.7,23.6 L52.1,30.1 L54.0,32.8 L61.3,31.6 L62.5,34.9 L56.2,38.7Z M45,42 a7,7 0 1,0 -14,0 a7,7 0 1,0 14,0Z"/><path class="g2" fill-rule="evenodd" fill="#E8D49B" d="M85.6,30.0 L90.2,32.7 L89.3,36.2 L83.9,36.2 L81.9,38.9 L83.2,44.1 L80.2,45.9 L76.3,42.2 L73.0,42.6 L70.3,47.2 L66.8,46.3 L66.8,40.9 L64.1,38.9 L58.9,40.2 L57.1,37.2 L60.8,33.3 L60.4,30.0 L55.8,27.3 L56.7,23.8 L62.1,23.8 L64.1,21.1 L62.8,15.9 L65.8,14.1 L69.7,17.8 L73.0,17.4 L75.7,12.8 L79.2,13.7 L79.2,19.1 L81.9,21.1 L87.1,19.8 L88.9,22.8 L85.2,26.7Z M78,30 a5,5 0 1,0 -10,0 a5,5 0 1,0 10,0Z"/><path class="g3" fill-rule="evenodd" fill="#B9984C" d="M95.2,52.5 L98.6,54.8 L97.7,57.6 L93.7,57.7 L91.8,59.7 L92.0,63.7 L89.3,64.8 L86.7,61.7 L83.9,61.5 L81.0,64.2 L78.4,62.8 L79.3,58.8 L77.7,56.5 L73.7,55.9 L73.2,53.0 L76.9,51.2 L77.7,48.5 L75.7,45.0 L77.7,42.8 L81.3,44.5 L83.9,43.5 L85.4,39.8 L88.4,40.0 L89.3,43.9 L91.8,45.3 L95.6,44.1 L97.3,46.6 L94.8,49.7Z M90,52.5 a4,4 0 1,0 -8,0 a4,4 0 1,0 8,0Z"/></svg><img src="icon.svg" alt=""><b>إدارة الأقسام</b><div class="ld"><i></i></div><small class="ldt">جاري التحميل…</small></div>
+<script>try{var n=performance.getEntriesByType("navigation")[0];if(sessionStorage.getItem("sp")&&!(n&&n.type==="reload"))document.getElementById("splash").remove()}catch(e){}</script>
+<div class="wrap">
+  <div class="tabs noprint" id="secs"></div>
+  <div class="kpis mini three" id="stats"></div>
+  <div class="row noprint" style="margin:0 0 8px"><button class="btn ghost sm" id="mbtn" type="button">☑ تحديد متعدد</button><button class="btn ghost sm" id="mall" type="button" hidden>تحديد الكل</button></div>
+  <div class="prodact noprint"><button class="btn" id="freeBtn" type="button">＋ إنتاج بدون طلبية</button><button class="btn ghost" id="wasteBtn" type="button" hidden>＋ تسجيل هالك</button></div>
+  <div id="list"></div>
+  <h3 style="margin:18px 2px 8px">تسجيلات النهارده</h3>
+  <div id="today"></div>
+</div>
+<div id="mbar" class="noprint" hidden><button class="btn" id="mgo" type="button"></button><button class="btn ghost" id="mx" type="button">إلغاء</button></div>
+<div id="toast"></div><div id="offline">لا يوجد اتصال بالإنترنت</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+const SEC={
+ glaze:{name:"جليز",color:"#2E6F80",o:"glaze_orders",l:"glaze_lines_status",p:"glaze_production",lab:x=>x.color},
+ deco:{name:"زخرفة",color:"#5E5A8C",o:"deco_orders",l:"deco_lines_status",p:"deco_production",lab:x=>"كود "+x.code},
+ spray:{name:"رش",color:"#B8862B"}};
+let multi=false,sel=new Set(),selSec="",sec="",allowed=[],rows=[],tod=[],Q="",stale=0;
+
+async function load(){
+  const c=SEC[sec],t=today();
+  try{
+    if(c.o){
+      const[o,l,p]=await Promise.all([db.from(c.o).select("*"),db.from(c.l).select("*").order("id"),
+        db.from(c.p).select("id,line_id,qty").eq("prod_date",t).order("id",{ascending:false})]);
+      if(o.error||l.error)throw new Error("load");
+      const om=new Map(o.data.map(x=>[x.id,x])),lm=new Map(l.data.map(x=>[x.id,x]));
+      rows=l.data.filter(x=>om.get(x.order_id)?.status==="open").map(x=>({id:x.id,oid:x.order_id,title:om.get(x.order_id).item,sub:c.lab(x),req:x.total_required,done:x.produced,date:om.get(x.order_id).order_date,due:om.get(x.order_id).due_date}));
+      tod=(p.data||[]).map(e=>{const x=lm.get(e.line_id),o2=x&&om.get(x.order_id);return{qty:e.qty,txt:o2?o2.item+" · "+c.lab(x):"—"}});
+    }else{
+      const[o,p]=await Promise.all([db.from("spray_status").select("*"),db.from("spray_production").select("id,order_id,qty").eq("prod_date",t).order("id",{ascending:false})]);
+      if(o.error)throw new Error("load");
+      const om=new Map(o.data.map(x=>[x.id,x]));
+      rows=o.data.filter(x=>x.status==="open").map(x=>({id:x.id,oid:x.id,title:x.item,sub:x.color,req:x.qty_required,done:x.produced,date:x.order_date}));
+      tod=(p.data||[]).map(e=>{const x=om.get(e.order_id);return{qty:e.qty,txt:x?x.item+" · "+x.color:"—"}});
+    }
+    // الإنتاج بدون طلبية (لو الجدول موجود)
+    try{
+      const f=await db.from("free_production").select("id,item,sub,qty").eq("section",sec).eq("prod_date",t).order("id",{ascending:false});
+      if(!f.error)tod.unshift(...(f.data||[]).map(e=>({qty:e.qty,txt:e.item+(e.sub?" · "+e.sub:"")+" · بدون طلبية",fid:e.id})));
+    }catch(e){}
+    try{localStorage.setItem("pc_"+sec,JSON.stringify({rows,tod,at:Date.now()}))}catch(e){}
+    stale=0;
+  }catch(e){
+    let ch=null;try{ch=JSON.parse(localStorage.getItem("pc_"+sec))}catch(x){}
+    if(!ch){fail("list",load);return}
+    rows=ch.rows;tod=ch.tod;stale=ch.at;
+  }
+  // التسجيلات اللي لسه ما اتبعتتش بتتحسب في الأرقام
+  Q_.get().filter(i=>i.sec===sec).forEach(i=>{const r=rows.find(x=>x.id===i.rid);if(r)r.done+=i.qty;tod.unshift({qty:i.qty,txt:i.txt+" ⏳"})});
+  draw();
+}
+function draw(){
+  const c=SEC[sec],q=Q.trim().toLowerCase();
+  if(selSec!==sec){sel.clear();selSec=sec}
+  const list=rows.filter(r=>!q||(r.title+" "+r.sub).toLowerCase().includes(q)).sort((a,b)=>String(a.due||a.date).localeCompare(String(b.due||b.date)));
+  kpis("stats",[["بنود مفتوحة",rows.length],["المتبقي",rows.reduce((a,r)=>a+Math.max(r.req-r.done,0),0)],["إنتاج النهارده",tod.reduce((a,e)=>a+e.qty,0),"var(--ok)"]]);
+  document.getElementById("list").innerHTML=list.length?list.map(r=>{
+    const rem=Math.max(r.req-r.done,0),p=r.req>0?Math.min(100,Math.round(r.done/r.req*100)):0,late=r.due?today()>r.due:isLate("open",r.date);
+    return `<div class="card pr ${multi&&sel.has(r.id)?"sel":""}" data-id="${r.id}" style="cursor:pointer"><div class="top"><span style="display:flex;gap:8px;align-items:center;min-width:0">${multi?`<span class="ck ${sel.has(r.id)?"on":""}"></span>`:""}<b>${esc(r.title)}</b></span><span>${late?'<span class="tag late">متأخرة</span> ':""}<span class="tag">${esc(r.sub)}</span></span></div>
+      <div class="bar"><i style="width:${p}%"></i></div><div class="nums">تم <b>${nf(r.done)}</b> من <b>${nf(r.req)}</b> · متبقي <b>${nf(rem)}</b></div></div>`}).join(""):`<div class="empty">${q?"مفيش نتائج":"مفيش بنود مفتوحة 👌"}</div>`;
+  document.querySelectorAll(".pr").forEach(e=>e.onclick=()=>pick(rows.find(r=>String(r.id)===e.dataset.id),e));
+  updBar();
+  wasteBtn.hidden=sec!=="glaze";
+  if(stale)document.getElementById("list").insertAdjacentHTML("afterbegin",`<div class="card" style="border-color:var(--warn)"><b>⚠ مفيش اتصال</b><div class="nums">بيانات محفوظة من آخر اتصال (${new Date(stale).toLocaleTimeString("ar-EG",{hour:"2-digit",minute:"2-digit"})}). تسجيلاتك هتتحفظ وتتبعت لما النت يرجع.</div></div>`);
+  document.getElementById("today").innerHTML=tod.length?`<div class="card">${tod.slice(0,10).map(e=>`<div class="line fe"><span>${esc(e.txt)}</span><span style="display:flex;align-items:center;gap:8px"><b>${nf(e.qty)}</b>${e.fid&&can("delete")?`<button class="btn ghost sm" type="button" onclick="delFree(${e.fid})">حذف</button>`:""}</span></div>`).join("")}</div>`:`<div class="empty">لسه مفيش تسجيل النهارده</div>`;
+}
+// ===== تحديد متعدد: تسجيل إنتاج أكتر من بند في مرة واحدة =====
+function updBar(){
+  mbtn.textContent=multi?"✕ إنهاء التحديد":"☑ تحديد متعدد";mall.hidden=!multi;
+  mbar.hidden=!multi;mgo.textContent=sel.size?"تسجيل "+sel.size+" بند":"اختر البنود";mgo.disabled=!sel.size;
+}
+function pick(r,el){
+  if(!r)return;
+  if(!multi)return quick(r);
+  if(r.req-r.done<=0){toast("البند ده مكتمل بالفعل","warn");return}
+  sel.has(r.id)?sel.delete(r.id):sel.add(r.id);
+  el.classList.toggle("sel",sel.has(r.id));const k=el.querySelector(".ck");if(k)k.classList.toggle("on",sel.has(r.id));
+  updBar();
+}
+async function saveOne(r,q,d){
+  const c=SEC[sec],id=uuid(),tb=c.p||"spray_production";
+  const row=c.p?{line_id:r.id,qty:q,prod_date:d,client_id:id}:{order_id:r.id,qty:q,prod_date:d,client_id:id};
+  const it={id,table:tb,row,sec,rid:r.id,qty:q,txt:r.title+" · "+r.sub,sync:c.o?{lv:c.l,o:c.o,oid:r.oid}:{sv:"spray_status",o:"spray_orders",oid:r.id}};
+  let res;try{res=await insertRow(tb,row)}catch(e){res={error:{message:String(e)}}}
+  if(res.error&&isNet(res.error)){Q_.add(it);updateBadge();return{off:1}}
+  if(res.error)return{err:res.error.message};
+  return{done:await syncAfter(it)};
+}
+function multiModal(){
+  const items=rows.filter(r=>sel.has(r.id)&&r.req-r.done>0);
+  if(!items.length)return;
+  openModal("تسجيل "+items.length+" بند",`<label>التاريخ</label><input type="date" id="m-d" value="${today()}">`+items.map(r=>{
+    const rem=r.req-r.done;
+    return `<div class="line"><div class="r"><b>${esc(r.title)}</b><span class="tag">${esc(r.sub)}</span></div>
+      <div class="nums">تم <b>${nf(r.done)}</b> من <b>${nf(r.req)}</b> · المتبقي <b>${nf(rem)}</b></div>
+      <div class="row" style="flex-wrap:nowrap;margin-top:6px"><input type="number" class="mq" data-id="${r.id}" min="1" max="${rem}" inputmode="numeric" placeholder="الكمية" style="margin:0"><button type="button" class="btn ghost sm" onclick="this.previousElementSibling.value=${rem}">الكل (${rem})</button></div></div>`}).join(""),async()=>{
+    const d=document.getElementById("m-d").value||today(),todo=[];
+    for(const r of items){
+      const v=document.querySelector('.mq[data-id="'+r.id+'"]').value.trim();if(!v)continue;
+      const q=parseInt(v),rem=r.req-r.done;
+      if(!q||q<1){toast("كمية غلط في: "+r.title+" · "+r.sub);return false}
+      if(q>rem){toast("الكمية أكبر من المتبقي ("+rem+") في: "+r.title+" · "+r.sub);return false}
+      todo.push([r,q]);
+    }
+    if(!todo.length){toast("اكتب كمية لبند واحد على الأقل");return false}
+    let ok=0,off=0,fin=0;const bad=[];
+    for(const[r,q]of todo){const x=await saveOne(r,q,d);if(x.err)bad.push(r.title+" · "+r.sub+": "+x.err);else{ok++;if(x.off)off++;if(x.done)fin++}}
+    multi=false;sel.clear();await load();
+    if(bad.length)toast("اتسجل "+ok+" وفشل "+bad.length+": "+bad[0]);
+    else if(off)toast("مفيش نت: اتحفظ "+ok+" بند على الجهاز وهيتسجلوا لما النت يرجع","warn");
+    else toast("تم تسجيل "+ok+" بند"+(fin?" — خلصت "+fin+" طلبية ✅":""));
+  },"تسجيل الكل");
+}
+mbtn.onclick=()=>{multi=!multi;sel.clear();draw()};
+freeBtn.onclick=()=>freeProduction(sec,load);
+wasteBtn.onclick=()=>quickWaste(load);
+async function delFree(id){
+  if(!await ask("حذف تسجيل الإنتاج ده؟"))return;
+  const{data:dd,error}=await db.from("free_production").delete().eq("id",id).select();
+  if(error||!dd.length){toast(error?"خطأ: "+error.message:"لم يتم الحذف، راجع الصلاحيات");return}
+  await load();toast("تم الحذف");
+}
+mall.onclick=()=>{const q=Q.trim().toLowerCase();rows.filter(r=>r.req-r.done>0&&(!q||(r.title+" "+r.sub).toLowerCase().includes(q))).forEach(r=>sel.add(r.id));draw()};
+mx.onclick=()=>{multi=false;sel.clear();draw()};
+mgo.onclick=multiModal;
+function quick(r){
+  if(!r)return;
+  const rem=r.req-r.done;
+  if(rem<=0){toast("البند ده مكتمل بالفعل","warn");return}
+  const lk="lq_"+sec+"_"+r.id;let last=0;try{last=+localStorage.getItem(lk)||0}catch(e){}
+  const chips=[10,25,50,100].filter(n=>n<rem).map(n=>[n,"+"+n]).concat([[rem,"الكل ("+rem+")"]]);
+  if(last&&last<=rem&&!chips.some(c=>c[0]===last))chips.unshift([last,"آخر مرة ("+last+")"]);
+  openModal(`${esc(r.title)} · ${esc(r.sub)}`,`<div class="nums">المتبقي: <b>${nf(rem)}</b></div>
+    <div class="row" style="flex-wrap:wrap;gap:6px;margin:8px 0">${chips.map(c=>`<button type="button" class="btn ghost sm" onclick="document.getElementById('m-q').value=${c[0]}">${c[1]}</button>`).join("")}</div>
+    <label>الكمية</label><input type="number" id="m-q" min="1" max="${rem}" inputmode="numeric"><label>التاريخ</label><input type="date" id="m-d" value="${today()}">${XF(sec==="deco")}`,async()=>{
+    const q=parseInt(document.getElementById("m-q").value);
+    if(!q||q<1){toast("اكتب كمية صحيحة");return false}
+    if(q>rem){toast("الكمية أكبر من المتبقي ("+rem+")");return false}
+    const c=SEC[sec],d=document.getElementById("m-d").value||today(),id=uuid(),tb=c.p||"spray_production";
+    const row={...(c.p?{line_id:r.id,qty:q,prod_date:d,client_id:id}:{order_id:r.id,qty:q,prod_date:d,client_id:id}),...xfRead()};
+    const it={id,table:tb,row,sec,rid:r.id,qty:q,txt:r.title+" · "+r.sub,sync:c.o?{lv:c.l,o:c.o,oid:r.oid}:{sv:"spray_status",o:"spray_orders",oid:r.id}};
+    let res;try{res=await insertRow(tb,row)}catch(e){res={error:{message:String(e)}}}
+    if(res.error&&isNet(res.error)){
+      Q_.add(it);updateBadge();try{localStorage.setItem(lk,q)}catch(e){}
+      await load();toast("مفيش نت: اتحفظ على الجهاز وهيتسجل لوحده لما النت يرجع","warn");return;
+    }
+    if(res.error){toast("خطأ: "+res.error.message);return false}
+    try{localStorage.setItem(lk,q)}catch(e){}
+    const done=await syncAfter(it);
+    await load();toast(done?"الطلبية خلصت ✅":"تم التسجيل");
+  });
+}
+function secs(){
+  document.getElementById("secs").innerHTML=allowed.map(k=>`<button class="btn ${k===sec?"on":"ghost"}" data-s="${k}">${SEC[k].name}</button>`).join("");
+  document.querySelectorAll("#secs button").forEach(b=>b.onclick=()=>{sec=b.dataset.s;history.replaceState(null,"","#"+sec);secs();skel("list",3);load()});
+}
+(async()=>{if(await requireAuth("production.html")){
+  allowed=ME.role==="admin"?["glaze","deco","spray"]:mySecs().filter(k=>SEC[k]);
+  renderNav("production.html");
+  if(!allowed.length){document.querySelector(".prodact").hidden=true;document.getElementById("list").innerHTML='<div class="empty">تسجيل التصليح من صفحة التصليح</div>';settle();return}
+  const h=location.hash.slice(1);sec=allowed.includes(h)?h:allowed[0];
+  secs();searchBox("list",q=>{Q=q;draw()});skel("list",3);load().finally(settle)}})();
+</script>
+<script src="install.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#642631">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="الأقسام">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>إدارة الأقسام</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<div id="splash"><svg class="gears" viewBox="0 0 120 80" aria-hidden="true"><path class="g1" fill-rule="evenodd" fill="#D7B96F" d="M56.5,42.0 L63.4,44.7 L62.8,48.1 L55.4,48.3 L54.0,51.2 L58.6,57.0 L56.4,59.7 L49.9,56.1 L47.2,58.0 L48.4,65.3 L45.1,66.5 L41.3,60.2 L38.0,60.5 L35.3,67.4 L31.9,66.8 L31.7,59.4 L28.8,58.0 L23.0,62.6 L20.3,60.4 L23.9,53.9 L22.0,51.2 L14.7,52.4 L13.5,49.1 L19.8,45.3 L19.5,42.0 L12.6,39.3 L13.2,35.9 L20.6,35.7 L22.0,32.8 L17.4,27.0 L19.6,24.3 L26.1,27.9 L28.8,26.0 L27.6,18.7 L30.9,17.5 L34.7,23.8 L38.0,23.5 L40.7,16.6 L44.1,17.2 L44.3,24.6 L47.2,26.0 L53.0,21.4 L55.7,23.6 L52.1,30.1 L54.0,32.8 L61.3,31.6 L62.5,34.9 L56.2,38.7Z M45,42 a7,7 0 1,0 -14,0 a7,7 0 1,0 14,0Z"/><path class="g2" fill-rule="evenodd" fill="#E8D49B" d="M85.6,30.0 L90.2,32.7 L89.3,36.2 L83.9,36.2 L81.9,38.9 L83.2,44.1 L80.2,45.9 L76.3,42.2 L73.0,42.6 L70.3,47.2 L66.8,46.3 L66.8,40.9 L64.1,38.9 L58.9,40.2 L57.1,37.2 L60.8,33.3 L60.4,30.0 L55.8,27.3 L56.7,23.8 L62.1,23.8 L64.1,21.1 L62.8,15.9 L65.8,14.1 L69.7,17.8 L73.0,17.4 L75.7,12.8 L79.2,13.7 L79.2,19.1 L81.9,21.1 L87.1,19.8 L88.9,22.8 L85.2,26.7Z M78,30 a5,5 0 1,0 -10,0 a5,5 0 1,0 10,0Z"/><path class="g3" fill-rule="evenodd" fill="#B9984C" d="M95.2,52.5 L98.6,54.8 L97.7,57.6 L93.7,57.7 L91.8,59.7 L92.0,63.7 L89.3,64.8 L86.7,61.7 L83.9,61.5 L81.0,64.2 L78.4,62.8 L79.3,58.8 L77.7,56.5 L73.7,55.9 L73.2,53.0 L76.9,51.2 L77.7,48.5 L75.7,45.0 L77.7,42.8 L81.3,44.5 L83.9,43.5 L85.4,39.8 L88.4,40.0 L89.3,43.9 L91.8,45.3 L95.6,44.1 L97.3,46.6 L94.8,49.7Z M90,52.5 a4,4 0 1,0 -8,0 a4,4 0 1,0 8,0Z"/></svg><img src="icon.svg" alt=""><b>إدارة الأقسام</b><div class="ld"><i></i></div><small class="ldt">جاري التحميل…</small></div>
+<script>try{var n=performance.getEntriesByType("navigation")[0];if(sessionStorage.getItem("sp")&&!(n&&n.type==="reload"))document.getElementById("splash").remove()}catch(e){}</script>
+<div id="login" class="loginpage" style="display:none">
+  <div class="lbg"><i></i><i></i><i></i><i></i></div>
+  <form class="login card" id="lform" novalidate autocomplete="on">
+    <div class="logoframe"><img class="logo" src="logo-full.png" alt="MAS الماس للخزف والصيني"></div>
+    <h3>إدارة الأقسام</h3>
+    <div class="sub">سجّل دخولك للمتابعة</div>
+    <label for="email">الاسم</label>
+    <div class="fld"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><input id="email" name="username" type="text" inputmode="text" autocomplete="username" dir="auto" placeholder="اكتب اسمك" autocapitalize="none" spellcheck="false"></div>
+    <label for="pass">كلمة السر</label>
+    <div class="fld"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><input id="pass" name="password" type="password" autocomplete="current-password" dir="ltr" placeholder="••••••••"><button type="button" class="eye" id="eye" aria-label="إظهار كلمة السر"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+    <div class="caps" id="caps" hidden>⚠ زر Caps Lock شغّال</div>
+    <label class="rem"><input type="checkbox" id="rem" checked><span>تذكّر الاسم على الجهاز ده</span></label>
+    <div class="err" id="err" role="alert"></div>
+    <button class="btn" id="go" type="submit" style="width:100%">دخول</button>
+    <button type="button" class="linkbtn" id="forgot">نسيت كلمة السر؟</button>
+    <div class="loginver" id="lver"></div>
+  </form>
+</div>
+<div id="wel" hidden><div class="wsp" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="wc"><svg viewBox="0 0 52 52" aria-hidden="true"><circle class="c" cx="26" cy="26" r="23"/><path class="k" d="M15 27l8 8 15-17"/></svg></div><div class="wg" id="welg">أهلاً</div><b id="welt"></b><i class="wl"></i></div>
+<div class="wrap">
+  <div id="home" style="display:none">
+    <div class="hello"><h1 id="hi"><span class="hi-w">أهلاً</span><span class="hi-hand" aria-hidden="true">👋</span></h1><i class="hi-line"></i><div class="nums" id="today"></div></div>
+    <div class="kpis three" id="hk" style="display:none;margin-top:14px"></div>
+    <div class="grid" id="tiles"></div>
+    <div id="hc" style="margin-top:14px"></div>
+    <div id="hx" style="margin-top:14px"></div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script src="dash.js"></script>
+<script>
+// ملخص حي لكل قسم: [العدد الرئيسي, الوصف, إنتاج النهارده (للمجموع)]
+const sumQ=r=>r.data.reduce((a,x)=>a+(+x.qty||0),0);
+const openCount=async t=>{const r=await db.from(t).select("id",{count:"exact",head:true}).eq("status","open");if(r.error)throw r.error;return r.count};
+const todayQty=async(t,col)=>{const r=await db.from(t).select("qty").eq(col,today());if(r.error)throw r.error;return sumQ(r)};
+const SUMMARY={
+  "glaze.html":async()=>[await openCount("glaze_orders"),"طلبية مفتوحة",await todayQty("glaze_production","prod_date")+await freeTodayQty("glaze")],
+  "decoration.html":async()=>[await openCount("deco_orders"),"طلبية مفتوحة",await todayQty("deco_production","prod_date")+await freeTodayQty("deco")],
+  "spray.html":async()=>[await openCount("spray_status"),"طلبية مفتوحة",await todayQty("spray_production","prod_date")+await freeTodayQty("spray")],
+  "repair.html":async()=>{const q=await todayQty("repair_log","repair_date");return[q,"تصليح النهارده",q,true]}
+};
+// تنبيه الطلبيات المتأخرة (حسب تاريخ التسليم، أو أكتر من 14 يوم من غير تسليم)
+async function lateAlert(){
+  const SRC={"glaze.html":"glaze_orders","decoration.html":"deco_orders","spray.html":"spray_orders"};
+  const vs=visibleSections().filter(s=>SRC[s[0]]);
+  const R=await Promise.all(vs.map(s=>db.from(SRC[s[0]]).select("id,item,order_date,due_date,status").eq("status","open").then(r=>({s,rows:r.data||[]}))));
+  const late=[];
+  R.forEach(({s,rows})=>rows.forEach(o=>{if(lateOrder(o))late.push({s,o,days:o.due_date?daysBetween(o.due_date,today()):ageDays(o.order_date)-LATE_DAYS})}));
+  if(!late.length)return;
+  late.sort((a,b)=>b.days-a.days);
+  document.getElementById("tiles").insertAdjacentHTML("beforebegin",`<div class="card" style="border-color:var(--warn);margin-top:14px"><div class="top"><b>⚠ طلبيات متأخرة (${late.length})</b></div>${late.slice(0,5).map(x=>`<a class="line" href="${x.s[0]}#open" style="display:flex;justify-content:space-between;gap:8px;text-decoration:none;color:var(--ink)"><span>${esc(x.o.item)} <span class="nums">· ${x.s[1]}</span></span><span class="tag late">متأخرة ${x.days} يوم</span></a>`).join("")}${late.length>5?`<div class="nums" style="margin-top:6px">و ${late.length-5} كمان…</div>`:""}</div>`);
+}
+// ===== لوحة الإنتاج: آخر 7 أيام مقارنةً بالأسبوع اللي قبله =====
+const DSRC={"glaze.html":["glaze_production","prod_date"],"decoration.html":["deco_production","prod_date"],"spray.html":["spray_production","prod_date"],"repair.html":["repair_log","repair_date"]};
+async function prodRows(t,col,from){
+  const out=[];
+  for(let f=0;;f+=1000){
+    const{data,error}=await db.from(t).select("id,qty,"+col).gte(col,from).order(col).order("id").range(f,f+999);
+    if(error)throw error;out.push(...data);if(data.length<1000)break;
+  }
+  return out;
+}
+function drawChart(vs,days,vals){
+  const W=340,H=190,pl=10,pr=10,pt=20,pb=28,bw=(W-pl-pr)/days.length,w=bw*.58,ch=H-pt-pb;
+  const tot=vals.map(v=>v.reduce((a,b)=>a+b,0)),mx=Math.max(1,...tot);
+  let g="";
+  [0,.5,1].forEach(f=>{const y=pt+ch*(1-f);g+=`<line x1="${pl}" x2="${W-pr}" y1="${y}" y2="${y}" stroke="var(--line)" stroke-dasharray="3 4"/>`});
+  days.forEach((d,i)=>{
+    const cx=pl+bw*i+bw/2;let y=pt+ch;
+    const top=vals[i].map((v,k)=>v>0?k:-1).filter(k=>k>=0).pop();
+    vals[i].forEach((v,k)=>{
+      if(v<=0)return;const h=Math.max(2,v/mx*ch);y-=h;
+      g+=`<rect class="seg-r" x="${cx-w/2}" y="${y}" width="${w}" height="${h}" rx="${k===top?4:0}" fill="${vs[k].s[3]}" style="animation-delay:${i*.05}s"><title>${esc(vs[k].s[1])}: ${nf(v)}</title></rect>`;
+    });
+    if(tot[i]>0)g+=`<text class="tot" x="${cx}" y="${y-5}" text-anchor="middle">${nf(tot[i])}</text>`;
+    const lbl=new Date(d+"T00:00:00Z").toLocaleDateString("ar-EG",{weekday:"short",timeZone:"UTC"});
+    g+=`<text x="${cx}" y="${H-9}" text-anchor="middle" ${d===today()?'class="tot"':""}>${lbl}</text>`;
+  });
+  return `<svg class="dchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="الإنتاج آخر 7 أيام">${g}</svg>`;
+}
+async function dash(){
+  const vs=visibleSections().filter(s=>DSRC[s[0]]).map(s=>({s,t:DSRC[s[0]][0],c:DSRC[s[0]][1]}));
+  if(!vs.length)return;
+  const T=today(),from=addDays(T,-13);
+  await Promise.all(vs.map(async x=>x.r=await prodRows(x.t,x.c,from)));
+  // الإنتاج بدون طلبية بيتحسب مع كل قسم
+  try{
+    const fr=await db.from("free_production").select("section,qty,prod_date").gte("prod_date",from);
+    if(!fr.error)(fr.data||[]).forEach(f=>{const x=vs.find(v=>DSRC[v.s[0]]&&v.s[0].startsWith(f.section==="deco"?"decoration":f.section));if(x)x.r.push({qty:f.qty,[x.c]:f.prod_date})});
+  }catch(e){}
+  const days=Array.from({length:7},(_,i)=>addDays(T,i-6)),prevDays=Array.from({length:7},(_,i)=>addDays(T,i-13));
+  const sumOn=(x,d)=>x.r.reduce((a,r)=>a+(String(r[x.c]).slice(0,10)===d?(+r.qty||0):0),0);
+  const vals=days.map(d=>vs.map(x=>sumOn(x,d)));
+  const tot=vals.map(v=>v.reduce((a,b)=>a+b,0));
+  const week=tot.reduce((a,b)=>a+b,0),prev=prevDays.reduce((a,d)=>a+vs.reduce((b,x)=>b+sumOn(x,d),0),0);
+  const bi=tot.indexOf(Math.max(...tot)),best=tot[bi];
+  let delta=null;
+  if(prev>0){const p=Math.round((week-prev)/prev*100);delta=[p>0?"up":p<0?"down":"flat",(p>0?"▲ ":p<0?"▼ ":"")+Math.abs(p)+"% عن الأسبوع اللي قبله"]}
+  else if(week>0)delta=["flat","مفيش بيانات للأسبوع اللي قبله"];
+  const hk=document.getElementById("hk");hk.style.display="";
+  kpis(hk,[["إنتاج النهارده",tot[6],"var(--pri)"],["آخر 7 أيام",week,"var(--ok)",{},delta],["أفضل يوم",best,null,{},best>0?["flat",new Date(days[bi]+"T00:00:00Z").toLocaleDateString("ar-EG",{weekday:"long",timeZone:"UTC"})]:null]]);
+  const sums=vs.map((x,k)=>vals.reduce((a,v)=>a+v[k],0));
+  document.getElementById("hc").innerHTML=`<div class="card"><div class="top"><b>الإنتاج آخر 7 أيام</b><span class="tag">${nf(week)}</span></div>${week>0?drawChart(vs,days,vals):'<div class="empty">مفيش إنتاج متسجّل الأسبوع ده</div>'}${week>0?`<div class="legend">${vs.map((x,k)=>`<span><i style="background:${x.s[3]}"></i>${x.s[1]} <b>${nf(sums[k])}</b></span>`).join("")}</div>`:""}</div>`;
+}
+async function init(){
+  const{data:{session}}=await db.auth.getSession();
+  document.getElementById("login").style.display=session?"none":"grid";
+  document.getElementById("home").style.display=session?"block":"none";
+  if(!session){hideSplash();return}
+  if(!await requireAuth("index.html")){hideSplash();return}
+  renderNav("");
+  if(ME.name)document.getElementById("hi").innerHTML='<span class="hi-w">أهلاً</span><span class="hi-n">'+esc(ME.name)+'</span><span class="hi-hand" aria-hidden="true">👋</span>';
+  document.getElementById("today").textContent=new Date().toLocaleDateString("ar-EG",{weekday:"long",day:"numeric",month:"long"});
+  document.getElementById("tiles").innerHTML=visibleSections().map(s=>`<a class="tile" href="${s[0]}" style="--c:${s[3]}"><span class="ico">${ico(s[2])}</span><b>${s[1]}</b><span class="sum" data-f="${s[0]}"><i class="sk"></i></span><span class="sum2"></span></a>`).join("")+
+    (visibleSections().length?"":`<a class="tile wide" href="${PROD[0]}" style="--c:${PROD[3]}"><span class="ico">${ico(PROD[2])}</span><span class="tx"><b>${PROD[1]}</b><span class="sum2">سجّل إنتاج قسمك من هنا</span></span></a>`)+
+    (!canReports()?"":`<a class="tile wide" href="${REPORTS[0]}" style="--c:${REPORTS[3]}"><span class="ico">${ico("chart")}</span><span class="tx"><b>${REPORTS[1]}</b><span class="sum2" id="rsum"><i class="sk" style="width:170px;height:14px"></i></span></span></a>`);
+  lateAlert().catch(()=>{});
+  dash().catch(()=>{});
+  dash2().catch(()=>{});
+  let tot=0,n=0;
+  await Promise.all([...document.querySelectorAll(".sum")].map(async el=>{
+    let r=null;try{r=await SUMMARY[el.dataset.f]()}catch(e){}
+    if(r){
+      el.innerHTML=`<b></b> ${r[1]}`;countUp(el.querySelector("b"),r[0]);
+      if(!r[3])el.nextElementSibling.textContent="إنتاج النهارده: "+nf(r[2]);
+      tot+=r[2];n++;
+    }else el.textContent="";
+  }));
+  const rs=document.getElementById("rsum");if(rs)rs.innerHTML=n?`إنتاج النهارده في كل الأقسام: <b style="color:var(--ok)">${nf(tot)}</b>`:"ملخص الإنتاج والطلبيات المتأخرة";
+}
+document.getElementById("lver").textContent="الإصدار "+APP_VERSION;
+try{const le=localStorage.getItem("last_email");if(le)email.value=le}catch(e){}
+document.getElementById("eye").onclick=()=>{const h=pass.type==="password";pass.type=h?"text":"password";eye.classList.toggle("on",h)};
+const capsChk=e=>{caps.hidden=!(e.getModifierState&&e.getModifierState("CapsLock"))};
+pass.addEventListener("keydown",capsChk);pass.addEventListener("keyup",capsChk);pass.addEventListener("blur",()=>caps.hidden=true);
+function bad(m){
+  err.textContent=m;Snd.play("error");
+  const f=document.getElementById("lform");f.classList.remove("shake");void f.offsetWidth;f.classList.add("shake");
+}
+function welcome(name){
+  if(document.documentElement.classList.contains("calm"))return;
+  welg.textContent="أهلاً";welt.textContent=name||"بيك";
+  const w=document.getElementById("wel");w.hidden=false;w.classList.remove("out");void w.offsetWidth;w.classList.add("in");
+  // إعادة تشغيل حركات الداخل كل مرة
+  w.querySelectorAll(".wc,.wg,b,.wl,.wsp i").forEach(e=>{e.style.animation="none";void e.offsetWidth;e.style.animation=""});
+  setTimeout(()=>{w.classList.add("out");setTimeout(()=>{w.hidden=true;w.classList.remove("in","out")},450)},2300);
+}
+// الدخول بالاسم: لو المكتوب فيه @ يتعامل كإيميل، غير كده بنجيب الإيميل المرتبط بالاسم من السيرفر
+const normName=s=>s.trim().replace(/\s+/g," ").toLowerCase();
+async function emailFor(v){
+  if(v.includes("@"))return v.toLowerCase();
+  try{
+    const r=await db.rpc("login_email",{p_name:normName(v)});
+    if(r.error){bad(r.error.code==="PGRST202"?"لازم تشغّل ملف setup_username.sql على Supabase الأول":"تعذر التحقق من الاسم، حاول تاني");return false}
+    return r.data||"unknown@invalid.example"; // اسم غير موجود/مكرر → نفس رسالة الخطأ العامة
+  }catch(x){bad("تعذر الاتصال بالسيرفر، حاول تاني");return false}
+}
+document.getElementById("lform").onsubmit=async e=>{
+  e.preventDefault();err.textContent="";
+  const typed=email.value.trim(),pw=pass.value;
+  if(!typed||!pw){bad(!typed?"اكتب الاسم":"اكتب كلمة السر");(!typed?email:pass).focus();return}
+  if(!navigator.onLine){bad("مفيش اتصال بالإنترنت");return}
+  go.disabled=true;go.classList.add("loading");
+  const em=await emailFor(typed);
+  if(em===false){go.disabled=false;go.classList.remove("loading");return}
+  let error;try{({error}=await db.auth.signInWithPassword({email:em,password:pw}))}catch(x){error={message:"fetch"}}
+  go.disabled=false;go.classList.remove("loading");
+  if(error){bad(/fetch|network|load failed/i.test(error.message||"")?"تعذر الاتصال بالسيرفر، حاول تاني":"الاسم أو كلمة السر غلط");pass.select();return}
+  try{rem.checked?localStorage.setItem("last_email",typed):localStorage.removeItem("last_email")}catch(x){}
+  Snd.play("login");
+  await init();
+  if(typeof ME!=="undefined"&&ME&&ME.role)welcome(ME.name);
+};
+document.getElementById("forgot").onclick=async()=>{
+  err.textContent="";const typed=email.value.trim();
+  if(!typed){bad("اكتب اسمك الأول وبعدين اضغط نسيت كلمة السر");email.focus();return}
+  forgot.disabled=true;
+  const em=await emailFor(typed);
+  if(!em||!/^\S+@\S+\.\S+$/.test(em)){forgot.disabled=false;if(em!==false)toast("لو الحساب مسجّل هيوصله رابط إعادة تعيين كلمة السر","ok");return}
+  const{error}=await db.auth.resetPasswordForEmail(em,{redirectTo:location.href.replace(/[?#].*$/,"").replace(/[^/]*$/,"index.html")});
+  toast(error?"تعذر الإرسال: "+error.message:"لو الإيميل مسجّل هيوصله رابط إعادة تعيين كلمة السر",error?"bad":"ok");
+  setTimeout(()=>forgot.disabled=false,30000);
+};
+init();
+</script>
+<script src="install.js" defer></script>
+</body>
+</html>

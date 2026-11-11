@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#642631">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="الأقسام">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>المستخدمين والصلاحيات</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<div id="splash"><svg class="gears" viewBox="0 0 120 80" aria-hidden="true"><path class="g1" fill-rule="evenodd" fill="#D7B96F" d="M56.5,42.0 L63.4,44.7 L62.8,48.1 L55.4,48.3 L54.0,51.2 L58.6,57.0 L56.4,59.7 L49.9,56.1 L47.2,58.0 L48.4,65.3 L45.1,66.5 L41.3,60.2 L38.0,60.5 L35.3,67.4 L31.9,66.8 L31.7,59.4 L28.8,58.0 L23.0,62.6 L20.3,60.4 L23.9,53.9 L22.0,51.2 L14.7,52.4 L13.5,49.1 L19.8,45.3 L19.5,42.0 L12.6,39.3 L13.2,35.9 L20.6,35.7 L22.0,32.8 L17.4,27.0 L19.6,24.3 L26.1,27.9 L28.8,26.0 L27.6,18.7 L30.9,17.5 L34.7,23.8 L38.0,23.5 L40.7,16.6 L44.1,17.2 L44.3,24.6 L47.2,26.0 L53.0,21.4 L55.7,23.6 L52.1,30.1 L54.0,32.8 L61.3,31.6 L62.5,34.9 L56.2,38.7Z M45,42 a7,7 0 1,0 -14,0 a7,7 0 1,0 14,0Z"/><path class="g2" fill-rule="evenodd" fill="#E8D49B" d="M85.6,30.0 L90.2,32.7 L89.3,36.2 L83.9,36.2 L81.9,38.9 L83.2,44.1 L80.2,45.9 L76.3,42.2 L73.0,42.6 L70.3,47.2 L66.8,46.3 L66.8,40.9 L64.1,38.9 L58.9,40.2 L57.1,37.2 L60.8,33.3 L60.4,30.0 L55.8,27.3 L56.7,23.8 L62.1,23.8 L64.1,21.1 L62.8,15.9 L65.8,14.1 L69.7,17.8 L73.0,17.4 L75.7,12.8 L79.2,13.7 L79.2,19.1 L81.9,21.1 L87.1,19.8 L88.9,22.8 L85.2,26.7Z M78,30 a5,5 0 1,0 -10,0 a5,5 0 1,0 10,0Z"/><path class="g3" fill-rule="evenodd" fill="#B9984C" d="M95.2,52.5 L98.6,54.8 L97.7,57.6 L93.7,57.7 L91.8,59.7 L92.0,63.7 L89.3,64.8 L86.7,61.7 L83.9,61.5 L81.0,64.2 L78.4,62.8 L79.3,58.8 L77.7,56.5 L73.7,55.9 L73.2,53.0 L76.9,51.2 L77.7,48.5 L75.7,45.0 L77.7,42.8 L81.3,44.5 L83.9,43.5 L85.4,39.8 L88.4,40.0 L89.3,43.9 L91.8,45.3 L95.6,44.1 L97.3,46.6 L94.8,49.7Z M90,52.5 a4,4 0 1,0 -8,0 a4,4 0 1,0 8,0Z"/></svg><img src="icon.svg" alt=""><b>إدارة الأقسام</b><div class="ld"><i></i></div><small class="ldt">جاري التحميل…</small></div>
+<script>try{var n=performance.getEntriesByType("navigation")[0];if(sessionStorage.getItem("sp")&&!(n&&n.type==="reload"))document.getElementById("splash").remove()}catch(e){}</script>
+<div class="wrap">
+  <h1>المستخدمين والصلاحيات</h1>
+  <div class="row noprint" style="margin:0 0 12px"><button class="btn" id="u_add" style="flex:1">+ إضافة مستخدم</button></div>
+  <div id="u_kpi" class="kpis three"></div>
+  <div class="chips noprint" id="u_chips"></div>
+  <div id="u_list"></div>
+</div>
+<div id="toast"></div><div id="offline">لا يوجد اتصال بالإنترنت</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+let ROWS=[],q="",fRole="",HAS_PERMS=true;
+const SETUP_MSG='<div class="empty err-state">لازم تشغّل ملف setup_users.sql في Supabase الأول<br><span class="nums">(SQL Editor ← New query ← Run)</span></div>';
+const secOpts=(v)=>Object.entries(SEC_AR).map(([k,n])=>`<option value="${k}" ${v===k?"selected":""}>${n}</option>`).join("");
+
+async function load(){
+  skel("u_list",3);
+  let cols=["id","full_name","role","section","sections","email","active","perms","last_seen","avatar","phone","whatsapp"],data,error;
+  HAS_PERMS=true;
+  for(let k=0;k<8;k++){
+    ({data,error}=await db.from("profiles").select(cols.join(",")).order("full_name"));
+    const bad=error&&["perms","last_seen","avatar","sections","phone","whatsapp"].find(c=>cols.includes(c)&&(error.message||"").includes(c));
+    if(!bad)break;cols=cols.filter(c=>c!==bad);if(bad==="perms")HAS_PERMS=false;
+  }
+  if(error){
+    if(/email|active|column/i.test(error.message||"")){u_list.removeAttribute("aria-busy");u_list.innerHTML=SETUP_MSG;return}
+    fail("u_list",load);return;
+  }
+  ROWS=data;render();
+}
+function render(){
+  const act=ROWS.filter(r=>r.active!==false).length;
+  const adm=ROWS.filter(r=>r.role==="admin"&&r.active!==false).length;
+  kpis("u_kpi",[["مستخدم",ROWS.length],["نشط",act,"var(--ok)"],["مدير",adm,"var(--pri)"]]);
+  u_chips.innerHTML=[["","الكل"],["admin","مدير"],["manager","مسؤول قسم"],["worker","مسجّل إنتاج"],["none","بدون صلاحية"]].map(c=>`<button type="button" class="chip ${fRole===c[0]?"on":""}" data-r="${c[0]}">${c[1]}</button>`).join("");
+  const list=ROWS.filter(r=>(!fRole||(fRole==="none"?!r.role:r.role===fRole))&&hit(q,r.full_name,realEmail(r.email),secNames(secList(r)),r.phone||""));
+  u_list.removeAttribute("aria-busy");
+  u_list.innerHTML=list.length?list.map(r=>{
+    const off=r.active===false,me=r.id===ME.id,locked=r.role==="admin"&&!me,ss=secList(r);
+    return `<div class="card ${off?"off":""}"><div class="urow">
+      <span ${avAttr(r.avatar,"avatar big")}>${avText(r.avatar,(r.full_name||realEmail(r.email)||"?").trim().charAt(0).toUpperCase())}</span>
+      <div class="ut"><b>${esc(r.full_name||"بدون اسم")}${me?' <span class="tag">أنت</span>':""}</b><small>${esc(realEmail(r.email)||"بدون إيميل — دخول بالاسم")}</small>${r.last_seen?`<small style="display:block">آخر ظهور: ${ageTxt(r.last_seen)}</small>`:""}
+        <div class="utags"><span class="tag ${r.role==="admin"?"role-admin":""}">${ROLE_AR[r.role]||"بدون صلاحية"}</span>${r.role&&r.role!=="admin"?(ss.length?ss.map(k=>`<span class="tag">${SEC_AR[k]}</span>`).join(""):'<span class="tag">بدون قسم</span>'):""}${off?'<span class="tag bad">موقوف</span>':""}${locked?'<span class="tag lock" title="حسابات المديرين بتتعدّل من Supabase بس">🔒 محمي</span>':""}</div>
+        ${r.phone||r.whatsapp?`<div class="cline">${contactBtns(r)}</div>`:""}</div>
+      ${locked?"":`<button class="btn ghost sm" data-e="${r.id}">تعديل</button>`}</div></div>`}).join("")
+    :'<div class="empty">مفيش مستخدمين مطابقين</div>';
+}
+u_chips.onclick=e=>{const b=e.target.closest(".chip");if(!b)return;fRole=b.dataset.r;render()};
+u_list.onclick=e=>{const b=e.target.closest("[data-e]");if(b)editUser(ROWS.find(r=>r.id===b.dataset.e))};
+const PROT_MSG="حسابات المديرين محمية: بتتعدّل من Supabase بس";
+const errTxt=m=>/protected admin/i.test(m||"")?PROT_MSG:/phone|whatsapp|sections|column/i.test(m||"")?"لازم تشغّل ملف setup_v2.sql في Supabase الأول":"خطأ: "+m;
+
+const roleBox=(v)=>`<label>الصلاحية</label><div class="rolebox">${["manager","worker"].map(k=>`<label><input type="radio" name="m-rl" value="${k}" ${v===k?"checked":""}><span><b>${ROLE_AR[k]}</b><small>${ROLE_DESC[k]}</small></span></label>`).join("")}</div>
+  <div id="m_secw"><label>الأقسام التابع لها (تقدر تختار أكتر من قسم)</label><div class="secpick" id="m_secs">${Object.entries(SEC_AR).map(([k,n])=>`<label><input type="checkbox" data-s="${k}"> ${n}</label>`).join("")}</div></div>
+  <div id="m_permw">${HAS_PERMS?`<label>الصلاحيات التفصيلية</label><div class="permtools"><button type="button" class="btn ghost sm" id="m_only">إنتاج فقط (إلغاء كل الصلاحيات)</button><button type="button" class="btn ghost sm" id="m_all">تحديد الكل</button></div><div class="permlist">${Object.entries(PERM_LBL).map(([k,l])=>`<label><input type="checkbox" data-p="${k}"><span><b>${l[0]}</b><small>${l[1]}</small></span></label>`).join("")}</div><div class="hint">بتتظبط تلقائي حسب الدور، وتقدر تغيّرها لكل مستخدم. «إنتاج فقط» بيسيب له تسجيل الإنتاج في قسمه من غير ما يشوف الطلبيات أو يعدّل أو يحذف.</div>`:'<div class="hint">لتفعيل الصلاحيات التفصيلية شغّل setup_perms.sql في Supabase.</div>'}</div>`;
+function setPerms(root,role,perms){
+  root.querySelectorAll("[data-p]").forEach(c=>{const v=(perms||{})[c.dataset.p];c.checked=typeof v==="boolean"?v:!!(PERM_DEF[role]||{})[c.dataset.p]});
+}
+function wireRole(root,secVals,perms){
+  const w=root.querySelector("#m_secw"),pw=root.querySelector("#m_permw");
+  (secVals||[]).forEach(k=>{const c=root.querySelector(`[data-s="${k}"]`);if(c)c.checked=true});
+  const cur=()=>{const r=root.querySelector("input[name=m-rl]:checked");return r?r.value:""};
+  const upd=()=>{const r=cur();w.hidden=!r;pw.hidden=!r};
+  root.querySelectorAll("input[name=m-rl]").forEach(i=>i.onchange=()=>{upd();setPerms(root,cur(),null)});
+  setPerms(root,cur(),perms);upd();
+  const only=root.querySelector("#m_only"),all=root.querySelector("#m_all");
+  if(only)only.onclick=()=>{root.querySelectorAll("[data-p]").forEach(c=>c.checked=false);toast("اتشالت كل الصلاحيات — هيسجّل إنتاج بس. اضغط حفظ","warn")};
+  if(all)all.onclick=()=>root.querySelectorAll("[data-p]").forEach(c=>c.checked=true);
+}
+function readRole(){
+  const r=document.querySelector("input[name=m-rl]:checked"),role=r?r.value:"";
+  const sections=[...document.querySelectorAll("#m_secs [data-s]:checked")].map(c=>c.dataset.s),section=sections[0]||null;
+  if(!role){toast("اختار الصلاحية");return null}
+  if(!section){toast("اختار قسم واحد على الأقل");return null}
+  const out={role,section,sections};
+  if(HAS_PERMS){out.perms={};if(role!=="admin")document.querySelectorAll("[data-p]").forEach(c=>out.perms[c.dataset.p]=c.checked)}
+  return out;
+}
+
+const nn=s=>(s||"").trim().replace(/\s+/g," ").toLowerCase();
+const nameTaken=(n,except)=>ROWS.some(r=>r.id!==except&&nn(r.full_name)===nn(n));
+u_add.onclick=()=>{
+  openModal("إضافة مستخدم",`<label>الاسم</label><input id="m_fn" maxlength="60" autocomplete="off">
+    <label>الإيميل (اختياري)</label><input id="m_em" type="email" autocomplete="off" dir="ltr" placeholder="سيبه فاضي — الدخول بالاسم بس"><div class="hint">مش لازم إيميل: المستخدم بيدخل بالاسم وكلمة السر.</div>
+    <label>كلمة السر المبدئية</label><input id="m_pw" type="text" autocomplete="off" dir="ltr"><div class="hint">6 حروف على الأقل. المستخدم يقدر يغيّرها من ملفه الشخصي. وتقدر تضيف صورته من «تعديل».</div>${roleBox("worker")}`,async()=>{
+    const fn=m_fn.value.trim(),em=m_em.value.trim().toLowerCase(),pw=m_pw.value,rs=readRole();
+    if(fn.length<2){toast("اكتب اسم المستخدم");return false}
+    if(em&&!/^\S+@\S+\.\S+$/.test(em)){toast("اكتب إيميل صحيح");return false}
+    if(nameTaken(fn)){toast("الاسم ده مستخدم قبل كده — الدخول بالاسم محتاج اسم مميز");return false}
+    if(pw.length<6){toast("كلمة السر لازم تكون 6 حروف على الأقل");return false}
+    if(!rs)return false;
+    if(!em){
+      // بدون إيميل: دالة السيرفر بتعمل الحساب مؤكد وجاهز للدخول بالاسم
+      const r=await db.rpc("admin_create_user",{p_name:fn,p_password:pw,p_role:rs.role,p_section:rs.section,p_perms:rs.perms||{}});
+      if(!r.error&&r.data){const u2=await db.from("profiles").update({sections:rs.sections}).eq("id",r.data);if(u2.error&&rs.sections.length>1)toast("اتضاف المستخدم لكن الأقسام الإضافية محتاجة setup_v2.sql","warn")}
+      if(r.error){
+        const m=r.error.message||"";
+        toast(r.error.code==="PGRST202"?"لازم تشغّل ملف setup_create_user.sql في Supabase الأول (SQL Editor ← Run)":/exists|taken/i.test(m)?"الاسم ده مستخدم قبل كده":/not allowed/i.test(m)?"مش مسموح لك بإضافة مستخدمين":/bad role|protected/i.test(m)?PROT_MSG:"خطأ: "+m,"bad");
+        return false;
+      }
+      await load();toast("تمت إضافة "+fn+" — يدخل بالاسم وكلمة السر");
+      return;
+    }
+    // بإيميل: تسجيل عادي
+    // عميل منفصل عشان تسجيل المستخدم الجديد ما يطلّعش المدير من جلسته
+    const tmp=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:"tmp-signup"}});
+    const{data,error}=await tmp.auth.signUp({email:em,password:pw,options:{data:{full_name:fn}}});
+    if(error){toast("خطأ: "+(/registered|already/i.test(error.message)?"الإيميل ده مستخدم قبل كده":error.message));return false}
+    if(!data.user||(data.user.identities&&!data.user.identities.length)){toast("الإيميل ده مستخدم قبل كده");return false}
+    const up=await db.from("profiles").upsert({id:data.user.id,full_name:fn,email:em,role:rs.role,section:rs.section,sections:rs.sections,active:true,...(rs.perms?{perms:rs.perms}:{})});
+    if(up.error){toast("اتعمل الحساب لكن الصلاحية ما اتحفظتش: "+up.error.message);return false}
+    await load();toast("تمت إضافة "+fn+(data.session?"":" — لازم يأكد الإيميل قبل أول دخول"),data.session?"ok":"warn");
+  },"إضافة");
+  wireRole(document.getElementById("ov"),null,null);
+};
+
+function editUser(r){
+  if(!r)return;
+  if(r.role==="admin"&&r.id!==ME.id){toast(PROT_MSG,"warn");return}const me=r.id===ME.id,off=r.active===false;
+  let newAv;const noMail=!realEmail(r.email);
+  openModal("تعديل مستخدم",`<div class="photobox"><span id="m_av" ${avAttr(r.avatar,"avatar big")}>${avText(r.avatar,(r.full_name||"?").trim().charAt(0).toUpperCase())}</span><div class="photoact"><button type="button" class="btn ghost sm" id="m_ph">تغيير الصورة</button><button type="button" class="btn ghost sm" id="m_phx">حذف الصورة</button></div><input type="file" id="m_file" accept="image/*" hidden></div>
+    <label>الاسم</label><input id="m_fn" maxlength="60" value="${esc(r.full_name||"")}">
+    <div class="two"><div><label>الهاتف</label><input id="m_ph_n" type="tel" dir="ltr" maxlength="20" value="${esc(r.phone||"")}"></div><div><label>واتساب</label><input id="m_wa_n" type="tel" dir="ltr" maxlength="20" value="${esc(r.whatsapp||"")}"></div></div>
+    ${noMail?'<div class="hint">بدون إيميل — بيدخل بالاسم وكلمة السر.</div>':`<label>الإيميل</label><input value="${esc(r.email||"")}" dir="ltr" disabled>`}
+    ${me?'<div class="hint">ده حسابك: مينفعش تغيّر صلاحيتك أو توقف نفسك (عشان ما تتقفلش بره).</div>':roleBox(r.role)}
+    ${me?"":`${noMail?'<label>كلمة سر جديدة</label><input id="m_np" type="text" dir="ltr" autocomplete="off" placeholder="6 حروف على الأقل"><button type="button" class="btn ghost" id="m_npgo" style="width:100%;margin-bottom:8px">تعيين كلمة السر</button>':'<button type="button" class="btn ghost" id="m_rs" style="width:100%;margin-bottom:8px">إرسال رابط إعادة تعيين كلمة السر</button>'}<button type="button" class="btn ghost" id="m_tg" style="width:100%;${off?"":"color:var(--bad)"}">${off?"تفعيل الحساب":"إيقاف الحساب"}</button><div class="hint" style="margin-top:6px">الحساب الموقوف مش بيقدر يدخل البرنامج، وبياناته بتفضل محفوظة.</div><button type="button" class="btn ghost dangerbtn" id="m_del" style="margin-top:10px">حذف الحساب نهائيًا</button>`}`,async()=>{
+    const fn=m_fn.value.trim();if(fn.length<2){toast("اكتب اسم المستخدم");return false}
+    if(nameTaken(fn,r.id)){toast("الاسم ده مستخدم قبل كده");return false}
+    const ph=m_ph_n.value.trim(),wa=m_wa_n.value.trim();
+    if(ph&&!phoneOk(ph)||wa&&!phoneOk(wa)){toast("رقم الهاتف أو الواتساب غير صحيح","warn");return false}
+    const patch={full_name:fn};if(newAv!==undefined)patch.avatar=newAv;
+    if(ph!==(r.phone||"")||wa!==(r.whatsapp||""))Object.assign(patch,{phone:ph||null,whatsapp:wa||null});
+    if(!me){const rs=readRole();if(!rs)return false;Object.assign(patch,rs)}
+    const{error}=await db.from("profiles").update(patch).eq("id",r.id);
+    if(error){toast(/avatar/.test(error.message||"")?"لازم تشغّل ملف setup_avatar.sql في Supabase الأول":errTxt(error.message),"bad");return false}
+    await load();toast("تم حفظ التعديلات");
+  });
+  const ov=document.getElementById("ov");if(!me)wireRole(ov,secList(r),r.perms);
+  const mf=ov.querySelector("#m_file"),mav=ov.querySelector("#m_av");
+  const showAv=u=>{const t=(ov.querySelector("#m_fn").value||"?").trim().charAt(0).toUpperCase();mav.className="avatar big"+(safeAv(u)?" has":"");mav.style.backgroundImage=safeAv(u)?`url('${safeAv(u)}')`:"";mav.textContent=safeAv(u)?"":t};
+  ov.querySelector("#m_ph").onclick=()=>mf.click();
+  mf.onchange=async()=>{try{newAv=await photoToData(mf.files[0]);showAv(newAv)}catch(e){toast(e.message,"warn")}mf.value=""};
+  ov.querySelector("#m_phx").onclick=()=>{newAv=null;showAv(null)};
+  const npg=ov.querySelector("#m_npgo");
+  if(npg)npg.onclick=async()=>{
+    const pw=ov.querySelector("#m_np").value;
+    if(pw.length<6){toast("كلمة السر لازم تكون 6 حروف على الأقل");return}
+    npg.disabled=true;
+    const x=await db.rpc("admin_set_password",{p_id:r.id,p_password:pw});
+    npg.disabled=false;
+    toast(x.error?(x.error.code==="PGRST202"?"لازم تشغّل ملف setup_create_user.sql في Supabase الأول":errTxt(x.error.message)):"تم تغيير كلمة السر",x.error?"bad":"ok");
+    if(!x.error)ov.querySelector("#m_np").value="";
+  };
+  const rs=ov.querySelector("#m_rs");
+  if(rs)rs.onclick=async()=>{
+    if(!r.email){toast("مفيش إيميل للمستخدم ده");return}
+    rs.disabled=true;
+    const{error}=await db.auth.resetPasswordForEmail(r.email,{redirectTo:location.href.replace(/[^/]*$/,"index.html")});
+    rs.disabled=false;toast(error?"خطأ: "+error.message:"اتبعت رابط إعادة التعيين على "+r.email);
+  };
+  const dl=ov.querySelector("#m_del");
+  if(dl)dl.onclick=async()=>{if(await deleteUser(r)){closeModal();await load();toast("تم حذف الحساب")}};
+  const tg=ov.querySelector("#m_tg");
+  if(tg)tg.onclick=async()=>{
+    if(!off&&!await ask("إيقاف حساب "+(r.full_name||r.email)+"؟","نعم، أوقف"))return;
+    const{error}=await db.from("profiles").update({active:off}).eq("id",r.id);
+    if(error){toast(errTxt(error.message),"bad");return}
+    closeModal();await load();toast(off?"تم تفعيل الحساب":"تم إيقاف الحساب");
+  };
+}
+/* ===== حذف الحساب نهائيًا (محتاج تشغيل setup_delete_user.sql مرة واحدة في Supabase) ===== */
+async function deleteUser(r){
+  if(!await ask("حذف حساب «"+(r.full_name||r.email)+"» نهائيًا؟ مينفعش التراجع، واسمه هيتحرر لو عايز تستخدمه تاني.","نعم، احذف الحساب"))return false;
+  const{error}=await db.rpc("delete_user",{p_id:r.id});
+  if(error){
+    const m=error.message||"";
+    toast(error.code==="PGRST202"||/delete_user/.test(m)&&/function|find/i.test(m)?"لازم تشغّل ملف setup_delete_user.sql في Supabase الأول (SQL Editor ← Run)":/protected admin/i.test(m)?PROT_MSG:/last admin/i.test(m)?"مينفعش تحذف آخر مدير":/not allowed/i.test(m)?"مش مسموح لك بحذف المستخدمين":"خطأ: "+m,"bad");
+    return false;
+  }
+  return true;
+}
+(async()=>{if(await requireAuth("users.html")){renderNav("users.html");searchBox("u_chips",v=>{q=v;render()},"بحث بالاسم أو الإيميل…");load().finally(settle)}})();
+</script>
+<script src="install.js" defer></script>
+</body>
+</html>

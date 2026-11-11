@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#642631">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="الأقسام">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>الأصناف والألوان</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<div id="splash"><svg class="gears" viewBox="0 0 120 80" aria-hidden="true"><path class="g1" fill-rule="evenodd" fill="#D7B96F" d="M56.5,42.0 L63.4,44.7 L62.8,48.1 L55.4,48.3 L54.0,51.2 L58.6,57.0 L56.4,59.7 L49.9,56.1 L47.2,58.0 L48.4,65.3 L45.1,66.5 L41.3,60.2 L38.0,60.5 L35.3,67.4 L31.9,66.8 L31.7,59.4 L28.8,58.0 L23.0,62.6 L20.3,60.4 L23.9,53.9 L22.0,51.2 L14.7,52.4 L13.5,49.1 L19.8,45.3 L19.5,42.0 L12.6,39.3 L13.2,35.9 L20.6,35.7 L22.0,32.8 L17.4,27.0 L19.6,24.3 L26.1,27.9 L28.8,26.0 L27.6,18.7 L30.9,17.5 L34.7,23.8 L38.0,23.5 L40.7,16.6 L44.1,17.2 L44.3,24.6 L47.2,26.0 L53.0,21.4 L55.7,23.6 L52.1,30.1 L54.0,32.8 L61.3,31.6 L62.5,34.9 L56.2,38.7Z M45,42 a7,7 0 1,0 -14,0 a7,7 0 1,0 14,0Z"/><path class="g2" fill-rule="evenodd" fill="#E8D49B" d="M85.6,30.0 L90.2,32.7 L89.3,36.2 L83.9,36.2 L81.9,38.9 L83.2,44.1 L80.2,45.9 L76.3,42.2 L73.0,42.6 L70.3,47.2 L66.8,46.3 L66.8,40.9 L64.1,38.9 L58.9,40.2 L57.1,37.2 L60.8,33.3 L60.4,30.0 L55.8,27.3 L56.7,23.8 L62.1,23.8 L64.1,21.1 L62.8,15.9 L65.8,14.1 L69.7,17.8 L73.0,17.4 L75.7,12.8 L79.2,13.7 L79.2,19.1 L81.9,21.1 L87.1,19.8 L88.9,22.8 L85.2,26.7Z M78,30 a5,5 0 1,0 -10,0 a5,5 0 1,0 10,0Z"/><path class="g3" fill-rule="evenodd" fill="#B9984C" d="M95.2,52.5 L98.6,54.8 L97.7,57.6 L93.7,57.7 L91.8,59.7 L92.0,63.7 L89.3,64.8 L86.7,61.7 L83.9,61.5 L81.0,64.2 L78.4,62.8 L79.3,58.8 L77.7,56.5 L73.7,55.9 L73.2,53.0 L76.9,51.2 L77.7,48.5 L75.7,45.0 L77.7,42.8 L81.3,44.5 L83.9,43.5 L85.4,39.8 L88.4,40.0 L89.3,43.9 L91.8,45.3 L95.6,44.1 L97.3,46.6 L94.8,49.7Z M90,52.5 a4,4 0 1,0 -8,0 a4,4 0 1,0 8,0Z"/></svg><img src="icon.svg" alt=""><b>إدارة الأقسام</b><div class="ld"><i></i></div><small class="ldt">جاري التحميل…</small></div>
+<script>try{var n=performance.getEntriesByType("navigation")[0];if(sessionStorage.getItem("sp")&&!(n&&n.type==="reload"))document.getElementById("splash").remove()}catch(e){}</script>
+<div class="wrap">
+  <h1>الأصناف والألوان</h1>
+  <div class="tabs noprint" id="tb"><button class="btn on" data-k="item">الأصناف</button><button class="btn ghost" data-k="color">الألوان</button><button class="btn ghost" data-k="code">أكواد الزخرفة</button></div>
+  <div class="nums" id="hint" style="margin-bottom:8px"></div>
+  <div class="catact noprint"><button class="btn" id="addx" type="button">+ إضافة بصورة وكود</button><button class="btn ghost" id="add" type="button">+ عدة أسماء</button></div>
+  <div class="search"><input type="search" id="q" placeholder="بحث…" aria-label="بحث"></div>
+  <div id="list"></div>
+</div>
+<div id="toast"></div><div id="offline">لا يوجد اتصال بالإنترنت</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+let kind="item",all=[],Q="";
+const NAMES={item:"الأصناف",color:"الألوان",code:"أكواد الزخرفة"};
+const HINT={item:"الأصناف (باسمها وكودها وصورتها) بتظهر في القوائم المنسدلة للطلبيات والهالك والتصليح.",color:"الألوان بتظهر في القوائم المنسدلة للجليز والرش.",code:"أكواد الرسمات بتظهر في القوائم المنسدلة للزخرفة (ممكن تضيف صورة الرسمة)."};
+const NEED="لازم تشغّل ملف setup_v2.sql في Supabase الأول (SQL Editor ← Run)";
+const NOPIC='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8 9"/></svg>';
+
+async function load(){
+  skel("list",3);
+  const{data,error}=await db.from("catalog").select("*").order("name");
+  if(error){fail("list",load);return}
+  all=data;draw();
+}
+function draw(){
+  document.getElementById("hint").textContent=HINT[kind]+" ("+nf(all.filter(x=>x.kind===kind).length)+")";
+  const rs=all.filter(x=>x.kind===kind&&hit(norm(Q),x.name,x.code||""));
+  document.getElementById("list").innerHTML=rs.length?`<div class="card">${rs.map(x=>{
+    const im=safeAv(x.image);
+    return `<div class="cent"><span class="cthumb ${im?"has":""}" ${im?`data-z="${x.id}" style="background-image:url('${im}')" role="button" aria-label="تكبير الصورة"`:""}>${im?"":NOPIC}</span>
+      <div class="ct"><b>${esc(x.name)}</b>${x.code?`<small>الكود: <span class="cnum">${esc(x.code)}</span></small>`:""}</div>
+      <span class="ca"><button class="btn ghost sm" data-e="${x.id}">تعديل</button><button class="btn ghost sm" data-d="${x.id}">حذف</button></span></div>`}).join("")}</div>`:`<div class="empty">${Q?"مفيش نتائج":"القائمة فاضية. اضغط «إضافة»."}</div>`;
+}
+function addNames(){
+  openModal("إضافة إلى "+NAMES[kind],`<label>اكتب اسم في كل سطر</label><textarea id="m-cn" rows="6" style="width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)"></textarea>`,async()=>{
+    const have=new Set(all.filter(x=>x.kind===kind).map(x=>norm(x.name))),add=[];
+    document.getElementById("m-cn").value.split("\n").map(s=>s.trim()).filter(Boolean).forEach(n=>{const k=norm(n);if(!have.has(k)){have.add(k);add.push({kind,name:n})}});
+    if(!add.length){toast("اكتب اسم جديد (الموجود قبل كده اتجاهل)");return false}
+    const{error}=await db.from("catalog").insert(add);
+    if(error){toast("خطأ: "+error.message);return false}
+    await load();toast("تمت إضافة "+add.length);
+  });
+}
+/* ===== نموذج مشترك: الاسم + الكود + الصورة ===== */
+let newImg; // undefined = من غير تغيير | null = حذف الصورة | نص = صورة جديدة
+const hasCode=()=>kind!=="code";
+const LBLN={item:"اسم الصنف",color:"اسم اللون",code:"كود الرسمة"};
+function entryForm(x){
+  newImg=undefined;x=x||{};const im=safeAv(x.image);
+  return `<label>${LBLN[kind]}</label><input id="c-name" maxlength="80" autocomplete="off" value="${esc(x.name||"")}">
+    ${hasCode()?`<label>${kind==="item"?"كود الصنف":"كود اللون"} (اختياري)</label><input id="c-code" maxlength="40" dir="ltr" autocomplete="off" placeholder="مثال: P-100" value="${esc(x.code||"")}">`:""}
+    <label>${kind==="code"?"صورة الرسمة":"الصورة"} (اختياري)</label>
+    <div class="photoedit"><span class="cthumb ${im?"has":""}" id="c-prev" ${im?`style="background-image:url('${im}')"`:""}>${im?"":NOPIC}</span>
+      <div class="pa"><button type="button" class="btn ghost sm" id="c-ph">اختيار صورة</button><button type="button" class="btn ghost sm" id="c-phx">حذف الصورة</button></div></div>
+    <input type="file" id="c-file" accept="image/*" hidden><div class="hint">الصورة بتتصغّر وتتقصّ مربع تلقائيًا.</div>`;
+}
+function wireForm(){
+  const f=document.getElementById("c-file"),pv=document.getElementById("c-prev");
+  const show=u=>{const im=safeAv(u);pv.className="cthumb"+(im?" has":"");pv.style.backgroundImage=im?`url('${im}')`:"";pv.innerHTML=im?"":NOPIC};
+  document.getElementById("c-ph").onclick=()=>f.click();
+  f.onchange=async()=>{try{newImg=await photoToData(f.files[0],240,.72);show(newImg)}catch(e){toast(e.message,"warn")}f.value=""};
+  document.getElementById("c-phx").onclick=()=>{newImg=null;show(null)};
+}
+function addEntry(){
+  openModal("إضافة · "+NAMES[kind],entryForm(),async()=>{
+    const name=document.getElementById("c-name").value.trim(),code=hasCode()?document.getElementById("c-code").value.trim():"";
+    if(!name){toast("اكتب الاسم");return false}
+    if(all.some(x=>x.kind===kind&&norm(x.name)===norm(name))){toast("الاسم ده موجود بالفعل","warn");return false}
+    const row={kind,name};if(code)row.code=code;if(newImg)row.image=newImg;
+    const{error}=await db.from("catalog").insert(row);
+    if(error){toast(/code|image|column/i.test(error.message||"")?NEED:"خطأ: "+error.message,"bad");return false}
+    await load();toast("تمت الإضافة");
+  });
+  wireForm();
+}
+function rename(id){
+  const x=all.find(r=>r.id===id);
+  openModal("تعديل · "+NAMES[kind],entryForm(x)+`<label>تطبيق تغيير الاسم على السجلات القديمة؟</label><select id="m-ap"><option value="1">نعم (الطلبيات والتقارير كلها)</option><option value="0">لا (القائمة فقط)</option></select>
+    <div class="nums">لو كتبت اسم موجود، الاسمين بيتدمجوا في اسم واحد.</div>`,async()=>{
+    const nn=document.getElementById("c-name").value.trim(),code=hasCode()?document.getElementById("c-code").value.trim():(x.code||"");
+    if(!nn){toast("اكتب الاسم");return false}
+    let msg="تم الحفظ",merged=false;
+    if(nn!==x.name){
+      const dup=all.find(r=>r.kind===kind&&r.id!==id&&norm(r.name)===norm(nn));
+      if(dup&&!await ask("«"+dup.name+"» موجود بالفعل. تدمج الاسمين؟","نعم، ادمج"))return false;
+      const{data,error}=await db.rpc("catalog_rename",{p_kind:kind,p_old:x.name,p_new:dup?dup.name:nn,p_apply:document.getElementById("m-ap").value==="1"});
+      if(error){toast("خطأ: "+error.message);return false}
+      msg=data;merged=!!dup;
+    }
+    if(!merged&&(code!==(x.code||"")||newImg!==undefined)){
+      const r=await db.rpc("catalog_set_meta",{p_id:x.id,p_code:code,p_image:newImg===undefined?null:newImg,p_set_image:newImg!==undefined});
+      if(r.error){toast(r.error.code==="PGRST202"||/code|image|column/i.test(r.error.message||"")?NEED:"خطأ: "+r.error.message,"bad");return false}
+    }
+    await load();toast(msg);
+  });
+  wireForm();
+}
+function zoom(x){
+  const d=document.createElement("div");d.className="ov";d.style.zIndex=40;
+  d.innerHTML=`<div class="modal"><h3>${esc(x.name)}${x.code?` · <span class="cnum">${esc(x.code)}</span>`:""}</h3><img class="zoomimg" alt="" src="${safeAv(x.image)}"><div class="row"><button class="btn ghost" id="zx" type="button" style="flex:1">إغلاق</button></div></div>`;
+  document.body.appendChild(d);d.onclick=e=>{if(e.target===d||e.target.id==="zx")d.remove()};
+}
+document.getElementById("list").onclick=async e=>{
+  const z=e.target.closest("[data-z]");if(z)return zoom(all.find(r=>r.id===+z.dataset.z));
+  const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.e)return rename(+b.dataset.e);
+  if(b.dataset.d){
+    const x=all.find(r=>r.id===+b.dataset.d);
+    if(!await ask("حذف «"+x.name+"» من القائمة؟ الطلبيات القديمة مش هتتأثر."))return;
+    const{data,error}=await db.from("catalog").delete().eq("id",x.id).select();
+    if(error||!data.length){toast(error?"خطأ: "+error.message:"لم يتم الحذف، راجع الصلاحيات");return}
+    await load();toast("تم الحذف");
+  }
+};
+document.getElementById("add").onclick=addNames;
+document.getElementById("addx").onclick=addEntry;
+document.getElementById("q").oninput=e=>{Q=e.target.value;draw()};
+document.querySelectorAll("#tb button").forEach(b=>b.onclick=()=>{
+  kind=b.dataset.k;document.querySelectorAll("#tb button").forEach(x=>x.className="btn "+(x===b?"on":"ghost"));draw();
+});
+(async()=>{if(await requireAuth("catalog.html")){renderNav("catalog.html");load().finally(settle)}})();
+</script>
+<script src="install.js" defer></script>
+</body>
+</html>
