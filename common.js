@@ -68,36 +68,41 @@ document.addEventListener("pointerdown",e=>{
 /* ===== الأيقونات (SVG) ===== */
 const ICONS={
   plus:'<path d="M12 5v14M5 12h14"/>',
-  tag:'<path d="M20 12l-8 8-9-9V3h8z"/><path d="M7.5 7.5h.01"/>',
+  clip:'<rect class="f" width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11v6M9 14h6"/>',
+  tag:'<path class="f" d="M20 12l-8 8-9-9V3h8z"/><path d="M7.5 7.5h.01"/>',
+  pkg:'<path class="f" d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m7.5 4.27 9 5.15M3.3 7 12 12l8.7-5M12 22V12"/>',
   log:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 8v5l3 2"/>',
-  home:'<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .7-1.5l7-6a2 2 0 0 1 2.6 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
-  glaze:'<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',
-  deco:'<path d="M9.9 15.5A2 2 0 0 0 8.5 14.1l-6.1-1.6a.5.5 0 0 1 0-1l6.1-1.6A2 2 0 0 0 9.9 8.5l1.6-6.1a.5.5 0 0 1 1 0l1.6 6.1a2 2 0 0 0 1.4 1.4l6.1 1.6a.5.5 0 0 1 0 1l-6.1 1.6a2 2 0 0 0-1.4 1.4l-1.6 6.1a.5.5 0 0 1-1 0z"/>',
-  spray:'<path d="M3 3h.01M7 5h.01M11 7h.01M3 7h.01M7 9h.01M3 11h.01"/><rect width="4" height="4" x="15" y="5"/><path d="m19 9 2 2v10c0 .6-.4 1-1 1h-6c-.6 0-1-.4-1-1V11l2-2"/><path d="m13 14 8-2M13 19l8-2"/>',
-  repair:'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
-  casting:'<path d="M7 3h10l-1 5H8z"/><path d="M8 8c-2 1.5-3 3.500-3 6a7 7 0 0 0 14 0c0-2.500-1-4.500-3-6"/><path d="M9 15a3 3 0 0 0 3 3"/>',
-  chart:'<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9M13 17V5M8 17v-3"/>',
-  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
-  moon:'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+  pulse:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  home:'<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path class="f" d="M3 10a2 2 0 0 1 .7-1.5l7-6a2 2 0 0 1 2.6 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  glaze:'<path class="f" d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/><path d="M9 15a3 3 0 0 0 3 3"/>',
+  deco:'<path class="f" d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.65-.75 1.65-1.69 0-.44-.18-.84-.44-1.13-.29-.29-.44-.65-.44-1.12a1.64 1.64 0 0 1 1.67-1.67h2c3.05 0 5.55-2.5 5.55-5.55C21.97 6 17.46 2 12 2z"/><circle cx="13.5" cy="6.5" r=".6"/><circle cx="17.5" cy="10.5" r=".6"/><circle cx="8.5" cy="7.5" r=".6"/><circle cx="6.5" cy="12.5" r=".6"/>',
+  spray:'<path d="M3 3h.01M7 5h.01M11 3h.01M3 7h.01M7 9h.01M3 11h.01"/><rect class="f" width="4" height="4" x="15" y="5"/><path class="f" d="m19 9 2 2v10c0 .6-.4 1-1 1h-6c-.6 0-1-.4-1-1V11l2-2"/><path d="m13 14 8-2M13 19l8-2"/>',
+  repair:'<path class="f" d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+  casting:'<path d="M8 2h8"/><path class="f" d="M9 2v4c0 1.4-4 2.6-4 8a7 7 0 0 0 14 0c0-5.4-4-6.6-4-8V2"/><path d="M5.5 13h13"/>',
+  chart:'<path d="M3 3v16a2 2 0 0 0 2 2h16"/><rect class="f" x="7" y="11" width="3" height="6" rx=".6"/><rect class="f" x="12" y="6" width="3" height="11" rx=".6"/><rect class="f" x="17" y="13" width="3" height="4" rx=".6"/>',
+  sun:'<circle class="f" cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  moon:'<path class="f" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
   refresh:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
-  search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
-  cog:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
-  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
-  users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>',
-  lock:'<rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  search:'<circle class="f" cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  cog:'<circle class="f" cx="12" cy="12" r="3"/><path class="f" d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  user:'<circle class="f" cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle class="f" cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>',
+  hat:'<path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5"/><path d="M14 6a6 6 0 0 1 6 6v3M4 15v-3a6 6 0 0 1 6-6"/><rect class="f" x="2" y="15" width="20" height="4" rx="1"/>',
+  shield:'<path class="f" d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+  lock:'<rect class="f" width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
   out:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/>'
 };
 const ico=k=>`<svg class="ic ic-${k}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[k]}</svg>`;
 // [الملف, الاسم, الأيقونة, اللون]
-const PROD=["production.html","تسجيل الإنتاج","plus","#2e8b57"];
-const REPORTS=["reports.html","التقارير","chart","#2e8b57"];
-const CATALOG=["catalog.html","الأصناف والألوان","tag","#8a6d3b"];
-const SEARCH=["search.html","بحث شامل","search","#2e8b57"];
-const WORKERS=["workers.html","العمال","users","#2e8b57"];
-const ACTIVITY=["activity.html","سجل النشاط والنسخ","log","#5b6b8c"];
+const PROD=["production.html","تسجيل الإنتاج","clip","#2e8b57"];
+const REPORTS=["reports.html","التقارير","chart","#2a7f9e"];
+const CATALOG=["catalog.html","الأصناف والألوان","pkg","#8a6d3b"];
+const SEARCH=["search.html","بحث شامل","search","#3b6fd0"];
+const WORKERS=["workers.html","العمال","hat","#c76a2b"];
+const ACTIVITY=["activity.html","سجل النشاط والنسخ","pulse","#5b6b8c"];
 const PROFILE=["profile.html","ملفي الشخصي","user","#642631"];
 const SETTINGS=["settings.html","الإعدادات","cog","#5b6b8c"];
-const USERS=["users.html","المستخدمين والصلاحيات","users","#7a5ea8"];
+const USERS=["users.html","المستخدمين والصلاحيات","shield","#7a5ea8"];
 const SEC_AR={glaze:"جليز",deco:"زخرفة",spray:"رش",repair:"تصليح",casting:"الصب اليدوي"};
 const ROLE_DESC={admin:"صلاحية كاملة: كل الأقسام والتقارير والمستخدمين",manager:"مسؤول عن قسم أو أكتر: يشوف ويدير أقسامه بس",worker:"يسجّل الإنتاج في قسمه بس"};
 // صلاحيات تفصيلية: الافتراضي حسب الدور، والمدير يقدر يخصصها لكل مستخدم
@@ -200,10 +205,15 @@ function renderNav(active){
   const h=document.createElement("header");h.className="topbar";
   h.innerHTML=`<button class="iconbtn lbl" id="mn" aria-label="القائمة">${MENU}<span>القائمة</span></button><span class="brand"><img src="icon.svg" alt="MAS"><span class="bt"><b>MAS</b><small>الماس للخزف والصيني</small></span></span><span class="sp"></span><button class="iconbtn lbl" id="rf" aria-label="تحديث">${ico("refresh")}<span>تحديث</span></button><span class="tbw"><button ${avAttr(ME.avatar,"avatar")} id="av" aria-label="حسابي" aria-haspopup="true">${avText(ME.avatar,initialOf())}</button><small>حسابي</small></span>`;
   const sg=s=>`<div class="sg" style="--c:${s[3]}"><a class="sh ${s[0]===active?"on":""}" href="${s[0]}">${ico(s[2])}<span>${s[1]}</span></a>${s[0]===active&&SUBS[s[0]]?`<div class="sub">${subsOf(s[0]).map(x=>`<a href="${s[0]}#${x[1]}" data-h="${x[1]}">${x[0]}</a>`).join("")}</div>`:""}</div>`;
+  const grp=(t,a)=>a.length?`<div class="sgrp"><div class="sgt">${t}</div>${a.join("")}</div>`:"";
   const side=document.createElement("aside");side.className="side";side.id="side";
   side.innerHTML=`<div class="side-head"><img src="icon.svg" alt="MAS"><div><b class="wm">MAS <span>الماس</span></b><em class="wsub">للخزف والصيني · إدارة الأقسام</em><small>${esc(ME.name||"")}${ME.name?" · ":""}${ROLE_AR[ME.role]||""}</small></div></div>
-  <nav><a class="sh ${active===""?"on":""}" href="index.html" style="--c:var(--pri)">${ico("home")}<span>الرئيسية</span></a>
-  ${sg(PROD)}${visibleSections().map(sg).join("")}${canReports()?sg(REPORTS).replace(">"+REPORTS[1]+"<",">التقارير العامة<"):""}${canReports()?sg(SEARCH):""}${canReports()?sg(CATALOG):""}${canReports()?sg(WORKERS):""}${canReports()?sg(ACTIVITY):""}${canReports()?sg(USERS):""}</nav>
+  <nav><a class="sh ${active===""||active==="index.html"?"on":""}" href="index.html" style="--c:var(--pri)">${ico("home")}<span>الرئيسية</span></a>
+  ${grp("الإنتاج",[sg(PROD)])}
+  ${grp("الأقسام",visibleSections().map(sg))}
+  ${grp("التقارير والبحث",canReports()?[sg(REPORTS).replace(">"+REPORTS[1]+"<",">التقارير العامة<"),sg(SEARCH)]:[])}
+  ${grp("البيانات الأساسية",canReports()?[sg(CATALOG),sg(WORKERS)]:[])}
+  ${grp("إدارة النظام",canReports()?[sg(USERS),sg(ACTIVITY)]:[])}</nav>
   <div class="side-foot"><a class="sh ${active===PROFILE[0]?"on":""}" href="profile.html" style="--c:var(--pri)">${ico("user")}<span>ملفي الشخصي</span></a><a class="sh ${active===SETTINGS[0]?"on":""}" href="settings.html" style="--c:var(--pri)">${ico("cog")}<span>الإعدادات</span></a><button class="sh" id="th"></button><button class="sh" id="out">${ico("out")}<span>تسجيل الخروج</span></button><div class="ver" title="تاريخ الإصدار ${APP_BUILD}">الإصدار ${APP_VERSION}</div></div>`;
   const scrim=document.createElement("div");scrim.className="scrim";scrim.id="scrim";
   document.body.prepend(h);document.body.appendChild(side);document.body.appendChild(scrim);

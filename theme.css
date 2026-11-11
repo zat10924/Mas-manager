@@ -305,8 +305,8 @@ textarea#s_msg:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(215,185,
 /* =====================================================================
    الأيقونات الاستعراضية: ثنائية اللون + أزرار متدرجة + توهج وحركة
    ===================================================================== */
-.ic-glaze path,.ic-deco path,.ic-spray rect,.ic-spray path:first-of-type,.ic-repair path,.ic-home path,.ic-user circle,.ic-user path,.ic-users circle,.ic-cog circle,.ic-cog path,.ic-tag path:first-child,.ic-lock rect,.ic-sun circle,.ic-moon path{fill:currentColor;fill-opacity:.24}
-.ic-home path:first-child,.ic-spray path:not(:first-of-type){fill:none}
+/* الأيقونات ثنائية اللون: أي عنصر عليه class="f" بيتلوّن بدرجة خفيفة */
+.ic .f{fill:currentColor;fill-opacity:.26}
 /* القائمة الجانبية: أيقونات داخل أزرار ملونة */
 .side .sh svg{width:36px!important;height:36px!important;padding:7px;border-radius:11px;flex:none;background:color-mix(in srgb,var(--c,var(--gold)) 26%,rgba(255,255,255,.04));color:var(--gold-l)!important;transition:transform .3s cubic-bezier(.3,1.6,.5,1),background .2s,box-shadow .2s}
 .side .sg>.sh svg{color:#fff!important;background:linear-gradient(135deg,color-mix(in srgb,var(--c) 85%,#fff),color-mix(in srgb,var(--c) 70%,#000));box-shadow:0 3px 10px color-mix(in srgb,var(--c) 55%,transparent)}
@@ -790,3 +790,44 @@ label.chk{display:flex;align-items:center;gap:8px;cursor:pointer}label.chk input
 .arow.danger .ai{color:var(--bad);background:color-mix(in srgb,var(--bad) 11%,transparent)}
 .arow.static{cursor:default}
 .btn.sm{width:auto;padding:7px 14px;font-size:.82rem;flex:none}
+
+/* ===== القائمة الجانبية: مجموعات بعناوين ===== */
+.side nav{gap:0}
+.side .sgrp{display:flex;flex-direction:column;gap:2px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(215,185,111,.18)}
+.side .sgt{display:flex;align-items:center;gap:8px;padding:0 12px 4px;font-size:.72rem;font-weight:800;letter-spacing:.03em;color:var(--gold)}
+.side .sgt::after{content:"";flex:1;height:1px;background:rgba(215,185,111,.22)}
+.side .sh{padding:7px 10px;font-size:.98rem}
+.side .sh svg{width:34px!important;height:34px!important;padding:7px}
+.side .side-foot{margin-top:10px}
+
+/* =====================================================================
+   ستايل الأيقونات الجديد (v2.3.9): خطوط رفيعة ناعمة + أزرار زجاجية متدرجة
+   ===================================================================== */
+svg.i,.tabbar svg,.iconbtn svg,.ico svg,.search svg,.seccard .h svg,.side .sh svg,.pagehead .pi svg,.umenu svg,.sethead svg,.fld>svg,.eye svg{stroke-width:1.8!important;stroke-linecap:round;stroke-linejoin:round}
+.ic .f{fill:currentColor;fill-opacity:.2}
+.side .sh.on svg *{fill-opacity:.32}
+
+/* القائمة الجانبية */
+.side .sh svg,.side .sg>.sh svg{
+  width:38px!important;height:38px!important;padding:9px!important;border-radius:13px;
+  color:#fff!important;filter:none;
+  background:linear-gradient(145deg,color-mix(in srgb,var(--c,#D7B96F) 60%,#fff 6%),color-mix(in srgb,var(--c,#D7B96F) 32%,#2a1016));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.38),inset 0 0 0 1px rgba(255,255,255,.12),0 6px 14px -6px color-mix(in srgb,var(--c,#000) 75%,transparent);
+  transition:transform .25s cubic-bezier(.3,1.4,.5,1),box-shadow .25s,background .25s}
+.side .sh:hover svg{transform:translateY(-1px) scale(1.06) rotate(0)}
+.side .sh.on svg{
+  color:#3a1620!important;animation:none!important;
+  background:linear-gradient(145deg,#FBEFC4,#D7B96F 55%,#B9984C)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 0 0 3px rgba(215,185,111,.22),0 8px 22px -4px rgba(215,185,111,.65)!important}
+.side #out svg{background:linear-gradient(145deg,#f06a62,#a8231c)!important;color:#fff!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 6px 14px -6px rgba(179,38,30,.8)!important}
+.side #th svg{background:linear-gradient(145deg,#8a93b8,#4b5378)}
+
+/* بطاقات الأقسام في الرئيسية + عنوان الصفحة */
+.tile .ico{border-radius:18px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 0 0 1px rgba(255,255,255,.14),0 10px 22px -8px color-mix(in srgb,var(--c) 70%,transparent)!important}
+.tile .ico svg{width:30px!important;height:30px!important;filter:drop-shadow(0 1px 1px rgba(0,0,0,.22))!important}
+.pagehead .pi{border-radius:15px;box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 8px 18px -8px var(--acc,var(--pri))}
+.pagehead .pi svg{width:26px;height:26px}
+
+/* أزرار الشريط العلوي: زجاج خفيف */
+.topbar .iconbtn{border-radius:14px;background:rgba(255,255,255,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),inset 0 0 0 1px rgba(255,255,255,.1)}
+.topbar .iconbtn:hover{background:rgba(215,185,111,.3);transform:translateY(-1px)}
