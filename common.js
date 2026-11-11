@@ -436,19 +436,32 @@ function closeModal(){
 /* ===== ما الجديد: تلقائي من رسائل الـ commit على GitHub =====
    اكتب رسالة الـ commit بالعربي (السطر الأول + سطور إضافية اختيارية) وهتظهر لوحدها.
    الـ commits اللي رسالتها إنجليزي (Update x.js ...) بتتجاهل. لو عاوز تحكم يدوي: ضيف إصدار في APP_CHANGES وهيكسب. */
+const GH_NAMES={"glaze.html":"صفحة الجليز","decoration.html":"صفحة الزخرفة","spray.html":"صفحة الرش","repair.html":"صفحة التصليح","casting.html":"صفحة الصب اليدوي","production.html":"تسجيل الإنتاج","reports.html":"التقارير","reports.js":"التقارير","search.html":"البحث الشامل","catalog.html":"الأصناف والألوان","workers.html":"العمال","users.html":"المستخدمين والصلاحيات","activity.html":"سجل النشاط","settings.html":"الإعدادات","profile.html":"الملف الشخصي","index.html":"الصفحة الرئيسية","common.js":"وظائف البرنامج الأساسية","style.css":"التصميم","theme.css":"التصميم والأيقونات","dash.js":"لوحة المؤشرات"};
+function ghFiles(files){
+  const n=[...new Set((files||[]).map(f=>GH_NAMES[String(f.filename||"").split("/").pop()]).filter(Boolean))];
+  return n.length?"تحديث وتحسين: "+n.slice(0,4).join("، ")+(n.length>4?" وغيرها":""):"";
+}
 async function ghChanges(){
   const K="mas_gh_log";let o=null;
   try{o=JSON.parse(localStorage.getItem(K)||"null")}catch(e){}
-  if(o&&Date.now()-o.t<20*60000)return o.l;
+  if(o&&Date.now()-o.t<20*60000){window.GH_STAT=o.l.length?"ok":"empty";return o.l}
   try{
-    if(!navigator.onLine||typeof GH_REPO==="undefined")throw 0;
-    const r=await fetch("https://api.github.com/repos/"+GH_REPO+"/commits?per_page=40",{headers:{Accept:"application/vnd.github+json"}});
-    if(!r.ok)throw 0;
-    const l=(await r.json()).map(c=>{
+    if(!navigator.onLine||typeof GH_REPO==="undefined"){window.GH_STAT="offline";throw 0}
+    const H={headers:{Accept:"application/vnd.github+json"}};
+    const r=await fetch("https://api.github.com/repos/"+GH_REPO+"/commits?per_page=30",H);
+    if(!r.ok){window.GH_STAT="http"+r.status;throw 0}
+    const l=[];let det=0;
+    for(const c of await r.json()){
       const m=String((c.commit&&c.commit.message)||"");
-      return{sha:c.sha,d:String((c.commit.committer&&c.commit.committer.date)||"").slice(0,10),ok:/[\u0600-\u06FF]/.test(m)&&!/^merge /i.test(m),
-        lines:m.split("\n").map(x=>x.replace(/^[\s\-*•]+/,"").trim()).filter(Boolean)};
-    }).filter(x=>x.ok);
+      if(/^merge branch/i.test(m))continue;
+      let lines=m.split("\n").slice(/^merge pull request/i.test(m)?1:0).map(x=>x.replace(/^[\s\-*•]+/,"").trim()).filter(Boolean);
+      if(!/[\u0600-\u06FF]/.test(m)){
+        /* رسالة إنجليزي (زي Add files via upload): نطلّع ملخص تلقائي من أسماء الملفات اللي اتغيّرت */
+        lines=[];if(det++<5){try{const rr=await fetch("https://api.github.com/repos/"+GH_REPO+"/commits/"+c.sha,H);if(rr.ok){const f=ghFiles((await rr.json()).files);if(f)lines=[f]}}catch(e){}}
+      }
+      if(lines.length)l.push({sha:c.sha,d:String((c.commit.committer&&c.commit.committer.date)||"").slice(0,10),lines});
+    }
+    window.GH_STAT=l.length?"ok":"empty";
     try{localStorage.setItem(K,JSON.stringify({t:Date.now(),l}))}catch(e){}
     return l;
   }catch(e){return o?o.l:[]}
