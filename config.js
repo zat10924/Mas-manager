@@ -3,10 +3,16 @@ const SUPABASE_KEY = "sb_publishable_NDJle8iKFHVTezQ_CTjeqg_Usd42lkZ";
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /* ===== إصدار البرنامج (غيّر الرقم هنا عند كل تحديث) ===== */
-const APP_VERSION = "2.1.4";
+const APP_VERSION = "2.2.0";
+// مفتاح الإشعارات العام (آمن إنه يبقى ظاهر)
+const VAPID_PUBLIC = "BMwvZSfiHr0lHn7bf-Us3eo77fB_euX9mBgRKl0JgfFwX9mOqWIF_47zud91s2uj8s0zNtqbNTVdbKmSWcK_L2g";
 const APP_BUILD = "2026-11-11";
 // آخر التحديثات (الأحدث أولاً) — بتظهر في الإعدادات > البرنامج > «ما الجديد»
 const APP_CHANGES = [
+  ["2.2.0", "2026-11-11", [
+    "إشعارات بتوصل حتى والبرنامج مقفول: إنتاج جديد، طلبيات، رسائل من المسؤول، ونسخ جديدة من البرنامج",
+    "تفعيل الإشعارات وتجربتها من الإعدادات > البرنامج"
+  ]],
   ["2.1.4", "2026-11-11", [
     "مشاركة البرنامج بقت بتشارك رابط تحميل التطبيق نفسه بدل رابط المتصفح"
   ]],

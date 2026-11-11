@@ -1,0 +1,26 @@
+name: notify-update
+on:
+  push:
+    branches: [main]
+    paths: [config.js]
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Send notification if APP_VERSION changed
+        env:
+          PUSH_SECRET: ${{ secrets.PUSH_SECRET }}
+        run: |
+          NEW=$(grep -oP 'APP_VERSION = "\K[^"]+' config.js || true)
+          OLD=$(git show HEAD~1:config.js 2>/dev/null | grep -oP 'APP_VERSION = "\K[^"]+' || true)
+          echo "old=$OLD new=$NEW"
+          if [ -n "$NEW" ] && [ "$NEW" != "$OLD" ]; then
+            sleep 90
+            curl -sS -X POST "https://bzhxdikcyxkdojwlswhq.supabase.co/functions/v1/send-push" \
+              -H "Content-Type: application/json" \
+              -H "x-push-secret: $PUSH_SECRET" \
+              -d "{\"kind\":\"version\",\"version\":\"$NEW\"}"
+          fi

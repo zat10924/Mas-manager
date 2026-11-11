@@ -837,3 +837,64 @@ function quickWaste(done){
   document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")check()});
   setInterval(check,5*60*1000);
 })();
+
+
+/* ===== الإشعارات (Web Push) ===== */
+const PUSH_OK=()=>"serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window&&typeof VAPID_PUBLIC!=="undefined"&&!!VAPID_PUBLIC;
+const _b64=s=>{const p="=".repeat((4-s.length%4)%4),r=atob((s+p).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from([...r].map(c=>c.charCodeAt(0)))};
+async function pushSave(sub){
+  const o=sub.toJSON();
+  const{error}=await db.rpc("save_push_sub",{p_endpoint:o.endpoint,p_p256dh:o.keys.p256dh,p_auth:o.keys.auth,p_ua:navigator.userAgent});
+  return !error;
+}
+async function pushEnable(){
+  if(!PUSH_OK())throw new Error("unsupported");
+  if(await Notification.requestPermission()!=="granted")throw new Error("denied");
+  const reg=await navigator.serviceWorker.ready;
+  let sub=await reg.pushManager.getSubscription();
+  if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:_b64(VAPID_PUBLIC)});
+  if(!await pushSave(sub))throw new Error("save");
+  try{const{data:{session}}=await db.auth.getSession();localStorage.setItem("push_uid",session.user.id);localStorage.setItem("push_sync",String(Date.now()))}catch(e){}
+  return true;
+}
+async function pushDisable(){
+  try{
+    const reg=await navigator.serviceWorker.ready,sub=await reg.pushManager.getSubscription();
+    if(sub){await db.rpc("delete_push_sub",{p_endpoint:sub.endpoint});await sub.unsubscribe()}
+    localStorage.removeItem("push_uid");
+  }catch(e){}
+}
+async function pushState(){
+  if(!PUSH_OK())return "unsupported";
+  if(Notification.permission==="denied")return "denied";
+  try{const reg=await navigator.serviceWorker.ready,sub=await reg.pushManager.getSubscription();return sub&&Notification.permission==="granted"?"on":"off"}catch(e){return "off"}
+}
+// تسجيل الخروج: نشيل اشتراك الجهاز من السيرفر عشان المستخدم اللي خرج ما يجيلهوش إشعارات
+(function(){
+  try{
+    const so=db.auth.signOut.bind(db.auth);
+    db.auth.signOut=async(...a)=>{
+      try{
+        if(PUSH_OK()&&Notification.permission==="granted"){
+          const reg=await navigator.serviceWorker.ready,sub=await reg.pushManager.getSubscription();
+          if(sub)await db.rpc("delete_push_sub",{p_endpoint:sub.endpoint});
+        }
+        localStorage.removeItem("push_uid");
+      }catch(e){}
+      return so(...a);
+    };
+  }catch(e){}
+})();
+// تجديد التسجيل بهدوء (مرة كل يوم، أو فورًا لو اتغير المستخدم على نفس الجهاز)
+addEventListener("load",()=>setTimeout(async()=>{
+  try{
+    if(!PUSH_OK()||Notification.permission!=="granted")return;
+    const{data:{session}}=await db.auth.getSession();if(!session)return;
+    const same=localStorage.getItem("push_uid")===session.user.id,last=+localStorage.getItem("push_sync")||0;
+    if(same&&Date.now()-last<864e5)return;
+    const reg=await navigator.serviceWorker.ready;
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:_b64(VAPID_PUBLIC)});
+    if(await pushSave(sub)){localStorage.setItem("push_uid",session.user.id);localStorage.setItem("push_sync",String(Date.now()))}
+  }catch(e){}
+},4000));

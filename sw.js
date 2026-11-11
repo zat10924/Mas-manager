@@ -1,5 +1,5 @@
 /* sw.js — تسريع التحميل: المكتبات والخطوط من الكاش، وملفات البرنامج من النت أولًا (عشان التحديثات تظهر) */
-const V="mas-v2.1.4",LIB="mas-lib";
+const V="mas-v2.2.0",LIB="mas-lib";
 addEventListener("install",e=>{skipWaiting()});
 addEventListener("activate",e=>{e.waitUntil((async()=>{
   for(const k of await caches.keys())if(k!==V&&k!==LIB)await caches.delete(k);
@@ -32,4 +32,30 @@ addEventListener("fetch",e=>{
       return fetch(r);
     }
   }));
+});
+
+/* ===== الإشعارات (تشتغل والبرنامج مقفول) ===== */
+addEventListener("push",e=>{
+  let d={};
+  try{d=e.data?e.data.json():{}}catch(x){d={body:e.data?e.data.text():""}}
+  e.waitUntil(registration.showNotification(d.title||"إدارة الأقسام",{
+    body:d.body||"",icon:"icon-192.png",badge:"icon-192.png",
+    tag:d.tag||"mas",renotify:true,dir:"rtl",lang:"ar",
+    data:{url:d.url||"index.html"}
+  }));
+});
+addEventListener("notificationclick",e=>{
+  e.notification.close();
+  const url=new URL((e.notification.data&&e.notification.data.url)||"index.html",registration.scope).href;
+  e.waitUntil((async()=>{
+    const cs=await clients.matchAll({type:"window",includeUncontrolled:true});
+    for(const c of cs){
+      if(c.url.startsWith(registration.scope)){
+        try{await c.focus()}catch(x){}
+        try{if("navigate" in c)await c.navigate(url)}catch(x){}
+        return;
+      }
+    }
+    await clients.openWindow(url);
+  })());
 });
