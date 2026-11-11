@@ -293,7 +293,8 @@ s_psend.onclick=async()=>{
     try{const u=sessionStorage.getItem("upd_done");if(u){sessionStorage.removeItem("upd_done");const[l,o]=u.split("|");setTimeout(()=>toast(l===APP_VERSION?(l===o?"أنت على آخر إصدار ✓":"تم التحديث إلى v"+l+" ✓"):"النسخة الجديدة v"+l+" لسه ما وصلتش، جرّب بعد دقيقة"),700)}}catch(e){}
     s_bld.textContent=new Date(APP_BUILD+"T00:00:00").toLocaleDateString("ar-EG",{day:"numeric",month:"long",year:"numeric"});
     const _drawLog=L=>{s_log.innerHTML=L.slice(0,1).map(c=>`<div class="chver"><span class="verbadge">v${esc(c[0])}</span><small>${new Date(c[1]+"T00:00:00").toLocaleDateString("ar-EG",{day:"numeric",month:"long",year:"numeric"})}</small></div><ul class="chlog">${c[2].map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`).join("")};
-    ghLog().then(c=>_drawLog(c?[c]:APP_CHANGES)).catch(()=>_drawLog(APP_CHANGES));
+    ghLog().then(c=>{_drawLog(c?[c]:APP_CHANGES);const st=window.GH_STAT,m=APP_CHANGES[0];
+      if(st&&st!=="ok"&&!(m&&m[0]===APP_VERSION))s_log.insertAdjacentHTML("beforeend",'<small class="hint">'+(st==="offline"?"مفيش اتصال بالنت لقراءة التحديثات.":st==="empty"?"مفيش تحديثات جديدة مسجلة على GitHub.":"تعذر قراءة التحديثات من GitHub ("+esc(st)+"). تأكد من اسم المستودع GH_REPO في config.js وإنه عام.")+'</small>')}).catch(()=>_drawLog(APP_CHANGES));
     settle();
   }
 })();
