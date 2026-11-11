@@ -433,12 +433,48 @@ function closeModal(){
   if(document.documentElement.classList.contains("calm")){o.remove();return}
   o.classList.add("out");setTimeout(()=>o.remove(),170);
 }
-/* ===== ما الجديد: نافذة مرة لكل إصدار (من APP_CHANGES في config.js) ===== */
-function showWhatsNew(force){
-  const c=typeof APP_CHANGES!=="undefined"&&APP_CHANGES[0];
-  if(!c||c[0]!==APP_VERSION){if(force)toast("مفيش ملاحظات لهذا الإصدار");return}
-  try{if(!force&&localStorage.getItem("mas_seen_ver")===c[0])return;localStorage.setItem("mas_seen_ver",c[0])}catch(e){if(!force)return}
-  openModal("ما الجديد في الإصدار "+esc(c[0]),`<ul style="margin:0;padding:0 18px 0 0;line-height:1.9">${c[2].map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`,closeModal,"تمام");
+/* ===== ما الجديد: تلقائي من رسائل الـ commit على GitHub =====
+   اكتب رسالة الـ commit بالعربي (السطر الأول + سطور إضافية اختيارية) وهتظهر لوحدها.
+   الـ commits اللي رسالتها إنجليزي (Update x.js ...) بتتجاهل. لو عاوز تحكم يدوي: ضيف إصدار في APP_CHANGES وهيكسب. */
+async function ghChanges(){
+  const K="mas_gh_log";let o=null;
+  try{o=JSON.parse(localStorage.getItem(K)||"null")}catch(e){}
+  if(o&&Date.now()-o.t<20*60000)return o.l;
+  try{
+    if(!navigator.onLine||typeof GH_REPO==="undefined")throw 0;
+    const r=await fetch("https://api.github.com/repos/"+GH_REPO+"/commits?per_page=40",{headers:{Accept:"application/vnd.github+json"}});
+    if(!r.ok)throw 0;
+    const l=(await r.json()).map(c=>{
+      const m=String((c.commit&&c.commit.message)||"");
+      return{sha:c.sha,d:String((c.commit.committer&&c.commit.committer.date)||"").slice(0,10),ok:/[\u0600-\u06FF]/.test(m)&&!/^merge /i.test(m),
+        lines:m.split("\n").map(x=>x.replace(/^[\s\-*•]+/,"").trim()).filter(Boolean)};
+    }).filter(x=>x.ok);
+    try{localStorage.setItem(K,JSON.stringify({t:Date.now(),l}))}catch(e){}
+    return l;
+  }catch(e){return o?o.l:[]}
+}
+async function ghLog(){
+  const m=typeof APP_CHANGES!=="undefined"&&APP_CHANGES[0];
+  if(m&&m[0]===APP_VERSION)return m;
+  const l=await ghChanges();
+  return l.length?[APP_VERSION,l[0].d,l.slice(0,6).flatMap(x=>x.lines)]:(m||null);
+}
+async function showWhatsNew(force){
+  const m=typeof APP_CHANGES!=="undefined"&&APP_CHANGES[0];
+  let title,items,key,seenK;
+  if(m&&m[0]===APP_VERSION){title="ما الجديد في الإصدار "+m[0];items=m[2];key=m[0];seenK="mas_seen_ver"}
+  else{
+    const l=await ghChanges();
+    if(!l.length){if(force)toast("مفيش ملاحظات لهذا الإصدار");return}
+    key=l[0].sha;seenK="mas_seen_sha";
+    let seen="";try{seen=localStorage.getItem(seenK)||""}catch(e){}
+    const n=l.findIndex(x=>x.sha===seen);
+    if(!force&&n===0)return;
+    const fresh=force?l.slice(0,6):(n<0?l.slice(0,5):l.slice(0,n));
+    title="ما الجديد في البرنامج";items=fresh.flatMap(x=>x.lines);
+  }
+  try{if(!force&&localStorage.getItem(seenK)===key)return;if(!force)localStorage.setItem(seenK,key)}catch(e){if(!force)return}
+  openModal(title,`<ul style="margin:0;padding:0 18px 0 0;line-height:1.9">${items.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`,closeModal,"تمام");
 }
 function openModal(title,body,onSave,saveText="حفظ"){
   closeModal();Snd.play("open");

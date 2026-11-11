@@ -57,12 +57,19 @@ window.masCacheClear=()=>{try{localStorage.removeItem("masc_uid")}catch(e){}retu
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {global:{fetch:MASC.fetch}});
 
 /* ===== إصدار البرنامج (غيّر الرقم هنا عند كل تحديث) ===== */
-const APP_VERSION = "2.3.9";
+const APP_VERSION = "2.4.0";
 // مفتاح الإشعارات العام (آمن إنه يبقى ظاهر)
 const VAPID_PUBLIC = "BMI1dksSzpLuotH8TRjMLlwd53SaAltxeJkdfGYnb0GNTjQLbqXy-HDXbWZUlA5jtahNrND9TZRV7afcjnDfLhs";
+/* مستودع GitHub: منه بتتجاب «ما الجديد» تلقائيًا من رسائل الـ commit العربي */
+const GH_REPO = "zat10924/zat10924.github.io";
 const APP_BUILD = "2026-11-12";
 // آخر التحديثات (الأحدث أولاً) — بتظهر في الإعدادات > البرنامج > «ما الجديد»
 const APP_CHANGES = [
+  ["2.3.9", "2026-11-12", [
+    "ستايل أيقونات جديد: خطوط أرفع وأزرار زجاجية متدرجة وإضاءة ذهبية للعنصر النشط",
+    "إصلاح تقرير هالك الجليز",
+    "القائمة الجانبية منظمة في مجموعات: الإنتاج، الأقسام، التقارير والبحث، البيانات الأساسية، إدارة النظام"
+  ]],
   ["2.3.7", "2026-11-12", [
     "قسم جديد: الصب اليدوي (سوف ينشأ قريبًا)",
     "توقّع التأخير: كارت بالطلبيات المعرّضة للتأخير قبل ما تتأخر فعلًا",
