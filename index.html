@@ -74,6 +74,38 @@ async function lateAlert(){
   late.sort((a,b)=>b.days-a.days);
   document.getElementById("tiles").insertAdjacentHTML("beforebegin",`<div class="card" id="latecard" style="border-color:var(--warn);margin-top:14px"><div class="top"><b>⚠ طلبيات متأخرة (${late.length})</b></div>${late.slice(0,5).map(x=>`<a class="line" href="${x.s[0]}#open" style="display:flex;justify-content:space-between;gap:8px;text-decoration:none;color:var(--ink)"><span>${esc(x.o.item)} <span class="nums">· ${x.s[1]}</span></span><span class="tag late">متأخرة ${x.days} يوم</span></a>`).join("")}${late.length>5?`<div class="nums" style="margin-top:6px">و ${late.length-5} كمان…</div>`:""}</div>`);
 }
+// ===== توقّع التأخير: طلبيات لسه مش متأخرة بس بمعدل الإنتاج الحالي مش هتلحق ميعادها =====
+async function riskAlert(){
+  const document_=document.getElementById("riskcard");if(document_)document_.remove();
+  const CFG={"glaze.html":["glaze_orders","glaze_lines_status","order_id","total_required","produced","glaze_production","prod_date"],
+    "decoration.html":["deco_orders","deco_lines_status","order_id","total_required","produced","deco_production","prod_date"],
+    "spray.html":["spray_orders","spray_status","id","qty_required","produced","spray_production","prod_date"]};
+  const vs=visibleSections().filter(s=>CFG[s[0]]);
+  const from=new Date(Date.now()-14*864e5).toISOString().slice(0,10);
+  const risk=[];
+  await Promise.all(vs.map(async s=>{
+    const[ot,lt,key,req,ok,pt,pd]=CFG[s[0]];
+    const[o,l,p]=await Promise.all([
+      db.from(ot).select("id,item,due_date,status").eq("status","open").not("due_date","is",null),
+      db.from(lt).select("*"),prodRows(pt,pd,from)]);
+    if(o.error||l.error)return;
+    // معدل الإنتاج اليومي = إجمالي آخر 14 يوم ÷ عدد أيام الشغل الفعلية
+    const days=new Set(p.map(r=>r[pd])).size,rate=days?p.reduce((a,r)=>a+(+r.qty||0),0)/days:0;
+    if(rate<=0)return;
+    const rem=new Map();
+    l.data.forEach(r=>{const k=r[key],v=Math.max(0,(+r[req]||0)-(+r[ok]||0));rem.set(k,(rem.get(k)||0)+v)});
+    // الأقرب تسليمًا الأول، والمتبقي بيتراكم عليهم
+    let cum=0;
+    o.data.filter(x=>x.due_date>=today()).sort((a,b)=>a.due_date<b.due_date?-1:1).forEach(x=>{
+      const r=rem.get(x.id)||0;if(!r)return;cum+=r;
+      const eta=Math.ceil(cum/rate*7/6),left=daysBetween(today(),x.due_date);
+      if(eta>left)risk.push({s,o:x,gap:eta-left,left,eta});
+    });
+  }));
+  if(!risk.length)return;
+  risk.sort((a,b)=>b.gap-a.gap);
+  document.getElementById("tiles").insertAdjacentHTML("beforebegin",`<div class="card" id="riskcard" style="border-color:var(--warn);margin-top:14px"><div class="top"><b>🔮 معرّضة للتأخير (${risk.length})</b></div>${risk.slice(0,5).map(x=>`<a class="line" href="${x.s[0]}#open" style="display:flex;justify-content:space-between;gap:8px;text-decoration:none;color:var(--ink)"><span>${esc(x.o.item)} <span class="nums">· ${x.s[1]}</span></span><span class="tag late">باقي ${x.left} يوم وتحتاج ~${x.eta}</span></a>`).join("")}<div class="nums" style="margin-top:6px">تقدير مبني على معدل إنتاج آخر 14 يوم</div></div>`);
+}
 // ===== لوحة الإنتاج: آخر 7 أيام مقارنةً بالأسبوع اللي قبله =====
 const DSRC={"glaze.html":["glaze_production","prod_date"],"decoration.html":["deco_production","prod_date"],"spray.html":["spray_production","prod_date"],"repair.html":["repair_log","repair_date"]};
 async function prodRows(t,col,from){
@@ -142,7 +174,7 @@ let homeReady=false;
 function refreshHome(){
   if(!homeReady)return;
   const lc=document.getElementById("latecard");if(lc)lc.remove();
-  lateAlert().catch(()=>{});dash().catch(()=>{});dash2().catch(()=>{});
+  lateAlert().catch(()=>{});riskAlert().catch(()=>{});dash().catch(()=>{});dash2().catch(()=>{});
   return fillSums();
 }
 window.__masRefresh=refreshHome;
@@ -158,7 +190,7 @@ async function init(){
   document.getElementById("tiles").innerHTML=visibleSections().map(s=>`<a class="tile" href="${s[0]}" style="--c:${s[3]}"><span class="ico">${ico(s[2])}</span><b>${s[1]}</b><span class="sum" data-f="${s[0]}"><i class="sk"></i></span><span class="sum2"></span></a>`).join("")+
     (visibleSections().length?"":`<a class="tile wide" href="${PROD[0]}" style="--c:${PROD[3]}"><span class="ico">${ico(PROD[2])}</span><span class="tx"><b>${PROD[1]}</b><span class="sum2">سجّل إنتاج قسمك من هنا</span></span></a>`)+
     (!canReports()?"":`<a class="tile wide" href="${REPORTS[0]}" style="--c:${REPORTS[3]}"><span class="ico">${ico("chart")}</span><span class="tx"><b>${REPORTS[1]}</b><span class="sum2" id="rsum"><i class="sk" style="width:170px;height:14px"></i></span></span></a>`);
-  lateAlert().catch(()=>{});
+  lateAlert().catch(()=>{});riskAlert().catch(()=>{});
   dash().catch(()=>{});
   dash2().catch(()=>{});
   await fillSums();

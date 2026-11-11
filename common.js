@@ -193,6 +193,7 @@ const ROLE_AR={admin:"مدير",manager:"مسؤول قسم",worker:"مسجّل �
 const initialOf=()=>((ME&&(ME.name||ME.email))||"?").trim().charAt(0).toUpperCase();
 const MENU='<svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';
 function renderNav(active){
+  if(active===""||active==="index.html")setTimeout(()=>{try{showWhatsNew()}catch(e){}},1200);
   const cur=SECTIONS.find(s=>s[0]===active)||(active===REPORTS[0]?REPORTS:active===PROD[0]?PROD:active===ACTIVITY[0]?ACTIVITY:active===CATALOG[0]?CATALOG:active===WORKERS[0]?WORKERS:active===SEARCH[0]?SEARCH:active===PROFILE[0]?PROFILE:active===USERS[0]?USERS:active===SETTINGS[0]?SETTINGS:null),acc=cur?cur[3]:"var(--pri)";
   document.body.classList.add("hasside");document.body.style.setProperty("--acc",acc);
   const app=typeof APP!=="undefined"?APP:"إدارة الأقسام";
@@ -421,6 +422,17 @@ function closeModal(){
   o.removeAttribute("id");
   if(document.documentElement.classList.contains("calm")){o.remove();return}
   o.classList.add("out");setTimeout(()=>o.remove(),170);
+}
+/* ===== ما الجديد: بيظهر مرة لكل إصدار بعد التحديث، ومتاح من الإعدادات > البرنامج ===== */
+const WHATS_NEW={"2.3.7":[
+ "🛠️ قسم جديد: الصب اليدوي (سوف ينشأ قريبًا).",
+ "🔮 توقّع التأخير: كارت في الرئيسية للطلبيات اللي لسه ما اتأخرتش بس معدل الإنتاج الحالي مش هيلحّقها ميعاد التسليم.",
+ "📊 تحليل الهالك (جليز): أكتر الأصناف والأسباب هالكًا آخر 30 يوم، مع تحذير لو النسبة عالية أو بتزيد.",
+ "⚡ تحسينات عامة في الأداء."]};
+function showWhatsNew(force){
+  const v=APP_VERSION,L=WHATS_NEW[v];if(!L){if(force)toast("مفيش ملاحظات لهذا الإصدار");return}
+  try{if(!force&&localStorage.getItem("mas_seen_ver")===v)return;localStorage.setItem("mas_seen_ver",v)}catch(e){if(!force)return}
+  openModal("ما الجديد في الإصدار "+esc(v),`<ul style="margin:0;padding:0 18px 0 0;line-height:1.9">${L.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`,closeModal,"تمام");
 }
 function openModal(title,body,onSave,saveText="حفظ"){
   closeModal();Snd.play("open");

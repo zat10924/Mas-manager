@@ -57,7 +57,7 @@ window.masCacheClear=()=>{try{localStorage.removeItem("masc_uid")}catch(e){}retu
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {global:{fetch:MASC.fetch}});
 
 /* ===== إصدار البرنامج (غيّر الرقم هنا عند كل تحديث) ===== */
-const APP_VERSION = "2.3.6";
+const APP_VERSION = "2.3.7";
 // مفتاح الإشعارات العام (آمن إنه يبقى ظاهر)
 const VAPID_PUBLIC = "BMI1dksSzpLuotH8TRjMLlwd53SaAltxeJkdfGYnb0GNTjQLbqXy-HDXbWZUlA5jtahNrND9TZRV7afcjnDfLhs";
 const APP_BUILD = "2026-11-11";
