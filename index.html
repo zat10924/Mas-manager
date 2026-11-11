@@ -72,7 +72,7 @@ async function lateAlert(){
   R.forEach(({s,rows})=>rows.forEach(o=>{if(lateOrder(o))late.push({s,o,days:o.due_date?daysBetween(o.due_date,today()):ageDays(o.order_date)-LATE_DAYS})}));
   if(!late.length)return;
   late.sort((a,b)=>b.days-a.days);
-  document.getElementById("tiles").insertAdjacentHTML("beforebegin",`<div class="card" style="border-color:var(--warn);margin-top:14px"><div class="top"><b>⚠ طلبيات متأخرة (${late.length})</b></div>${late.slice(0,5).map(x=>`<a class="line" href="${x.s[0]}#open" style="display:flex;justify-content:space-between;gap:8px;text-decoration:none;color:var(--ink)"><span>${esc(x.o.item)} <span class="nums">· ${x.s[1]}</span></span><span class="tag late">متأخرة ${x.days} يوم</span></a>`).join("")}${late.length>5?`<div class="nums" style="margin-top:6px">و ${late.length-5} كمان…</div>`:""}</div>`);
+  document.getElementById("tiles").insertAdjacentHTML("beforebegin",`<div class="card" id="latecard" style="border-color:var(--warn);margin-top:14px"><div class="top"><b>⚠ طلبيات متأخرة (${late.length})</b></div>${late.slice(0,5).map(x=>`<a class="line" href="${x.s[0]}#open" style="display:flex;justify-content:space-between;gap:8px;text-decoration:none;color:var(--ink)"><span>${esc(x.o.item)} <span class="nums">· ${x.s[1]}</span></span><span class="tag late">متأخرة ${x.days} يوم</span></a>`).join("")}${late.length>5?`<div class="nums" style="margin-top:6px">و ${late.length-5} كمان…</div>`:""}</div>`);
 }
 // ===== لوحة الإنتاج: آخر 7 أيام مقارنةً بالأسبوع اللي قبله =====
 const DSRC={"glaze.html":["glaze_production","prod_date"],"decoration.html":["deco_production","prod_date"],"spray.html":["spray_production","prod_date"],"repair.html":["repair_log","repair_date"]};
@@ -126,8 +126,28 @@ async function dash(){
   const sums=vs.map((x,k)=>vals.reduce((a,v)=>a+v[k],0));
   document.getElementById("hc").innerHTML=`<div class="card"><div class="top"><b>الإنتاج آخر 7 أيام</b><span class="tag">${nf(week)}</span></div>${week>0?drawChart(vs,days,vals):'<div class="empty">مفيش إنتاج متسجّل الأسبوع ده</div>'}${week>0?`<div class="legend">${vs.map((x,k)=>`<span><i style="background:${x.s[3]}"></i>${x.s[1]} <b>${nf(sums[k])}</b></span>`).join("")}</div>`:""}</div>`;
 }
+async function fillSums(){
+  let tot=0,n=0;
+  await Promise.all([...document.querySelectorAll(".sum")].map(async el=>{
+    let r=null;try{r=await SUMMARY[el.dataset.f]()}catch(e){}
+    if(r){
+      el.innerHTML=`<b></b> ${r[1]}`;countUp(el.querySelector("b"),r[0]);
+      if(!r[3])el.nextElementSibling.textContent="إنتاج النهارده: "+nf(r[2]);
+      tot+=r[2];n++;
+    }else el.textContent="";
+  }));
+  const rs=document.getElementById("rsum");if(rs)rs.innerHTML=n?`إنتاج النهارده في كل الأقسام: <b style="color:var(--ok)">${nf(tot)}</b>`:"ملخص الإنتاج والطلبيات المتأخرة";
+}
+let homeReady=false;
+function refreshHome(){
+  if(!homeReady)return;
+  const lc=document.getElementById("latecard");if(lc)lc.remove();
+  lateAlert().catch(()=>{});dash().catch(()=>{});dash2().catch(()=>{});
+  return fillSums();
+}
+window.__masRefresh=refreshHome;
 async function init(){
-  const{data:{session}}=await db.auth.getSession();
+  const session=await getSess();
   document.getElementById("login").style.display=session?"none":"grid";
   document.getElementById("home").style.display=session?"block":"none";
   if(!session){hideSplash();return}
@@ -141,16 +161,8 @@ async function init(){
   lateAlert().catch(()=>{});
   dash().catch(()=>{});
   dash2().catch(()=>{});
-  let tot=0,n=0;
-  await Promise.all([...document.querySelectorAll(".sum")].map(async el=>{
-    let r=null;try{r=await SUMMARY[el.dataset.f]()}catch(e){}
-    if(r){
-      el.innerHTML=`<b></b> ${r[1]}`;countUp(el.querySelector("b"),r[0]);
-      if(!r[3])el.nextElementSibling.textContent="إنتاج النهارده: "+nf(r[2]);
-      tot+=r[2];n++;
-    }else el.textContent="";
-  }));
-  const rs=document.getElementById("rsum");if(rs)rs.innerHTML=n?`إنتاج النهارده في كل الأقسام: <b style="color:var(--ok)">${nf(tot)}</b>`:"ملخص الإنتاج والطلبيات المتأخرة";
+  await fillSums();
+  homeReady=true;
 }
 document.getElementById("lver").textContent="الإصدار "+APP_VERSION;
 try{const le=localStorage.getItem("last_email");if(le)email.value=le}catch(e){}

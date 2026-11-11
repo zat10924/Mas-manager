@@ -40,7 +40,7 @@ async function dash2(){
   const hx=document.getElementById("hx");if(!hx)return;
   const T=today(),vs=visibleSections().filter(s=>RING_SRC[s[0]]);
   if(!vs.length)return;
-  hx.innerHTML='<div class="card skc"><i class="sk" style="height:96px"></i></div>';
+  if(!hx.children.length)hx.innerHTML='<div class="card skc"><i class="sk" style="height:96px"></i></div>';
   const [P,W]=await Promise.all([
     Promise.allSettled(vs.map(sectionProgress)),
     vs.some(s=>s[0]==="glaze.html")?wasteCard(T).catch(()=>""):Promise.resolve("")]);

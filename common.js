@@ -132,8 +132,15 @@ function photoToData(file,size=320,q=.82){return new Promise((res,rej)=>{
 const KEY={"glaze.html":"glaze","decoration.html":"deco","spray.html":"spray","repair.html":"repair"};
 let ME=null,_today=null;
 // يجيب دور المستخدم وقسمه + تاريخ السيرفر. لو جدول profiles لسه مش متعمل (قبل تشغيل setup_roles.sql) بيشتغل كمدير عشان البرنامج ما يقفش.
+// جلسة الدخول: لو مفيش نت والتوكن منتهي نكمل بآخر جلسة محفوظة بدل ما نرجّع المستخدم لصفحة الدخول
+async function getSess(){
+  let s=null;try{s=(await db.auth.getSession()).data.session}catch(e){}
+  if(s)return s;
+  if(!navigator.onLine){try{const o=JSON.parse(localStorage.getItem("sb-bzhxdikcyxkdojwlswhq-auth-token")||"null");if(o&&o.user&&o.user.id)return o}catch(e){}}
+  return null;
+}
 async function loadMe(){
-  const{data:{session}}=await db.auth.getSession();if(!session)return null;
+  const session=await getSess();if(!session)return null;
   // لو عمود active لسه مش موجود (قبل تشغيل setup_users.sql) نرجع للاستعلام القديم
   const getP=async()=>{
     let cols=["full_name","role","section","sections","active","perms","avatar","phone","whatsapp"],r;
@@ -169,7 +176,7 @@ function noAccess(){
   document.getElementById("o").onclick=async()=>{Snd.play("logout");await db.auth.signOut();location.href="index.html"};
 }
 async function requireAuth(file){
-  const{data:{session}}=await db.auth.getSession();
+  const session=await getSess();
   if(!session){location.href="index.html";return null}
   await loadMe();
   if(!ME.role||ME.active===false){noAccess();return null}
@@ -295,11 +302,82 @@ window.addEventListener("afterprint",()=>{
 
 /* ===== شاشة البداية (مرة واحدة في الجلسة) ===== */
 function hideSplash(){
+  try{window.__navStop&&window.__navStop()}catch(e){}
   const s=document.getElementById("splash");if(!s)return;
   try{sessionStorage.setItem("sp","1")}catch(e){}
   setTimeout(()=>{s.classList.add("done");setTimeout(()=>{s.classList.add("hide");setTimeout(()=>s.remove(),500)},260)},Math.max(0,600-performance.now()));
 }
 setTimeout(hideSplash,6000);
+
+/* ===== مزامنة تلقائية: لما البيانات تتغير على السيرفر الصفحة بتتحدث لوحدها ===== */
+(function(){
+  let last=0,pending=false,hist=[];
+  const busy=()=>{const a=document.activeElement;return !!document.getElementById("ov")||!!(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))};
+  function run(){
+    if(document.visibilityState!=="visible"||!navigator.onLine)return;
+    if(busy()){pending=true;return}
+    const now=Date.now();hist=hist.filter(t=>now-t<60000);
+    if(hist.length>=6||now-last<1500)return; // حماية من التكرار
+    hist.push(now);last=now;pending=false;
+    try{
+      const fn=typeof window.__masRefresh==="function"?window.__masRefresh:(typeof load==="function"?load:null);
+      if(fn)Promise.resolve(fn()).catch(()=>{});
+    }catch(e){}
+  }
+  addEventListener("mas-data",run);
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")setTimeout(run,300)});
+  setInterval(run,60000);
+  setInterval(()=>{if(pending)run()},5000);
+})();
+
+/* ===== أنيميشن التحميل والتنقل بين الصفحات ===== */
+(function(){
+  const st=document.createElement("style");
+  st.textContent=`#navl{position:fixed;inset:0;z-index:99;pointer-events:none}
+#navl .bar{position:absolute;top:0;left:0;right:0;height:3px;transform-origin:100% 50%;transform:scaleX(0);opacity:0;background:linear-gradient(90deg,#B9984C,#E8D49B,#B9984C);box-shadow:0 0 10px rgba(215,185,111,.7)}
+#navl.on .bar{opacity:1}
+#navl.run .bar{transform:scaleX(.85);transition:transform 8s cubic-bezier(.1,.6,.2,1)}
+#navl.fin .bar{transform:scaleX(1);opacity:0;transition:transform .25s ease-out,opacity .3s .25s}
+#navl .dim{position:absolute;inset:0;display:grid;place-items:center;background:rgba(40,14,20,.3);opacity:0;transition:opacity .2s}
+#navl.nav{pointer-events:auto}
+#navl.nav .dim{opacity:1;transition-delay:.15s}
+#navl.fin .dim{opacity:0;transition-delay:0s}
+#navl .box{display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px 26px;border-radius:18px;background:linear-gradient(160deg,#642631,#421B24);color:#E8D49B;font-size:.9rem;box-shadow:0 12px 34px rgba(0,0,0,.4)}
+#navl .ring{width:42px;height:42px;border-radius:50%;border:4px solid rgba(215,185,111,.25);border-top-color:#D7B96F;animation:navspin .8s linear infinite}
+@keyframes navspin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){#navl .ring{animation:none}#navl.run .bar{transition:none}}`;
+  document.head.appendChild(st);
+  const el=document.createElement("div");el.id="navl";
+  el.innerHTML='<i class="bar"></i><div class="dim"><div class="box"><i class="ring"></i><span>جاري التحميل…</span></div></div>';
+  document.body.appendChild(el);
+  let t,f;
+  function start(nav){
+    clearTimeout(t);clearTimeout(f);
+    el.classList.remove("fin");el.classList.add("on");
+    if(nav)el.classList.add("nav");
+    void el.offsetWidth;el.classList.add("run");
+    f=setTimeout(stop,10000); // أمان: لو الصفحة ماتغيرتش (تحميل ملف مثلًا)
+  }
+  function stop(){
+    if(!el.classList.contains("on"))return;
+    clearTimeout(f);el.classList.add("fin");
+    t=setTimeout(()=>el.classList.remove("on","nav","run","fin"),600);
+  }
+  window.__navStop=stop;
+  // الصفحة الجديدة بتحمّل: شريط ذهبي فوق (إلا لو شاشة البداية ظاهرة)
+  if(!document.getElementById("splash"))start(false);
+  document.addEventListener("click",e=>{
+    if(e.defaultPrevented||e.button||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;
+    const a=e.target.closest&&e.target.closest("a[href]");
+    if(!a||(a.target&&a.target!=="_self")||a.hasAttribute("download"))return;
+    let u;try{u=new URL(a.href,location.href)}catch(x){return}
+    if(u.origin!==location.origin||/\.apk$/i.test(u.pathname))return;
+    if(u.pathname===location.pathname&&u.search===location.search)return; // نفس الصفحة (تبويب داخلي)
+    start(true);
+  });
+  addEventListener("beforeunload",()=>start(true));
+  addEventListener("pageshow",e=>{if(e.persisted)stop()});
+})();
 
 /* ===== Skeleton وحالات الخطأ ===== */
 function skel(id,n=3){
@@ -886,6 +964,7 @@ async function pushState(){
         }
         localStorage.removeItem("push_uid");
       }catch(e){}
+      try{await masCacheClear()}catch(e){}
       return so(...a);
     };
   }catch(e){}

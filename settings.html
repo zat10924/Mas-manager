@@ -216,7 +216,8 @@ s_upd.onclick=async()=>{
   s_upd.disabled=true;
   try{
     const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));
-    const rg=navigator.serviceWorker?await navigator.serviceWorker.getRegistrations():[];await Promise.all(rg.map(r=>r.unregister()));
+    try{await masCacheClear()}catch(e){}
+    try{const g=await navigator.serviceWorker.getRegistration();if(g)await g.update()}catch(e){}
   }catch(e){}
   toast("جاري التحديث…");setTimeout(()=>location.reload(),500);
 };
