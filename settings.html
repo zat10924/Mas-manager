@@ -99,17 +99,18 @@
   <div class="card">
     <div class="sethead"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg><h3>البرنامج</h3></div>
     <dl class="kv2"><dt>الإصدار</dt><dd><span class="verbadge" id="s_ver">—</span></dd><dt>تاريخ الإصدار</dt><dd id="s_bld">—</dd><dt>الجهاز</dt><dd id="s_dev">—</dd><dt>الاتصال</dt><dd id="s_conn">—</dd></dl>
-    <div class="row"><button class="btn ghost" id="s_new" type="button">ما الجديد</button><button class="btn ghost" id="s_upd" style="flex:1">تحديث البرنامج</button><button class="btn ghost" id="s_rst" style="flex:1;color:var(--bad)">إعادة ضبط الإعدادات</button></div>
-    <div class="row" style="margin-top:8px"><button class="btn ghost" id="s_exp" style="flex:1">تصدير الإعدادات</button><button class="btn ghost" id="s_imp" style="flex:1">استيراد إعدادات</button><input type="file" id="s_file" accept="application/json,.json" hidden></div>
-    <details class="whatsnew" style="margin-top:10px"><summary class="btn ghost" style="width:100%;text-align:center;cursor:pointer;list-style:none">ما الجديد في البرنامج</summary><div id="s_log"></div></details>
-    <div class="hint" style="margin-top:6px">"تحديث البرنامج" بيمسح الملفات المخزّنة ويحمّل آخر نسخة.</div>
+    <div class="alabel">الصيانة</div>
+    <div class="alist"><button class="arow" id="s_upd" type="button"><i class="ai"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></i><span class="at"><b>تحديث البرنامج</b><small>مسح الملفات المخزّنة وتحميل آخر نسخة</small></span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><details class="whatsnew"><summary class="arow"><i class="ai"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.9 15.5A2 2 0 0 0 8.5 14.1l-6.1-1.6a.5.5 0 0 1 0-1l6.1-1.6A2 2 0 0 0 9.9 8.5l1.6-6.1a.5.5 0 0 1 1 0l1.6 6.1a2 2 0 0 0 1.4 1.4l6.1 1.6a.5.5 0 0 1 0 1l-6.1 1.6a2 2 0 0 0-1.4 1.4l-1.6 6.1a.5.5 0 0 1-1 0z"/></svg></i><span class="at"><b>ما الجديد في البرنامج</b><small>آخر تحديث وتغييراته</small></span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></summary><div id="s_log"></div></details></div>
+    <div class="alabel">النسخ الاحتياطي</div>
+    <div class="alist"><button class="arow" id="s_exp" type="button"><i class="ai"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg></i><span class="at"><b>تصدير الإعدادات</b><small>حفظ إعداداتك في ملف</small></span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><button class="arow" id="s_imp" type="button"><i class="ai"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg></i><span class="at"><b>استيراد إعدادات</b><small>تحميل إعدادات من ملف</small></span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><input type="file" id="s_file" accept="application/json,.json" hidden></div>
+    <div class="alabel">منطقة الخطر</div>
+    <div class="alist"><button class="arow danger" id="s_rst" type="button"><i class="ai"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg></i><span class="at"><b>إعادة ضبط الإعدادات</b><small>الرجوع للإعدادات الافتراضية</small></span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button></div>
   </div>
   <div class="card" id="s_pushcard">
     <div class="sethead"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><h3>الإشعارات</h3></div>
     <dl class="kv2"><dt>الحالة</dt><dd id="s_pstate">—</dd></dl>
     <div class="row"><button class="btn" id="s_pon" style="flex:1" hidden>تفعيل الإشعارات</button><button class="btn ghost" id="s_ptest" style="flex:1" hidden>إشعار تجريبي</button><button class="btn ghost" id="s_poff" style="flex:1;color:var(--bad)" hidden>إيقاف</button></div>
-    <dl class="kv2" style="margin-top:10px"><dt>تنبيه انقطاع/رجوع النت</dt><dd id="s_nstate">—</dd></dl>
-    <div class="row"><button class="btn ghost" id="s_ntoggle" style="flex:1">—</button></div>
+    <div class="alist"><div class="arow static"><span class="at"><b>تنبيه انقطاع/رجوع النت</b><small id="s_nstate">—</small></span><button class="btn ghost sm" id="s_ntoggle" type="button">—</button></div></div>
     <div class="hint" style="margin-top:6px">بيظهر إشعار لما النت يقع أو يرجع والبرنامج في الخلفية، ويختفي لوحده. محتاج الإشعارات تكون مفعّلة.</div>
     <div class="hint" style="margin-top:6px">بتوصلك إشعارات الإنتاج والطلبيات ورسائل المسؤول والنسخ الجديدة، حتى لو البرنامج مقفول.</div>
     <div id="s_padmin" hidden style="margin-top:12px">
@@ -216,13 +217,23 @@ s_file.onchange=async()=>{
 };
 s_print.onclick=()=>window.print();
 s_upd.onclick=async()=>{
-  s_upd.disabled=true;
+  const lb=s_upd.querySelector(".at b"),sm=s_upd.querySelector(".at small"),t0=lb.textContent,s0=sm.textContent;
+  const say=(x,y)=>{lb.textContent=x;sm.textContent=y},done=()=>{s_upd.disabled=false;lb.textContent=t0;sm.textContent=s0};
+  if(!navigator.onLine){toast("مفيش اتصال بالإنترنت");return}
+  s_upd.disabled=true;say("جاري الفحص…","بنسأل السيرفر عن آخر نسخة");
+  let latest=null;
+  try{const r=await fetch("config.js?_chk="+Date.now(),{cache:"no-store"});const m=(await r.text()).match(/APP_VERSION\s*=\s*"([^"]+)"/);latest=m&&m[1]}catch(e){}
+  if(!latest){toast("تعذّر الوصول للسيرفر، جرّب تاني");done();return}
+  say("جاري التحديث…",latest===APP_VERSION?"إعادة تحميل الملفات":"تحميل النسخة "+latest);
   try{
-    const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));
+    const ks=await caches.keys();await Promise.all(ks.filter(k=>k!=="mas-lib").map(k=>caches.delete(k)));
     try{await masCacheClear()}catch(e){}
+    await Promise.all(["index.html","common.js","config.js","dash.js","reports.js","style.css","theme.css","install.js","manifest.json","sw.js"].map(f=>fetch(f,{cache:"reload"}).catch(()=>{})));
     try{const g=await navigator.serviceWorker.getRegistration();if(g)await g.update()}catch(e){}
   }catch(e){}
-  toast("جاري التحديث…");setTimeout(()=>location.reload(),500);
+  try{sessionStorage.setItem("upd_done",latest+"|"+APP_VERSION)}catch(e){}
+  toast(latest===APP_VERSION?"أنت على آخر إصدار (v"+APP_VERSION+")":"جاري تحديث البرنامج إلى v"+latest);
+  setTimeout(()=>location.reload(),900);
 };
 s_rst.onclick=async()=>{
   if(!await ask("إعادة كل الإعدادات (الخط والطباعة والمظهر) للوضع الافتراضي؟","نعم، أعد الضبط"))return;
@@ -273,7 +284,8 @@ s_psend.onclick=async()=>{
 (async()=>{
   if(await requireAuth("settings.html")){
     renderNav("settings.html");drawFonts();drawHero();netNow();drawPush();s_dev.textContent=matchMedia("(display-mode: standalone)").matches||navigator.standalone?"تطبيق مثبّت":"متصفح";
-    s_ver.textContent="v"+APP_VERSION;document.getElementById("s_new").onclick=()=>showWhatsNew(true);
+    s_ver.textContent="v"+APP_VERSION;
+    try{const u=sessionStorage.getItem("upd_done");if(u){sessionStorage.removeItem("upd_done");const[l,o]=u.split("|");setTimeout(()=>toast(l===APP_VERSION?(l===o?"أنت على آخر إصدار ✓":"تم التحديث إلى v"+l+" ✓"):"النسخة الجديدة v"+l+" لسه ما وصلتش، جرّب بعد دقيقة"),700)}}catch(e){}
     s_bld.textContent=new Date(APP_BUILD+"T00:00:00").toLocaleDateString("ar-EG",{day:"numeric",month:"long",year:"numeric"});
     s_log.innerHTML=APP_CHANGES.slice(0,1).map(c=>`<div class="chver"><span class="verbadge">v${esc(c[0])}</span><small>${new Date(c[1]+"T00:00:00").toLocaleDateString("ar-EG",{day:"numeric",month:"long",year:"numeric"})}</small></div><ul class="chlog">${c[2].map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`).join("");
     settle();

@@ -423,16 +423,12 @@ function closeModal(){
   if(document.documentElement.classList.contains("calm")){o.remove();return}
   o.classList.add("out");setTimeout(()=>o.remove(),170);
 }
-/* ===== ما الجديد: بيظهر مرة لكل إصدار بعد التحديث، ومتاح من الإعدادات > البرنامج ===== */
-const WHATS_NEW={"2.3.7":[
- "🛠️ قسم جديد: الصب اليدوي (سوف ينشأ قريبًا).",
- "🔮 توقّع التأخير: كارت في الرئيسية للطلبيات اللي لسه ما اتأخرتش بس معدل الإنتاج الحالي مش هيلحّقها ميعاد التسليم.",
- "📊 تحليل الهالك (جليز): أكتر الأصناف والأسباب هالكًا آخر 30 يوم، مع تحذير لو النسبة عالية أو بتزيد.",
- "⚡ تحسينات عامة في الأداء."]};
+/* ===== ما الجديد: نافذة مرة لكل إصدار (من APP_CHANGES في config.js) ===== */
 function showWhatsNew(force){
-  const v=APP_VERSION,L=WHATS_NEW[v];if(!L){if(force)toast("مفيش ملاحظات لهذا الإصدار");return}
-  try{if(!force&&localStorage.getItem("mas_seen_ver")===v)return;localStorage.setItem("mas_seen_ver",v)}catch(e){if(!force)return}
-  openModal("ما الجديد في الإصدار "+esc(v),`<ul style="margin:0;padding:0 18px 0 0;line-height:1.9">${L.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`,closeModal,"تمام");
+  const c=typeof APP_CHANGES!=="undefined"&&APP_CHANGES[0];
+  if(!c||c[0]!==APP_VERSION){if(force)toast("مفيش ملاحظات لهذا الإصدار");return}
+  try{if(!force&&localStorage.getItem("mas_seen_ver")===c[0])return;localStorage.setItem("mas_seen_ver",c[0])}catch(e){if(!force)return}
+  openModal("ما الجديد في الإصدار "+esc(c[0]),`<ul style="margin:0;padding:0 18px 0 0;line-height:1.9">${c[2].map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`,closeModal,"تمام");
 }
 function openModal(title,body,onSave,saveText="حفظ"){
   closeModal();Snd.play("open");

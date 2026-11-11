@@ -770,3 +770,23 @@ label.chk{display:flex;align-items:center;gap:8px;cursor:pointer}label.chk input
 .sethead h3{font-size:1.02rem}
 .kv2{gap:0 14px}
 .kv2 dt,.kv2 dd{padding:9px 0;border-bottom:1px dashed var(--line)}
+
+/* ===== قوائم الإجراءات في الإعدادات ===== */
+.alabel{font-size:.78rem;font-weight:700;color:var(--mute);margin:16px 4px 6px;letter-spacing:.02em}
+.alist{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--card)}
+.alist.alist>*+*{border-top:1px solid var(--line)}
+.arow{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border:0;background:transparent;color:var(--ink);font:inherit;text-align:start;cursor:pointer;list-style:none;box-sizing:border-box}
+.arow::-webkit-details-marker,.whatsnew summary::-webkit-details-marker{display:none}
+.arow:active:not(.static){background:color-mix(in srgb,var(--pri) 8%,transparent)}
+.arow .ai{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;flex:none;color:var(--pri);background:color-mix(in srgb,var(--pri) 11%,transparent)}
+.arow .ai svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.arow .at{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.arow .at b{font-size:.95rem;font-weight:700}
+.arow .at small{color:var(--mute);font-size:.78rem;line-height:1.4}
+.arow .chev{width:18px;height:18px;flex:none;fill:none;stroke:var(--mute);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.whatsnew[open] summary .chev{transform:rotate(-90deg)}
+.whatsnew #s_log{padding:2px 16px 14px}
+.arow.danger{color:var(--bad)}
+.arow.danger .ai{color:var(--bad);background:color-mix(in srgb,var(--bad) 11%,transparent)}
+.arow.static{cursor:default}
+.btn.sm{width:auto;padding:7px 14px;font-size:.82rem;flex:none}
