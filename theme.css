@@ -859,3 +859,26 @@ svg.i,.tabbar svg,.iconbtn svg,.ico svg,.search svg,.seccard .h svg,.side .sh sv
 @media print{body.pr-daily #dash,body.pr-dash #daily,body.pr-dash #dayBar{display:none!important}}
 .ps-note{display:none}
 @media print{.ps-note{display:block!important;margin:0 0 10px;padding:7px 16px;border:1px dashed #B9984C;border-radius:8px;background:#FFFDF8!important;color:#421B24!important;font-weight:700;font-size:10pt}}
+
+/* ===== v2.6.5 — أيقونات SVG للأزرار والملاحظات الذكية ===== */
+.ui{width:1.15em;height:1.15em;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.btn.ib{display:inline-flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap;min-height:44px;padding:9px 10px}
+.actbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:4px}
+.actbar.x2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.actbar .btn{width:100%;margin:0;font-size:.95rem}
+h3.hi{display:flex;align-items:center;gap:8px}
+h3.hi .ui{width:1.25em;height:1.25em;color:var(--pri)}
+.iacts{display:inline-flex;gap:6px;align-items:center}
+.iact{display:inline-grid;place-items:center;width:38px;height:38px;padding:0;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--pri);cursor:pointer;transition:background .15s,border-color .15s,transform .1s}
+.iact:hover{background:var(--bg);border-color:var(--pri)}
+.iact:active{transform:scale(.94)}
+.iact.bad{color:var(--bad)}
+.iact.bad:hover{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 8%,var(--card))}
+.iact .ui{width:18px;height:18px}
+/* الملاحظات الذكية: أيقونة داخل دايرة ملوّنة */
+.ins{--c:#B08A2E;align-items:center;gap:11px;padding:10px 12px;border-radius:12px;font-size:.92rem}
+.ins.ok{--c:var(--ok)}
+.ins.warn{--c:var(--warn)}
+.ins .ii{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;flex:none;line-height:1;color:var(--c);background:color-mix(in srgb,var(--c) 15%,transparent)}
+.ins .ii .ui{width:18px;height:18px}
+@media print{.ins .ii{background:none!important;border:1.5px solid currentColor;width:24px;height:24px}.ins .ii .ui{width:14px;height:14px}.ins.ok .ii{color:#2e7d4f}.ins.warn .ii{color:#b4541a}.ins.info .ii{color:#8a6a1f}}

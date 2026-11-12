@@ -155,8 +155,8 @@ const ordN=n=>n===1?"طلبية":n===2?"طلبيتين":n<=10?n+" طلبيات":
 const etaTxt=n=>n==null?"—":n<=1?"يوم شغل":n===2?"يومين شغل":n<=10?n+" أيام شغل":n+" يوم شغل";
 
 /* ---------- ملاحظات ذكية (نصوص جاهزة بالعربي من الأرقام) ---------- */
-const INS_ICON={ok:"✅",warn:"⚠️",info:"💡"};
-const insHtml=list=>list.map(([k,t])=>`<div class="ins ${k}"><span class="ii" aria-hidden="true">${INS_ICON[k]||"💡"}</span><span>${t}</span></div>`).join("");
+const INS_ICON={ok:"checkc",warn:"alert",info:"bulb"};
+const insHtml=list=>list.map(([k,t])=>`<div class="ins ${k}"><span class="ii" aria-hidden="true">${ui(INS_ICON[k]||"bulb")}</span><span>${t}</span></div>`).join("");
 function sectionInsights(c){
   const{cfg,key,rows,f,t,total,prevTotal,k,hasW,bl,custom}=c,I=[],T=today();
   if(!rows.length)return I;
@@ -298,7 +298,7 @@ async function resyncOrder(row,key){
   const done=!!data&&data.produced>=data.qty_required;
   if(data&&data.status!==(done?"done":"open"))await db.from(s.o).update({status:done?"done":"open"}).eq("id",row.oid);
 }
-const actBtns=(i,r)=>(can("edit")?`<button class="btn ghost sm" type="button" data-act="edit" data-i="${i}">تعديل</button> `:"")+(can("delete")?`<button class="btn ghost sm" type="button" data-act="del" data-i="${i}">حذف</button>`:"");
+const actBtns=(i,r)=>`<span class="iacts">`+(can("edit")?`<button class="iact" type="button" data-act="edit" data-i="${i}" title="تعديل" aria-label="تعديل">${ui("edit")}</button>`:"")+(can("delete")?`<button class="iact bad" type="button" data-act="del" data-i="${i}" title="حذف" aria-label="حذف">${ui("trash")}</button>`:"")+`</span>`;
 const entryTxt=r=>r.item+(r.sub?" · "+r.sub:"");
 function editEntry(row,key,done){
   if(!row||!row.id)return;
@@ -355,7 +355,7 @@ function printDialog(root,scope,secs,hooks={}){
     <label>عنوان التقرير (اختياري)</label><input id="ps-t" maxlength="80" placeholder="سيبه فاضي للعنوان الأصلي">
     <label>ملاحظة تظهر أعلى التقرير (اختياري)</label><input id="ps-n" maxlength="200" placeholder="مثال: تقرير مراجعة نهاية الأسبوع">
     <label>اسم المُعِد (اختياري)</label><input id="ps-by" maxlength="60" value="${esc((saved&&saved.by)||"")}" placeholder="الافتراضي: اسم المستخدم الحالي">`;
-  openModal("🖨️ خيارات الطباعة",body,async()=>{
+  openModal("خيارات الطباعة",body,async()=>{
     const ids=[...document.querySelectorAll(".psx:checked")].map(x=>x.dataset.id);
     if(!ids.length){toast("اختار قسم واحد على الأقل");return false}
     const om=document.getElementById("ps-o").value;
@@ -403,13 +403,13 @@ function mount(rootId,key){
     <div class="two rflt" hidden><div class="rclw" hidden><label>${cfg.sub||""}</label><select class="rcl"><option value="">الكل</option></select></div><div class="rww" hidden><label>العامل</label><select class="rw"><option value="">الكل</option></select></div></div>
   </div>
   <div class="kpis rk" data-ps="kpi">${skelKpis(4)}</div>
-  <div class="card" data-ps="insights"><div class="sec-head"><h3>🧠 ملاحظات ذكية</h3></div><div class="rins"></div></div>
+  <div class="card" data-ps="insights"><div class="sec-head"><h3 class="hi">${ui("sparkles")}<span>ملاحظات ذكية</span></h3></div><div class="rins"></div></div>
   <div class="card" data-ps="chart"><div class="sec-head"><h3>${cfg.noun} على مدار الفترة</h3></div><div class="rc"><i class="sk" style="height:170px"></i></div></div>
   <div class="card" data-ps="dist"><div class="sec-head"><h3>التوزيع</h3><div class="seg noprint"></div></div><div class="scroll rb"></div></div>
   ${hasOrd?'<div class="card" data-ps="open"><div class="sec-head"><h3>الطلبيات المفتوحة حالياً</h3></div><div class="scroll ro"></div></div>':""}
   <div class="card" data-ps="workers"><div class="sec-head"><h3>أداء العمال</h3></div><div class="scroll rwk"></div></div>
   <div class="card" data-ps="log"><div class="sec-head"><h3>سجل التفاصيل</h3></div><div class="scroll rlg"></div></div>
-  <div class="row noprint"><button class="btn rx">تصدير Excel</button><button class="btn ghost rpr">طباعة</button><button class="btn ghost rsh">مشاركة</button></div>`;
+  <div class="actbar noprint"><button class="btn ib rx">${ib("download","تصدير Excel")}</button><button class="btn ghost ib rpr">${ib("print","طباعة")}</button><button class="btn ghost ib rsh">${ib("share","مشاركة")}</button></div>`;
   const $=s=>root.querySelector(s),$$=s=>root.querySelectorAll(s);
   const subLbl=cfg.sub||"";
 
@@ -544,14 +544,14 @@ function dashboard(rootId){
     <div class="two"><div><label>من</label><input type="date" class="rf"></div><div><label>إلى</label><input type="date" class="rt"></div></div>
   </div>
   <div class="secgrid rs" data-ps="secs">${Array.from({length:4},()=>'<i class="sk" style="height:96px;border-radius:14px"></i>').join("")}</div>
-  <div class="card" data-ps="insights"><div class="sec-head"><h3>🧠 ملاحظات ذكية</h3></div><div class="rins"></div></div>
+  <div class="card" data-ps="insights"><div class="sec-head"><h3 class="hi">${ui("sparkles")}<span>ملاحظات ذكية</span></h3></div><div class="rins"></div></div>
   <div class="card" data-ps="chart"><div class="sec-head"><h3>الإنتاج اليومي لكل الأقسام</h3></div><div class="rc"><i class="sk" style="height:170px"></i></div></div>
   <div class="card" data-ps="colors"><div class="sec-head"><h3>ألوان الرش</h3></div><div class="scroll rcol"></div></div>
   <div class="card" data-ps="top"><div class="sec-head"><h3>أعلى الأصناف</h3></div><div class="scroll rt2"></div></div>
   <div class="card" data-ps="late"><div class="sec-head"><h3>طلبيات متأخرة وراكدة</h3></div><div class="scroll rl"></div></div>
   <div class="card noprint"><h3>تصدير ونسخة احتياطية</h3>
     <div class="nums" style="margin-bottom:8px">خد نسخة من بياناتك بشكل دوري. ملف JSON فيه كل الجداول ويتحفظ عندك.</div>
-    <div class="row"><button class="btn rx">تصدير الإنتاج (Excel)</button><button class="btn ghost rbk">نسخة احتياطية (JSON)</button><button class="btn ghost rpr">طباعة</button><button class="btn ghost rsh">مشاركة</button></div></div>`;
+    <div class="actbar x2"><button class="btn ib rx">${ib("download","تصدير Excel")}</button><button class="btn ghost ib rbk">${ib("db","نسخة احتياطية")}</button><button class="btn ghost ib rpr">${ib("print","طباعة")}</button><button class="btn ghost ib rsh">${ib("share","مشاركة")}</button></div></div>`;
   const $=s=>root.querySelector(s),$$=s=>root.querySelectorAll(s);
   const range=()=>rangeOf(st.k,st.f,st.t);
   const syncDates=()=>{if(st.k!=="custom")[$(".rf").value,$(".rt").value]=rangeOf(st.k)};
