@@ -24,7 +24,7 @@
   <h1>الأصناف والألوان</h1>
   <div class="tabs noprint" id="tb"><button class="btn on" data-k="item">الأصناف</button><button class="btn ghost" data-k="color">الألوان</button><button class="btn ghost" data-k="code">أكواد الزخرفة</button></div>
   <div class="nums" id="hint" style="margin-bottom:8px"></div>
-  <div class="catact noprint"><button class="btn" id="addx" type="button">+ إضافة بصورة وكود</button><button class="btn ghost" id="add" type="button">+ عدة أسماء</button></div>
+  <div class="catact noprint"><button class="btn" id="addx" type="button">+ إضافة بصورة وكود</button><button class="btn ghost" id="add" type="button">+ عدة أسماء</button><button class="btn" id="impd" type="button" hidden>استيراد أكواد الرسمات (101 → 154) بصورها</button></div>
   <div class="search"><input type="search" id="q" placeholder="بحث…" aria-label="بحث"></div>
   <div id="list"></div>
 </div>
@@ -46,6 +46,7 @@ async function load(){
   all=data;draw();
 }
 function draw(){
+  {const b=document.getElementById("impd");if(b)b.hidden=kind!=="code"}
   document.getElementById("hint").textContent=HINT[kind]+" ("+nf(all.filter(x=>x.kind===kind).length)+")";
   const rs=all.filter(x=>x.kind===kind&&hit(norm(Q),x.name,x.code||""));
   document.getElementById("list").innerHTML=rs.length?`<div class="card">${rs.map(x=>{
@@ -143,6 +144,32 @@ document.querySelectorAll("#tb button").forEach(b=>b.onclick=()=>{
 });
 (async()=>{if(await requireAuth("catalog.html")){renderNav("catalog.html");load().finally(settle)}})();
 </script>
-<script src="install.js" defer></script>
+<script src="install.js" defer>
+/* ===== استيراد أكواد الرسمات بصورها ===== */
+document.getElementById("impd").onclick=async function(){
+  const btn=this;btn.disabled=true;const old=btn.textContent;
+  try{
+    if(!window.DESIGN_IMGS)await new Promise((ok,no)=>{const sc=document.createElement("script");sc.src="design_imgs.js?v="+Date.now();sc.onload=ok;sc.onerror=()=>no(new Error("ملف design_imgs.js مش مرفوع"));document.head.appendChild(sc)});
+    await load();
+    const have=new Map(all.filter(x=>x.kind==="code").map(x=>[norm(x.name),x]));
+    const add=[],upd=[];
+    Object.entries(window.DESIGN_IMGS).forEach(([n,im])=>{const e=have.get(norm(n));e?upd.push([e,im]):add.push({kind:"code",name:n,image:im})});
+    let done=0,fail=0,msg="";
+    for(let i=0;i<add.length;i+=6){
+      btn.textContent="جاري الإضافة… "+done+"/"+(add.length+upd.length);
+      const{error}=await db.from("catalog").insert(add.slice(i,i+6));
+      if(error){fail+=add.slice(i,i+6).length;msg=error.message}else done+=add.slice(i,i+6).length;
+    }
+    for(const[e,im]of upd){
+      btn.textContent="جاري التحديث… "+done+"/"+(add.length+upd.length);
+      const r=await db.rpc("catalog_set_meta",{p_id:e.id,p_code:e.code||"",p_image:im,p_set_image:true});
+      if(r.error){fail++;msg=r.error.message}else done++;
+    }
+    await load();
+    toast(fail?("تم "+done+" وفشل "+fail+": "+msg):("تم: إضافة "+add.length+" وتحديث "+upd.length),fail?"bad":undefined);
+  }catch(e){toast("خطأ: "+e.message,"bad")}
+  btn.disabled=false;btn.textContent=old;
+};
+</script>
 </body>
 </html>

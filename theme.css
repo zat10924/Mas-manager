@@ -882,3 +882,5 @@ h3.hi .ui{width:1.25em;height:1.25em;color:var(--pri)}
 .ins .ii{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;flex:none;line-height:1;color:var(--c);background:color-mix(in srgb,var(--c) 15%,transparent)}
 .ins .ii .ui{width:18px;height:18px}
 @media print{.ins .ii{background:none!important;border:1.5px solid currentColor;width:24px;height:24px}.ins .ii .ui{width:14px;height:14px}.ins.ok .ii{color:#2e7d4f}.ins.warn .ii{color:#b4541a}.ins.info .ii{color:#8a6a1f}}
+
+.cbp[data-k="code"] img{width:76px;height:76px}

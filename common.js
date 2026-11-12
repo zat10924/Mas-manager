@@ -890,19 +890,26 @@ function cbPick(inp,v){
   inp._setting=true;inp.value=v;
   inp.dispatchEvent(new Event("input",{bubbles:true}));inp.dispatchEvent(new Event("change",{bubbles:true}));
   inp._setting=false;cbHide();
-  if(inp.dataset.cb==="item")cbPreview(inp);
+  if(inp.dataset.cb==="item"||inp.dataset.cb==="code")cbPreview(inp);
   if(Snd)Snd.play("tap");
 }
+const _pvC=new Map();
 async function cbPreview(inp){
+  const k=inp.dataset.cb;if(k!=="item"&&k!=="code")return;
   const w=inp.closest(".cbw");if(!w)return;
-  let box=w.nextElementSibling;if(!box||!box.classList.contains("cbp")){box=document.createElement("div");box.className="cbp";box.hidden=true;w.after(box)}
-  box.hidden=true;box.innerHTML="";
-  const m=CATM.item.get(inp.value.trim());if(!m||!m.id)return;
+  const host=inp.closest(".nr")||w; // صفوف الأكواد: المعاينة تحت الصف كله عشان ما تبوّظش الشبكة
+  let box=host.nextElementSibling;if(!box||!box.classList.contains("cbp")||box.dataset.k!==k){box=document.createElement("div");box.className="cbp";box.dataset.k=k;box.hidden=true;host.after(box)}
+  const v=inp.value.trim(),m=v&&CATM[k].get(v);
+  if(!m||!m.id){box.hidden=true;box.innerHTML="";return}
   try{
-    const r=await db.from("catalog").select("image,code").eq("id",m.id).maybeSingle();
-    if(r.error||!r.data||!CATM.item.has(inp.value.trim()))return;
-    const im=safeAv(r.data.image);if(!im&&!r.data.code)return;
-    box.innerHTML=(im?`<img src="${im}" alt="">`:"")+`<span><b>${esc(inp.value.trim())}</b>${r.data.code?`<small>كود الصنف: ${esc(r.data.code)}</small>`:""}</span>`;
+    let d=_pvC.get(m.id);
+    if(!d){
+      const r=await db.from("catalog").select("image,code").eq("id",m.id).maybeSingle();
+      if(r.error||!r.data)return;d=r.data;_pvC.set(m.id,d);
+    }
+    if(inp.value.trim()!==v)return; // المستخدم غيّر الكلمة أثناء التحميل
+    const im=safeAv(d.image);if(!im&&!d.code){box.hidden=true;box.innerHTML="";return}
+    box.innerHTML=(im?`<img src="${im}" alt="">`:"")+`<span><b>${k==="code"?"كود الرسمة: ":""}${esc(v)}</b>${d.code?`<small>كود الصنف: ${esc(d.code)}</small>`:""}</span>`;
     box.hidden=false;
   }catch(e){}
 }
@@ -925,6 +932,11 @@ function enhanceCombo(inp){
     catReady().then(()=>{if(document.activeElement!==inp)return;const ex=cbOpts(inp).some(o=>o[0]===v);cbShow(inp,!v||ex)});
   });
   inp.addEventListener("input",()=>{if(inp._setting)return;catReady().then(()=>cbShow(inp,false))});
+  if(inp.dataset.cb==="item"||inp.dataset.cb==="code"){
+    let _pt;const pv=()=>{clearTimeout(_pt);_pt=setTimeout(()=>catReady().then(()=>cbPreview(inp)),200)};
+    inp.addEventListener("input",pv);inp.addEventListener("change",pv);
+    if(inp.value.trim())pv();
+  }
   inp.addEventListener("blur",()=>setTimeout(()=>{if(CBX.inp===inp&&document.activeElement!==inp)cbHide()},140));
   inp.addEventListener("keydown",e=>{
     const open=CBX.p&&!CBX.p.hidden&&CBX.inp===inp,os=open?[...CBX.p.querySelectorAll(".cbo")]:[];
