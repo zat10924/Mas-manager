@@ -101,10 +101,6 @@
     <dl class="kv2"><dt>الإصدار</dt><dd><span class="verbadge" id="s_ver">—</span></dd><dt>تاريخ الإصدار</dt><dd id="s_bld">—</dd><dt>الجهاز</dt><dd id="s_dev">—</dd><dt>الاتصال</dt><dd id="s_conn">—</dd></dl>
     <div class="alabel">الصيانة</div>
     <div class="alist"><button class="arow" id="s_upd" type="button"><i class="ai"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></i><span class="at"><b>تحديث البرنامج</b><small>مسح الملفات المخزّنة وتحميل آخر نسخة</small></span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><details class="whatsnew"><summary class="arow"><i class="ai"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.9 15.5A2 2 0 0 0 8.5 14.1l-6.1-1.6a.5.5 0 0 1 0-1l6.1-1.6A2 2 0 0 0 9.9 8.5l1.6-6.1a.5.5 0 0 1 1 0l1.6 6.1a2 2 0 0 0 1.4 1.4l6.1 1.6a.5.5 0 0 1 0 1l-6.1 1.6a2 2 0 0 0-1.4 1.4l-1.6 6.1a.5.5 0 0 1-1 0z"/></svg></i><span class="at"><b>ما الجديد في البرنامج</b><small>آخر تحديث وتغييراته</small></span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></summary><div id="s_log"></div></details></div>
-    <div id="s_aiw" hidden>
-      <div class="alabel">التطوير الذكي</div>
-      <div class="alist"><button class="arow" id="s_ai" type="button"><i class="ai"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.9 15.5A2 2 0 0 0 8.5 14.1l-6.1-1.6a.5.5 0 0 1 0-1l6.1-1.6A2 2 0 0 0 9.9 8.5l1.6-6.1a.5.5 0 0 1 1 0l1.6 6.1a2 2 0 0 0 1.4 1.4l6.1 1.6a.5.5 0 0 1 0 1l-6.1 1.6a2 2 0 0 0-1.4 1.4l-1.6 6.1a.5.5 0 0 1-1 0z"/></svg></i><span class="at"><b>اقترح تحسين للبرنامج</b><small>الذكاء الاصطناعي يجهّز التعديل وأنت توافق عليه</small></span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button></div>
-    </div>
     <div class="alabel">النسخ الاحتياطي</div>
     <div class="alist"><button class="arow" id="s_exp" type="button"><i class="ai"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg></i><span class="at"><b>تصدير الإعدادات</b><small>حفظ إعداداتك في ملف</small></span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><button class="arow" id="s_imp" type="button"><i class="ai"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg></i><span class="at"><b>استيراد إعدادات</b><small>تحميل إعدادات من ملف</small></span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><input type="file" id="s_file" accept="application/json,.json" hidden></div>
     <div class="alabel">منطقة الخطر</div>
@@ -260,7 +256,6 @@ async function drawPush(){
   s_pon.hidden=st==="on"||st==="unsupported"||st==="denied";
   s_poff.hidden=s_ptest.hidden=st!=="on";
   s_padmin.hidden=!(ME&&ME.role==="admin");
-  s_aiw.hidden=!(ME&&ME.role==="admin"&&typeof GH_REPO!=="undefined");s_ai.onclick=()=>window.open("https://github.com/"+GH_REPO+"/issues/new?labels=ai&title="+encodeURIComponent("[اقتراح] ")+"&body="+encodeURIComponent("اوصف التحسين المطلوب هنا (الصفحة، وإيه اللي عاوز يتغير):\n"),"_blank");
 }
 s_pon.onclick=async()=>{
   s_pon.disabled=true;
