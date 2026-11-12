@@ -42,14 +42,21 @@
 <script>
 let orders=[],prods=[],tab=location.hash==="#reports"?"prod":"open",Q="",repCtl=null;
 function logHtml(id){
-  const p=prods.filter(x=>x.order_id===id);
+  const p=prods.filter(x=>x.order_id===id),o=orders.find(x=>x.id===id);
   if(!p.length)return"";
-  return '<div class="nums" style="font-size:.85rem">'+p.slice(0,6).map(e=>`${e.qty} (${fmtD(e.prod_date)})`).join(" · ")+(p.length>6?` · +${p.length-6}`:"")+"</div>";
+  const sc=e=>e.spray_color&&o&&e.spray_color!==o.color?` · <b>${esc(e.spray_color)}</b>`:"";
+  return '<div class="nums" style="font-size:.85rem">'+p.slice(0,6).map(e=>`${e.qty} (${fmtD(e.prod_date)}${sc(e)})`).join(" · ")+(p.length>6?` · +${p.length-6}`:"")+"</div>"+colorsHtml(p,o);
+}
+// ملخص ألوان الرش الفعلية للطلبية (يظهر بس لو اترشّ بلون غير لون الطلبية)
+function colorsHtml(p,o){
+  const m=new Map();p.forEach(e=>{const c=e.spray_color||(o&&o.color)||"";if(c)m.set(c,(m.get(c)||0)+e.qty)});
+  if(!o||m.size<2&&(!m.size||m.has(o.color)))return"";
+  return '<div class="nums" style="font-size:.85rem">ألوان الرش: '+[...m].map(([c,q])=>`<span class="tag">${esc(c)} · ${nf(q)}</span>`).join(" ")+"</div>";
 }
 
 
 async function load(){
-  const[o,p,d,ft]=await Promise.all([db.from("spray_status").select("*").order("created_at",{ascending:false}),db.from("spray_production").select("id,order_id,qty,prod_date").order("prod_date",{ascending:false}).order("id",{ascending:false}),db.from("spray_orders").select("id,due_date,postponed_count"),freeTodayQty("spray")]);
+  const[o,p,d,ft]=await Promise.all([db.from("spray_status").select("*").order("created_at",{ascending:false}),db.from("spray_production").select("*").order("prod_date",{ascending:false}).order("id",{ascending:false}),db.from("spray_orders").select("id,due_date,postponed_count"),freeTodayQty("spray")]);
   if(o.error){fail("orders",load);return}
   FREE_T=ft;const dm=new Map((d.data||[]).map(x=>[x.id,x]));orders=o.data.map(x=>({...x,...(dm.get(x.id)||{})}));prods=p.data||[];renderOrders();
 }
@@ -91,11 +98,12 @@ async function syncStatus(id){
 
 function produce(id){
   const o=orders.find(x=>x.id===id),rem=o.qty_required-o.produced;
-  openModal(`إنتاج ${esc(o.item)} · ${esc(o.color)}`,`<div class="nums">المتبقي: <b>${rem}</b></div><label>الكمية اللي رشيتها</label><input type="number" id="m-q" min="1" max="${rem}" inputmode="numeric"><label>التاريخ</label><input type="date" id="m-d" value="${today()}">${XF()}`,async()=>{
+  openModal(`إنتاج ${esc(o.item)} · ${esc(o.color)}`,`<div class="nums">المتبقي: <b>${rem}</b></div><label>الكمية اللي رشيتها</label><input type="number" id="m-q" min="1" max="${rem}" inputmode="numeric"><label>التاريخ</label><input type="date" id="m-d" value="${today()}">${XS(o.color)}${XF()}`,async()=>{
     const q=parseInt(document.getElementById("m-q").value);
     if(!q||q<1){toast("اكتب كمية صحيحة");return false}
     if(q>rem){toast("الكمية أكبر من المتبقي ("+rem+")");return false}
-    const{error}=await insertRow("spray_production",{order_id:id,qty:q,prod_date:document.getElementById("m-d").value||today(),...xfRead()});
+    const xr=xfRead();if(!xr.spray_color)xr.spray_color=o.color; // لون الرش دايمًا بيتسجل (الافتراضي لون الطلبية)
+    const{error}=await insertRow("spray_production",{order_id:id,qty:q,prod_date:document.getElementById("m-d").value||today(),...xr});
     if(error){toast("خطأ: "+error.message);return false}
     const done=await syncStatus(id);await load();toast(done?"الطلبية خلصت ✅":"تم التسجيل");
   });
@@ -115,7 +123,7 @@ function increase(id){
 async function edit(id){
   const o=orders.find(x=>x.id===id);
   const{data}=await db.from("spray_production").select("*").eq("order_id",id).order("prod_date",{ascending:false});
-  const log=(data||[]).length?data.map(e=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0"><span><b>${e.qty}</b> <span class="nums">${fmtD(e.prod_date)}</span></span><button class="btn ghost sm" onclick="delEntry(${e.id},${id})">حذف</button></div>`).join(""):'<div class="nums">لا يوجد</div>';
+  const log=(data||[]).length?data.map(e=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0"><span><b>${e.qty}</b> <span class="nums">${fmtD(e.prod_date)}${e.spray_color?` · لون الرش: <b>${esc(e.spray_color)}</b>`:""}${e.worker?` · ${esc(e.worker)}`:""}</span></span><button class="btn ghost sm" onclick="delEntry(${e.id},${id})">حذف</button></div>`).join(""):'<div class="nums">لا يوجد</div>';
   openModal("تعديل الطلبية",`<label>الصنف</label><input id="m-item" value="${esc(o.item)}"><label>اللون</label><input id="m-color" value="${esc(o.color)}"><label>الكمية المطلوبة</label><input type="number" id="m-req" min="1" inputmode="numeric" value="${o.qty_required}"><label>تاريخ الطلبية</label><input type="date" id="m-od" value="${o.order_date||today()}"><label>تاريخ التسليم (اختياري)</label><input type="date" id="m-due" value="${o.due_date||''}">
     <div class="itemblk"><div class="ih"><b>+ إضافة لون جديد لنفس الصنف</b></div><div class="two"><div><label>اللون الجديد</label><input id="m-color2" placeholder="اتركه فاضي لو مش عايز"></div><div><label>الكمية</label><input type="number" id="m-req2" min="1" inputmode="numeric"></div></div><div class="hint">بيتعمل له طلبية مستقلة بنفس الصنف والتواريخ.</div></div>
     <h3>سجل الإنتاج</h3>${log}`,async()=>{

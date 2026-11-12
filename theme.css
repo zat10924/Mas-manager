@@ -831,3 +831,29 @@ svg.i,.tabbar svg,.iconbtn svg,.ico svg,.search svg,.seccard .h svg,.side .sh sv
 /* أزرار الشريط العلوي: زجاج خفيف */
 .topbar .iconbtn{border-radius:14px;background:rgba(255,255,255,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),inset 0 0 0 1px rgba(255,255,255,.1)}
 .topbar .iconbtn:hover{background:rgba(215,185,111,.3);transform:translateY(-1px)}
+
+/* =====================================================================
+   v2.6 — ملاحظات ذكية + طباعة ذكية (اختيار الأقسام)
+   ===================================================================== */
+.rflt[hidden],.rclw[hidden],.rww[hidden]{display:none}
+.ins{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;margin:0 0 6px;border-radius:10px;border:1px solid var(--line);border-inline-start:4px solid var(--mute);background:var(--bg);line-height:1.7;font-size:.93rem}
+.ins .ii{flex:none;font-size:1rem;line-height:1.7}
+.ins.ok{border-inline-start-color:var(--ok)}
+.ins.warn{border-inline-start-color:var(--warn);background:color-mix(in srgb,var(--warn) 8%,var(--card))}
+.ins.info{border-inline-start-color:var(--gold)}
+.ins b{font-weight:800}
+.dsum{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:0 0 10px}
+.dsum .dk{padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.dsum .dk b{display:block;font-size:1.05rem}
+.dsum .dk small{color:var(--mute)}
+.cchips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 2px}
+@media print{
+  .ps-off,.ps-empty{display:none!important}
+  .ins{background:#fff!important;border:1px solid #E3D8C4!important;border-inline-start:5px solid #B9984C!important;color:#1b1b1f!important;break-inside:avoid;page-break-inside:avoid;font-size:9.5pt!important;padding:5px 9px!important;margin:0 0 4px!important}
+  .ins.ok{border-inline-start-color:#2e7d4f!important}
+  .ins.warn{border-inline-start-color:#b4541a!important;background:#FFF8F0!important}
+  .dsum .dk{background:#FBF7EE!important;border:1px solid #E0D3B3!important}
+  .rlg table,.rwk table{font-size:8.5pt!important}
+  .rlg td,.rlg th{padding:4px 6px!important}
+}
+@media print{body.pr-daily #dash,body.pr-dash #daily,body.pr-dash #dayBar{display:none!important}}

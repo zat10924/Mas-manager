@@ -1,7 +1,13 @@
-/* reports.js — محرك التقارير المشترك (يعتمد على common.js و config.js) */
+/* reports.js — محرك التقارير المشترك (يعتمد على common.js و config.js)
+   v2.6: ملاحظات ذكية، توقّع الإنجاز، فلاتر (صنف/لون/عامل)، لون الرش، وطباعة ذكية باختيار الأقسام */
 const Reports=(()=>{
 const APP="إدارة الأقسام";
 const D=x=>x?String(x).slice(0,10):"";
+const WD=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+const wdOf=d=>new Date(d+"T00:00:00Z").getUTCDay();
+const isOff=d=>wdOf(d)===5; // الجمعة إجازة
+const pctOf=(a,b)=>b?Math.round(a/b*100):0;
+const shortD=d=>new Date(d+"T00:00:00Z").toLocaleDateString("ar-EG",{day:"numeric",month:"short",timeZone:"UTC"});
 
 /* ---------- جلب البيانات (مع تجاوز حد 1000 صف في Supabase) ---------- */
 async function all(table,cols="*"){
@@ -68,12 +74,14 @@ const SRC={
       const[o,l,p]=await Promise.all([all("deco_orders","id,item,order_date,status"),all("deco_lines_status","id,order_id,code,total_required,produced"),all("deco_production","*")]);
       const out=fromLines(o,l,p,"code");out.prod.push(...await freeRows("deco"));return out;
     }},
-  spray:{name:"رش",page:"spray.html",icon:"spray",color:"#B8862B",noun:"الإنتاج",sub:"اللون",
+  // الرش: كل تسجيل إنتاج ليه «لون الرش» (spray_color). لو فاضي (تسجيلات قديمة) بنستخدم لون الطلبية.
+  // oc = لون الطلبية الأصلي عشان نكشف لو اترشّ بلون مختلف.
+  spray:{name:"رش",page:"spray.html",icon:"spray",color:"#B8862B",noun:"الإنتاج",sub:"لون الرش",
     async fetch(){
       const[s,p]=await Promise.all([all("spray_status","*"),all("spray_production","*")]);
       const S=new Map(s.map(x=>[x.id,x])),fr=await freeRows("spray");
       return{
-        prod:p.map(x=>{const o=S.get(x.order_id);return{d:D(x.prod_date),item:o?.item||"—",sub:o?String(o.color??""):"",qty:+x.qty||0,w:x.worker||"",n:x.note||""}}).concat(fr),
+        prod:p.map(x=>{const o=S.get(x.order_id),oc=o?String(o.color??""):"";return{d:D(x.prod_date),item:o?.item||"—",sub:String(x.spray_color||oc||""),oc,qty:+x.qty||0,w:x.worker||"",n:x.note||""}}).concat(fr),
         ord:s.map(o=>({id:o.id,item:o.item,sub:String(o.color??""),date:D(o.order_date),status:o.status,req:+o.qty_required||0,done:Math.min(+o.produced||0,+o.qty_required||0)}))
       };
     }},
@@ -115,9 +123,123 @@ const longL=(k,m)=>m==="day"?new Date(k+"T00:00:00Z").toLocaleDateString("ar-EG"
   :m==="week"?"أسبوع يبدأ "+new Date(k+"T00:00:00Z").toLocaleDateString("ar-EG",{day:"numeric",month:"long",timeZone:"UTC"})
   :new Date(k+"-01T00:00:00Z").toLocaleDateString("ar-EG",{month:"long",year:"numeric",timeZone:"UTC"});
 const fmtP=(f,t)=>f&&t?(f===t?fmtD(f):`من ${fmtD(f)} إلى ${fmtD(t)}`):f?`من ${fmtD(f)}`:t?`حتى ${fmtD(t)}`:"كل الفترات";
-const groupSum=(rows,by)=>{const m=new Map();rows.forEach(r=>{const k=by==="sub"?r.item+(r.sub?" — "+r.sub:""):r.item;m.set(k,(m.get(k)||0)+r.qty)});return[...m].sort((a,b)=>b[1]-a[1])};
+const keyFor=(r,by,cfg)=>by==="sub"?r.item+(r.sub?" — "+r.sub:""):by==="col"?(r.sub||"بدون "+(cfg.sub||"لون")):r.item;
+const groupSum=(rows,by,cfg)=>{const m=new Map();rows.forEach(r=>{const k=keyFor(r,by,cfg||{});m.set(k,(m.get(k)||0)+r.qty)});return[...m].sort((a,b)=>b[1]-a[1])};
 const sum=rows=>rows.reduce((a,r)=>a+r.qty,0);
 const deltaOf=(cur,prev)=>prev==null?null:prev===0?(cur>0?["up","▲ جديد"]:null):(()=>{const p=Math.round((cur-prev)/prev*100);return p===0?["flat","= نفس الفترة السابقة"]:[p>0?"up":"down",(p>0?"▲ ":"▼ ")+Math.abs(p)+"% عن الفترة السابقة"]})();
+
+/* ---------- تحليل الطلبيات المفتوحة: توقّع الإنجاز والطلبيات الراكدة ---------- */
+// المعدل = إنتاج آخر 14 يوم ÷ عدد أيام الشغل الفعلية فيها. التقدير بأيام شغل (مش أيام تقويم).
+function backlog(key,data){
+  if(!data||!data.ord)return null;
+  const T=today(),from=addDays(T,-13);
+  const k1=r=>key==="spray"?r.item+"|"+(r.oc??r.sub):r.item;
+  const k2=o=>key==="spray"?o.item+"|"+o.sub:o.item;
+  const wd=new Set(),q14=new Map(),last=new Map();let tot14=0;
+  data.prod.forEach(r=>{
+    const k=k1(r);
+    if(!last.has(k)||r.d>last.get(k))last.set(k,r.d);
+    if(r.d>=from&&r.d<=T){wd.add(r.d);q14.set(k,(q14.get(k)||0)+r.qty);tot14+=r.qty}
+  });
+  const days=Math.max(wd.size,1);
+  const rows=data.ord.filter(o=>o.status==="open").map(o=>{
+    const rem=Math.max(o.req-o.done,0),k=k2(o),rate=(q14.get(k)||0)/days,l=last.get(k)||"";
+    return{o,rem,rate,last:l,eta:rem>0&&rate>0?Math.ceil(rem/rate):null,stalled:rem>0&&(!l||daysBetween(l,T)>14)&&ageDays(o.date)>7};
+  });
+  const rem=rows.reduce((a,x)=>a+x.rem,0),rate=tot14/days;
+  return{rows,rem,rate,eta:rem>0&&rate>0?Math.ceil(rem/rate):null,stalled:rows.filter(x=>x.stalled),by:new Map(rows.map(x=>[x.o.id,x])),active:wd.size};
+}
+const ordN=n=>n===1?"طلبية":n===2?"طلبيتين":n<=10?n+" طلبيات":n+" طلبية";
+const etaTxt=n=>n==null?"—":n<=1?"يوم شغل":n===2?"يومين شغل":n<=10?n+" أيام شغل":n+" يوم شغل";
+
+/* ---------- ملاحظات ذكية (نصوص جاهزة بالعربي من الأرقام) ---------- */
+const INS_ICON={ok:"✅",warn:"⚠️",info:"💡"};
+const insHtml=list=>list.map(([k,t])=>`<div class="ins ${k}"><span class="ii" aria-hidden="true">${INS_ICON[k]||"💡"}</span><span>${t}</span></div>`).join("");
+function sectionInsights(c){
+  const{cfg,key,rows,f,t,total,prevTotal,k,hasW,bl,custom}=c,I=[],T=today();
+  if(!rows.length)return I;
+  const days=[...new Set(rows.map(r=>r.d))].sort(),perDay=new Map();
+  rows.forEach(r=>perDay.set(r.d,(perDay.get(r.d)||0)+r.qty));
+  // 1) الاتجاه مقارنة بالفترة السابقة
+  if(prevTotal!=null){
+    if(prevTotal===0&&total>0)I.push(["info","مفيش إنتاج مسجل في الفترة السابقة، فالفترة دي هي البداية."]);
+    else if(prevTotal>0){
+      const p=Math.round((total-prevTotal)/prevTotal*100);
+      if(Math.abs(p)>=10)I.push([p>0?"ok":"warn",`${cfg.noun} ${p>0?"زاد":"قلّ"} <b>${Math.abs(p)}%</b> عن الفترة السابقة (${nf(prevTotal)} ← ${nf(total)}).`]);
+      else I.push(["info","الإنتاج ثابت تقريبًا مقارنة بالفترة السابقة."]);
+    }
+  }
+  // 2) توقّع نهاية الشهر
+  if(k==="month"&&T.slice(0,7)===(f||"").slice(0,7)){
+    const el=+T.slice(8),dim=new Date(Date.UTC(+T.slice(0,4),+T.slice(5,7),0)).getUTCDate();
+    if(el>=5&&el<dim)I.push(["info",`بالمعدل الحالي المتوقع يوصل إنتاج الشهر لحوالي <b>${nf(Math.round(total/el*dim))}</b> بنهاية الشهر.`]);
+  }
+  // 3) أفضل يوم
+  const avg=total/days.length,best=[...perDay].sort((a,b)=>b[1]-a[1])[0];
+  if(days.length>=4&&best[1]>=avg*1.5)I.push(["info",`أفضل يوم: <b>${longL(best[0],"day")}</b> بـ ${nf(best[1])} (${(best[1]/avg).toFixed(1)} ضعف متوسط أيام الشغل).`]);
+  // 4) أيام شغل من غير إنتاج
+  const s=f||days[0],e=(t&&t<T?t:T);
+  if(s&&e>=s&&daysBetween(s,e)>=2&&daysBetween(s,e)<=62){
+    const miss=[];for(let d=s;d<=e;d=addDays(d,1))if(!isOff(d)&&d!==T&&!perDay.has(d))miss.push(d);
+    if(miss.length)I.push(["warn",`فيه <b>${miss.length}</b> يوم شغل من غير أي إنتاج${miss.length<=4?": "+miss.map(shortD).join("، "):""}.`]);
+  }
+  // 5) تركّز الإنتاج على صنف واحد
+  const gi=groupSum(rows,"item",cfg);
+  if(gi.length>1&&gi[0][1]/total>=.5)I.push(["info",`<b>${esc(gi[0][0])}</b> لوحده ${pctOf(gi[0][1],total)}% من الإنتاج.`]);
+  // 6) الألوان / الأكواد
+  if(cfg.sub){
+    const gc=groupSum(rows.filter(r=>r.sub),"col",cfg);
+    if(gc.length){
+      const top=gc[0];
+      I.push(["info",`أكتر ${cfg.sub==="لون الرش"?"لون اترشّ":cfg.sub} في الفترة: <b>${esc(top[0])}</b> (${nf(top[1])} · ${pctOf(top[1],total)}%) من ${gc.length} ${gc.length>2&&gc.length<11?(cfg.sub==="الكود"?"أكواد":"ألوان"):(cfg.sub==="الكود"?"كود":"لون")}.`]);
+    }
+    const nos=rows.filter(r=>!r.sub);
+    if(nos.length&&sum(nos)/total>=.2)I.push(["warn",`${pctOf(sum(nos),total)}% من الإنتاج متسجل من غير ${cfg.sub}.`]);
+  }
+  // 7) رش: اترشّ بلون مختلف عن لون الطلبية
+  if(key==="spray"){
+    const mm=rows.filter(r=>r.oc&&r.sub&&r.sub!==r.oc);
+    if(mm.length){
+      const q=sum(mm),mp=new Map();mm.forEach(r=>{const kk=r.oc+" ← "+r.sub;mp.set(kk,(mp.get(kk)||0)+r.qty)});
+      const ex=[...mp].sort((a,b)=>b[1]-a[1]).slice(0,2).map(([kk,v])=>esc(kk)+" ("+nf(v)+")").join("، ");
+      I.push(["warn",`<b>${nf(q)}</b> قطعة اترشّت بلون مختلف عن لون الطلبية: ${ex}. راجع إن ده مقصود.`]);
+    }
+  }
+  // 8) العمال
+  if(hasW){
+    const ws=workerStats(rows);
+    if(ws.length){
+      I.push(["info",`أعلى عامل: <b>${esc(ws[0].w)}</b> بـ ${nf(ws[0].q)} (${pctOf(ws[0].q,total)}% من الإنتاج)${ws.length>1?` من ${ws.length} عمال`:""}.`]);
+      const un=sum(rows.filter(r=>!r.w));
+      if(un&&un/total>=.3)I.push(["warn",`${pctOf(un,total)}% من الإنتاج متسجل من غير اسم عامل.`]);
+    }
+  }
+  // 9) نمط أيام الأسبوع
+  if(days.length>=14&&daysBetween(days[0],days[days.length-1])>=27){
+    const wq=Array(7).fill(0),wn=Array(7).fill(0);
+    perDay.forEach((v,d)=>{const w=wdOf(d);wq[w]+=v;wn[w]++});
+    const av=wq.map((v,i)=>wn[i]>=2?v/wn[i]:0),bi=av.indexOf(Math.max(...av));
+    if(av[bi]>0)I.push(["info",`أقوى يوم في الأسبوع: <b>${WD[bi]}</b> (متوسط ${nf(Math.round(av[bi]))}).`]);
+  }
+  return I;
+}
+function backlogInsights(bk,cfg){
+  const I=[];if(!bk||!bk.rows.length)return I;
+  if(bk.rem>0){
+    if(bk.eta!=null)I.push(["info",`المتبقي <b>${nf(bk.rem)}</b> في ${ordN(bk.rows.length)} مفتوحة. بمعدل آخر 14 يوم (${nf(Math.round(bk.rate))}/يوم شغل) هيخلص تقريبًا خلال <b>${etaTxt(bk.eta)}</b>.`]);
+    else I.push(["warn",`المتبقي <b>${nf(bk.rem)}</b> في ${ordN(bk.rows.length)} ومفيش إنتاج في آخر 14 يوم.`]);
+  }
+  if(bk.stalled.length){
+    const nm=bk.stalled.slice(0,3).map(x=>esc(x.o.item)+(x.o.sub&&cfg&&cfg.sub==="لون الرش"?" · "+esc(x.o.sub):"")).join("، ");
+    I.push(["warn",`<b>${ordN(bk.stalled.length)}</b> راكدة (مفيش عليها إنتاج من أكتر من 14 يوم): ${nm}${bk.stalled.length>3?" …":""}.`]);
+  }
+  return I;
+}
+function workerStats(rows){
+  const m=new Map();
+  rows.forEach(r=>{if(!r.w)return;const o=m.get(r.w)||{w:r.w,q:0,days:new Set(),items:new Set()};o.q+=r.qty;o.days.add(r.d);o.items.add(r.item);m.set(r.w,o)});
+  return[...m.values()].sort((a,b)=>b.q-a.q);
+}
 
 /* ---------- الرسم البياني (أعمدة متراصة) ---------- */
 function drawChart(el,{f,t,series}){
@@ -153,7 +275,7 @@ const chipsHtml=k=>CHIPS.map(c=>`<button type="button" class="chip ${c[0]===k?"o
 const skelKpis=n=>Array.from({length:n},()=>'<i class="sk" style="height:66px;border-radius:14px"></i>').join("");
 function csvDownload(name,header,rows){
   const q=s=>'"'+String(s??"").replace(/"/g,'""')+'"';
-  const csv="\uFEFF"+[header.join(","),...rows.map(r=>r.map(q).join(","))].join("\n");
+  const csv="﻿"+[header.join(","),...rows.map(r=>r.map(q).join(","))].join("\n");
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));a.download=name;a.click();
 }
 async function shareText(text){
@@ -168,11 +290,52 @@ async function shareText(text){
   window.open("https://wa.me/?text="+encodeURIComponent(text),"_blank");
 }
 const showMore=(list,flag)=>flag?list:list.slice(0,10);
+const stripTags=h=>String(h).replace(/<[^>]+>/g,"").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">");
+
+/* ---------- طباعة ذكية ----------
+   نافذة بتسأل: إيه الأقسام اللي تتطبع؟ (ملخص / تفصيلي / للإدارة) + اتجاه الصفحة (تلقائي).
+   الأقسام الفاضية بتتخفى تلقائيًا، واختيارك بيتحفظ لكل تقرير. العناصر المعلّمة data-ps هي الأقسام. */
+const PS_PRESETS=[["ملخص سريع",["kpi","insights","chart","dist"]],["تفصيلي",null],["للإدارة",["kpi","insights","open","late","secs"]]];
+function printDialog(root,scope,secs,hooks={}){
+  // secs: [[id, الاسم, فيه بيانات؟]]
+  let saved=null;try{saved=SET.get("ps_"+scope,null)}catch(e){}
+  const on=id=>saved&&saved.s?saved.s.includes(id):(id!=="log");
+  const mode=(saved&&saved.o)||"auto";
+  const body=`<div class="hint" style="margin:0 0 8px">اختار الأقسام اللي تظهر في الورق. الأقسام الفاضية بتتخفى لوحدها.</div>
+    <div class="row" style="flex-wrap:wrap;gap:6px;margin:0 0 8px">${PS_PRESETS.map((p,i)=>`<button type="button" class="btn ghost sm" data-pre="${i}">${p[0]}</button>`).join("")}</div>
+    ${secs.map(([id,lb,has])=>`<label class="sw" style="cursor:pointer;${has?"":"opacity:.55"}"><span>${lb}${has?"":"<small>مفيش بيانات</small>"}</span><input type="checkbox" class="psx" data-id="${id}" ${has&&on(id)?"checked":""} ${has?"":"disabled"}></label>`).join("")}
+    <label>اتجاه الصفحة</label><select id="ps-o"><option value="auto" ${mode==="auto"?"selected":""}>تلقائي (عرضي لو فيه جدول تفصيلي)</option><option value="portrait" ${mode==="portrait"?"selected":""}>طولي</option><option value="landscape" ${mode==="landscape"?"selected":""}>عرضي</option></select>`;
+  openModal("🖨️ خيارات الطباعة",body,async()=>{
+    const ids=[...document.querySelectorAll(".psx:checked")].map(x=>x.dataset.id);
+    if(!ids.length){toast("اختار قسم واحد على الأقل");return false}
+    const om=document.getElementById("ps-o").value;
+    SET.set("ps_"+scope,{s:ids,o:om});
+    const land=om==="landscape"||(om==="auto"&&ids.includes("log"));
+    window.__po=land?"landscape":(om==="portrait"||om==="auto"?"portrait":null);
+    secs.forEach(([id])=>root.querySelectorAll('[data-ps="'+id+'"]').forEach(el=>el.classList.toggle("ps-off",!ids.includes(id))));
+    root.querySelectorAll("[data-empty]").forEach(el=>el.classList.add("ps-empty"));
+    if(hooks.before)hooks.before(ids);
+    document.body.classList.add("pr-"+scope);
+    let done=false;
+    const clean=()=>{
+      if(done)return;done=true;window.__po=null;document.body.classList.remove("pr-"+scope);
+      root.querySelectorAll(".ps-off,.ps-empty").forEach(el=>el.classList.remove("ps-off","ps-empty"));
+      if(hooks.after)hooks.after();
+    };
+    addEventListener("afterprint",clean,{once:true});
+    setTimeout(clean,60000); // احتياط لو المتصفح ما بعتش afterprint
+    setTimeout(()=>window.print(),250);
+  },"طباعة");
+  document.querySelectorAll("#ov [data-pre]").forEach(b=>b.onclick=()=>{
+    const p=PS_PRESETS[+b.dataset.pre][1];
+    document.querySelectorAll("#ov .psx:not(:disabled)").forEach(x=>x.checked=p?p.includes(x.dataset.id):true);
+  });
+}
 
 /* ---------- تقرير قسم واحد ---------- */
 function mount(rootId,key){
   const root=typeof rootId==="string"?document.getElementById(rootId):rootId,cfg=SRC[key];
-  const st={k:"month",f:"",t:"",item:"",by:"item",data:null,moreB:false,moreO:false,last:null};
+  const st={k:"month",f:"",t:"",item:"",col:"",wk:"",by:"item",data:null,moreB:false,moreO:false,moreL:false,printing:false,last:null};
   const hasOrd=key!=="repair";
   root.innerHTML=`
   <div class="print-head"><h2>${APP} — تقرير ${cfg.name}</h2><div class="nums rpd"></div></div>
@@ -180,33 +343,40 @@ function mount(rootId,key){
     <div class="chips rch">${chipsHtml(st.k)}</div>
     <div class="two"><div><label>من</label><input type="date" class="rf"></div><div><label>إلى</label><input type="date" class="rt"></div></div>
     <label>الصنف</label><select class="ri"><option value="">الكل</option></select>
+    <div class="two rflt" hidden><div class="rclw" hidden><label>${cfg.sub||""}</label><select class="rcl"><option value="">الكل</option></select></div><div class="rww" hidden><label>العامل</label><select class="rw"><option value="">الكل</option></select></div></div>
   </div>
-  <div class="kpis rk">${skelKpis(4)}</div>
-  <div class="card"><div class="sec-head"><h3>${cfg.noun} على مدار الفترة</h3></div><div class="rc"><i class="sk" style="height:170px"></i></div></div>
-  <div class="card"><div class="sec-head"><h3>التوزيع</h3>${cfg.sub?`<div class="seg noprint"><button class="on" data-by="item">حسب الصنف</button><button data-by="sub">حسب ${cfg.sub}</button></div>`:""}</div><div class="scroll rb"></div></div>
-  ${hasOrd?'<div class="card"><div class="sec-head"><h3>الطلبيات المفتوحة حالياً</h3></div><div class="scroll ro"></div></div>':""}
+  <div class="kpis rk" data-ps="kpi">${skelKpis(4)}</div>
+  <div class="card" data-ps="insights"><div class="sec-head"><h3>🧠 ملاحظات ذكية</h3></div><div class="rins"></div></div>
+  <div class="card" data-ps="chart"><div class="sec-head"><h3>${cfg.noun} على مدار الفترة</h3></div><div class="rc"><i class="sk" style="height:170px"></i></div></div>
+  <div class="card" data-ps="dist"><div class="sec-head"><h3>التوزيع</h3><div class="seg noprint"></div></div><div class="scroll rb"></div></div>
+  ${hasOrd?'<div class="card" data-ps="open"><div class="sec-head"><h3>الطلبيات المفتوحة حالياً</h3></div><div class="scroll ro"></div></div>':""}
+  <div class="card" data-ps="workers"><div class="sec-head"><h3>أداء العمال</h3></div><div class="scroll rwk"></div></div>
+  <div class="card" data-ps="log"><div class="sec-head"><h3>سجل التفاصيل</h3></div><div class="scroll rlg"></div></div>
   <div class="row noprint"><button class="btn rx">تصدير Excel</button><button class="btn ghost rpr">طباعة</button><button class="btn ghost rsh">مشاركة</button></div>`;
   const $=s=>root.querySelector(s),$$=s=>root.querySelectorAll(s);
+  const subLbl=cfg.sub||"";
 
   function range(){return rangeOf(st.k,st.f,st.t)}
   function draw(){
     const data=st.data;if(!data)return;
     const[f,t]=range();
-    const byItem=r=>!st.item||r.item===st.item;
-    const rows=data.prod.filter(r=>inRange(r.d,f,t)&&byItem(r));
+    const byItem=r=>!st.item||r.item===st.item,byCol=r=>!st.col||r.sub===st.col,byWk=r=>!st.wk||r.w===st.wk;
+    const pass=r=>byItem(r)&&byCol(r)&&byWk(r);
+    const rows=data.prod.filter(r=>inRange(r.d,f,t)&&pass(r));
     const total=sum(rows);
     const days=new Set(rows.map(r=>r.d)).size;
     const perDay=new Map();rows.forEach(r=>perDay.set(r.d,(perDay.get(r.d)||0)+r.qty));
     const best=[...perDay].sort((a,b)=>b[1]-a[1])[0];
     const pr=prevRange(f,t);
-    const prevTotal=pr?sum(data.prod.filter(r=>inRange(r.d,pr[0],pr[1])&&byItem(r))):null;
+    const prevTotal=pr?sum(data.prod.filter(r=>inRange(r.d,pr[0],pr[1])&&pass(r))):null;
     const K=[[`إجمالي ${cfg.noun}`,total,null,{},deltaOf(total,prevTotal)],
       ["متوسط / يوم عمل",days?total/days:0,null,{}],
-      [best?`أفضل يوم (${new Date(best[0]+"T00:00:00Z").toLocaleDateString("ar-EG",{day:"numeric",month:"short",timeZone:"UTC"})})`:"أفضل يوم",best?best[1]:0,null,{}],
+      [best?`أفضل يوم (${shortD(best[0])})`:"أفضل يوم",best?best[1]:0,null,{}],
       ["عدد الأصناف",new Set(rows.map(r=>r.item)).size,null,{}]];
-    let open=[];
+    let open=[],bk=null;
     if(data.ord){
-      open=data.ord.filter(o=>o.status==="open"&&(!st.item||o.item===st.item));
+      open=data.ord.filter(o=>o.status==="open"&&(!st.item||o.item===st.item)&&(!st.col||key!=="spray"||o.sub===st.col));
+      bk=backlog(key,data);
       const req=open.reduce((a,o)=>a+o.req,0),dn=open.reduce((a,o)=>a+o.done,0),late=open.filter(o=>isLate(o.status,o.date)).length;
       K.push(["طلبيات مفتوحة",open.length,null,{}],["المتبقي للإنجاز",Math.max(req-dn,0),null,{}],["نسبة إنجاز المفتوحة",req?dn/req*100:0,null,{suf:"%"}],[`متأخرة (+${LATE_DAYS} يوم)`,late,late?"var(--warn)":null,{}]);
     }
@@ -215,49 +385,88 @@ function mount(rootId,key){
       K.push(["الهالك",wq,wq?"var(--bad)":null,{}],["نسبة الهالك",wq+wg?wq/(wq+wg)*100:0,null,{suf:"%",dec:1}]);
     }
     kpis($(".rk"),K);
+    // ملاحظات ذكية
+    const hasW=data.prod.some(r=>r.w);
+    let ins=sectionInsights({cfg,key,rows,f,t,total,prevTotal,k:st.k,hasW});
+    if(bk&&!st.col&&!st.wk&&!st.item)ins=ins.concat(backlogInsights(bk,cfg));
+    const order={warn:0,ok:1,info:2};ins=ins.sort((a,b)=>order[a[0]]-order[b[0]]).slice(0,9);
+    $(".rins").innerHTML=ins.length?insHtml(ins):'<div class="empty">مفيش بيانات كفاية للملاحظات في الفترة دي</div>';
+    $('[data-ps="insights"]').toggleAttribute("data-empty",!ins.length);
     drawChart($(".rc"),{f,t,series:[{name:cfg.name,color:cfg.color,rows}]});
     // التوزيع
-    const g=groupSum(rows,st.by),gl=showMore(g,st.moreB);
-    $(".rb").innerHTML=g.length?`<table><thead><tr><th>${st.by==="sub"?"الصنف — "+cfg.sub:"الصنف"}</th><th>الكمية</th><th>النسبة</th></tr></thead><tbody>${gl.map(([k,v])=>{const p=total?Math.round(v/total*100):0;return `<tr><td>${esc(k)}</td><td><b>${nf(v)}</b></td><td><div class="share"><div class="bar"><i style="width:${p}%;background:${cfg.color}"></i></div><span>${p}%</span></div></td></tr>`}).join("")}</tbody><tfoot><tr><th>الإجمالي</th><th>${nf(total)}</th><th></th></tr></tfoot></table>${g.length>10?`<button class="btn ghost sm more noprint" data-m="b">${st.moreB?"عرض أقل":`عرض الكل (${g.length})`}</button>`:""}`:'<div class="empty">مفيش بيانات في الفترة دي</div>';
-    // الطلبيات المفتوحة
+    const opts=[["item","حسب الصنف"]];
+    if(subLbl){opts.push(["sub","الصنف + "+subLbl]);opts.push(["col","حسب "+subLbl])}
+    if(!opts.some(o=>o[0]===st.by))st.by="item";
+    $(".seg").innerHTML=opts.map(o=>`<button type="button" data-by="${o[0]}" class="${o[0]===st.by?"on":""}">${o[1]}</button>`).join("");
+    const g=groupSum(rows,st.by,cfg),gl=showMore(g,st.moreB||st.printing);
+    $(".rb").innerHTML=g.length?`<table><thead><tr><th>${st.by==="sub"?"الصنف — "+subLbl:st.by==="col"?subLbl:"الصنف"}</th><th>الكمية</th><th>النسبة</th></tr></thead><tbody>${gl.map(([k,v])=>{const p=total?Math.round(v/total*100):0;return `<tr><td>${esc(k)}</td><td><b>${nf(v)}</b></td><td><div class="share"><div class="bar"><i style="width:${p}%;background:${cfg.color}"></i></div><span>${p}%</span></div></td></tr>`}).join("")}</tbody><tfoot><tr><th>الإجمالي</th><th>${nf(total)}</th><th></th></tr></tfoot></table>${g.length>10&&!st.printing?`<button class="btn ghost sm more noprint" data-m="b">${st.moreB?"عرض أقل":`عرض الكل (${g.length})`}</button>`:""}`:'<div class="empty">مفيش بيانات في الفترة دي</div>';
+    // الطلبيات المفتوحة (مع التقدير والركود)
     if(hasOrd){
-      const ol=open.slice().sort((a,b)=>(a.date||"").localeCompare(b.date||"")),ov=showMore(ol,st.moreO);
-      $(".ro").innerHTML=ol.length?`<table><thead><tr><th>الطلبية</th><th>العمر</th><th>الإنجاز</th><th>المتبقي</th></tr></thead><tbody>${ov.map(o=>{const p=o.req?Math.min(100,Math.round(o.done/o.req*100)):0,late=isLate(o.status,o.date);return `<tr><td><b>${esc(o.item)}</b>${o.sub?`<div class="nums" style="font-size:.8rem">${esc(o.sub)}</div>`:""}</td><td>${late?'<span class="tag late">متأخرة</span> ':""}<span class="nums">${ageTxt(o.date)}</span></td><td><div class="share"><div class="bar"><i style="width:${p}%;background:${p>=100?"var(--ok)":cfg.color}"></i></div><span>${p}%</span></div></td><td><b>${nf(Math.max(o.req-o.done,0))}</b></td></tr>`}).join("")}</tbody></table>${ol.length>10?`<button class="btn ghost sm more noprint" data-m="o">${st.moreO?"عرض أقل":`عرض الكل (${ol.length})`}</button>`:""}`:'<div class="empty">مفيش طلبيات مفتوحة 👌</div>';
+      const ol=open.slice().sort((a,b)=>(a.date||"").localeCompare(b.date||"")),ov=showMore(ol,st.moreO||st.printing);
+      $(".ro").innerHTML=ol.length?`<table><thead><tr><th>الطلبية</th><th>العمر</th><th>الإنجاز</th><th>المتبقي</th><th>التقدير</th></tr></thead><tbody>${ov.map(o=>{
+        const p=o.req?Math.min(100,Math.round(o.done/o.req*100)):0,late=isLate(o.status,o.date),b=bk&&bk.by.get(o.id),rem=Math.max(o.req-o.done,0);
+        const est=!b||!rem?"—":b.stalled?'<span class="tag late">راكدة</span>':b.eta!=null?"~ "+etaTxt(b.eta):'<span class="nums">لا إنتاج حديث</span>';
+        return `<tr><td><b>${esc(o.item)}</b>${o.sub?`<div class="nums" style="font-size:.8rem">${esc(o.sub)}</div>`:""}</td><td>${late?'<span class="tag late">متأخرة</span> ':""}<span class="nums">${ageTxt(o.date)}</span></td><td><div class="share"><div class="bar"><i style="width:${p}%;background:${p>=100?"var(--ok)":cfg.color}"></i></div><span>${p}%</span></div></td><td><b>${nf(rem)}</b></td><td>${est}</td></tr>`}).join("")}</tbody></table><div class="hint" style="margin-top:4px">التقدير = المتبقي ÷ معدل إنتاج الصنف في آخر 14 يوم (بأيام الشغل).</div>${ol.length>10&&!st.printing?`<button class="btn ghost sm more noprint" data-m="o">${st.moreO?"عرض أقل":`عرض الكل (${ol.length})`}</button>`:""}`:'<div class="empty">مفيش طلبيات مفتوحة 👌</div>';
     }
-    $(".rpd").textContent=fmtP(f,t)+(st.item?" · الصنف: "+st.item:"")+" · طُبع في "+fmtD(today());
-    st.last={f,t,rows,total,g,open,best};
+    // أداء العمال
+    const ws=workerStats(rows);
+    $(".rwk").innerHTML=ws.length?`<table><thead><tr><th>العامل</th><th>الكمية</th><th>أيام</th><th>متوسط/يوم</th><th>أصناف</th></tr></thead><tbody>${ws.map(o=>`<tr><td><b>${esc(o.w)}</b></td><td><b>${nf(o.q)}</b></td><td>${o.days.size}</td><td>${nf(Math.round(o.q/o.days.size))}</td><td>${o.items.size}</td></tr>`).join("")}</tbody></table>`:'<div class="empty">مفيش أسماء عمال مسجلة في الفترة دي</div>';
+    $('[data-ps="workers"]').toggleAttribute("data-empty",!ws.length);
+    // سجل التفاصيل
+    const lg=rows.slice().sort((a,b)=>b.d.localeCompare(a.d)),CAP=400,lv=st.printing?lg.slice(0,CAP):showMore(lg,st.moreL);
+    const subCell=r=>esc(r.sub||"—")+(key==="spray"&&r.oc&&r.sub&&r.oc!==r.sub?`<div class="nums" style="font-size:.78rem">لون الطلبية: ${esc(r.oc)}</div>`:"");
+    $(".rlg").innerHTML=lg.length?`<table><thead><tr><th>التاريخ</th><th>الصنف</th>${subLbl?`<th>${subLbl}</th>`:""}<th>الكمية</th><th>العامل</th><th>ملاحظة</th></tr></thead><tbody>${lv.map(r=>`<tr><td>${fmtD(r.d)}</td><td>${esc(r.item)}${r.free?' <span class="tag">بدون طلبية</span>':""}</td>${subLbl?`<td>${subCell(r)}</td>`:""}<td><b>${nf(r.qty)}</b></td><td>${esc(r.w||"—")}</td><td>${esc(r.n||"—")}</td></tr>`).join("")}</tbody></table>${st.printing?(lg.length>CAP?`<div class="hint">اتعرض أحدث ${CAP} تسجيل من ${nf(lg.length)} — الباقي في ملف Excel.</div>`:""):(lg.length>10?`<button class="btn ghost sm more noprint" data-m="l">${st.moreL?"عرض أقل":`عرض الكل (${lg.length})`}</button>`:"")}`:'<div class="empty">مفيش تسجيلات في الفترة دي</div>';
+    $('[data-ps="log"]').toggleAttribute("data-empty",!lg.length);
+    $(".rpd").textContent=fmtP(f,t)+(st.item?" · الصنف: "+st.item:"")+(st.col?" · "+subLbl+": "+st.col:"")+(st.wk?" · العامل: "+st.wk:"")+" · طُبع في "+fmtD(today());
+    st.last={f,t,rows,total,g,open,best,ins,ws,bk};
   }
   async function refresh(force){
     $(".rk").innerHTML=skelKpis(hasOrd?8:4);
     try{st.data=await getData(key,force)}
     catch(e){$(".rk").innerHTML='<div class="empty err-state" style="grid-column:1/-1">تعذر تحميل التقرير<br><button class="btn sm rr">إعادة المحاولة</button></div>';$(".rr").onclick=()=>refresh(true);return}
-    const s=$(".ri"),cur=s.value;
-    s.innerHTML='<option value="">الكل</option>'+[...new Set(st.data.prod.map(r=>r.item))].sort().map(v=>`<option>${esc(v)}</option>`).join("");
-    s.value=[...s.options].some(o=>o.value===cur)?cur:"";st.item=s.value;
+    const fill=(sel,vals,cur)=>{sel.innerHTML='<option value="">الكل</option>'+vals.map(v=>`<option>${esc(v)}</option>`).join("");sel.value=[...sel.options].some(o=>o.value===cur)?cur:"";return sel.value};
+    const P=st.data.prod,uniq=a=>[...new Set(a.filter(Boolean))].sort((a,b)=>a.localeCompare(b,"ar"));
+    st.item=fill($(".ri"),uniq(P.map(r=>r.item)),st.item);
+    const cols=subLbl?uniq(P.map(r=>r.sub)):[],wks=uniq(P.map(r=>r.w));
+    st.col=fill($(".rcl"),cols,st.col);st.wk=fill($(".rw"),wks,st.wk);
+    $(".rclw").hidden=!cols.length;$(".rww").hidden=!wks.length;$(".rflt").hidden=!cols.length&&!wks.length;
     syncDates();draw();
   }
   function syncDates(){if(st.k!=="custom"){[$(".rf").value,$(".rt").value]=rangeOf(st.k)}}
-  $(".rch").onclick=e=>{const b=e.target.closest(".chip");if(!b)return;st.k=b.dataset.k;st.moreB=st.moreO=false;$$(".rch .chip").forEach(c=>c.classList.toggle("on",c===b));syncDates();draw()};
+  $(".rch").onclick=e=>{const b=e.target.closest(".chip");if(!b)return;st.k=b.dataset.k;st.moreB=st.moreO=st.moreL=false;$$(".rch .chip").forEach(c=>c.classList.toggle("on",c===b));syncDates();draw()};
   const custom=()=>{st.k="custom";st.f=$(".rf").value;st.t=$(".rt").value;$$(".rch .chip").forEach(c=>c.classList.remove("on"));draw()};
   $(".rf").onchange=custom;$(".rt").onchange=custom;
   $(".ri").onchange=e=>{st.item=e.target.value;draw()};
+  $(".rcl").onchange=e=>{st.col=e.target.value;draw()};
+  $(".rw").onchange=e=>{st.wk=e.target.value;draw()};
   root.addEventListener("click",e=>{
     const sg=e.target.closest(".seg button");
-    if(sg){st.by=sg.dataset.by;$$(".seg button").forEach(b=>b.classList.toggle("on",b===sg));st.moreB=false;draw();return}
+    if(sg){st.by=sg.dataset.by;st.moreB=false;draw();return}
     const mo=e.target.closest(".more");
-    if(mo){if(mo.dataset.m==="b")st.moreB=!st.moreB;else st.moreO=!st.moreO;draw()}
+    if(mo){const m=mo.dataset.m;if(m==="b")st.moreB=!st.moreB;else if(m==="o")st.moreO=!st.moreO;else st.moreL=!st.moreL;draw()}
   });
   $(".rx").onclick=()=>{
-    if(!st.last)return;const{f,t,rows}=st.last;
-    csvDownload(`${cfg.name}-تقرير-${f||"الكل"}${t&&t!==f?"-"+t:""}.csv`,["التاريخ","الصنف",cfg.sub||"-","الكمية"],rows.slice().sort((a,b)=>a.d.localeCompare(b.d)).map(r=>[r.d,r.item,r.sub,r.qty]));
+    if(!st.last)return;const{f,t,rows}=st.last,sp=key==="spray";
+    csvDownload(`${cfg.name}-تقرير-${f||"الكل"}${t&&t!==f?"-"+t:""}.csv`,["التاريخ","الصنف",cfg.sub||"-",...(sp?["لون الطلبية"]:[]),"الكمية","العامل","ملاحظة"],rows.slice().sort((a,b)=>a.d.localeCompare(b.d)).map(r=>[r.d,r.item,r.sub,...(sp?[r.oc||""]:[]),r.qty,r.w||"",r.n||""]));
   };
-  $(".rpr").onclick=()=>window.print();
+  $(".rpr").onclick=()=>{
+    if(!st.last)return;
+    const L=st.last,has={kpi:true,insights:L.ins.length>0,chart:L.total>0,dist:L.g.length>0,open:L.open.length>0,workers:L.ws.length>0,log:L.rows.length>0};
+    const secs=[["kpi","الأرقام الرئيسية",has.kpi],["insights","الملاحظات الذكية",has.insights],["chart","الرسم البياني",has.chart],["dist","جدول التوزيع",has.dist]];
+    if(hasOrd)secs.push(["open","الطلبيات المفتوحة والتقدير",has.open]);
+    secs.push(["workers","أداء العمال",has.workers],["log","سجل التفاصيل (كل التسجيلات)",has.log]);
+    printDialog(root,key,secs,{before(){st.printing=true;draw()},after(){st.printing=false;draw()}});
+  };
   $(".rsh").onclick=()=>{
-    if(!st.last)return;const{f,t,total,g,open,best}=st.last;
-    const L=[`📊 تقرير ${cfg.name}`,`الفترة: ${fmtP(f,t)}`+(st.item?` · ${st.item}`:""),`إجمالي ${cfg.noun}: ${nf(total)}`];
+    if(!st.last)return;const{f,t,total,g,open,best,ins,ws}=st.last;
+    const L=[`📊 تقرير ${cfg.name}`,`الفترة: ${fmtP(f,t)}`+(st.item?` · ${st.item}`:"")+(st.col?` · ${st.col}`:"")+(st.wk?` · ${st.wk}`:""),`إجمالي ${cfg.noun}: ${nf(total)}`];
     if(best)L.push(`أفضل يوم: ${fmtD(best[0])} (${nf(best[1])})`);
     if(g.length)L.push("أعلى الأصناف:",...g.slice(0,5).map(([k,v])=>`• ${k}: ${nf(v)}`));
+    if(subLbl){const gc=groupSum(st.last.rows.filter(r=>r.sub),"col",cfg);if(gc.length)L.push(`أعلى ${subLbl}:`,...gc.slice(0,4).map(([k,v])=>`• ${k}: ${nf(v)}`))}
+    if(ws.length)L.push(`أعلى عامل: ${ws[0].w} (${nf(ws[0].q)})`);
     if(hasOrd)L.push(`طلبيات مفتوحة: ${open.length} · متأخرة: ${open.filter(o=>isLate(o.status,o.date)).length}`);
+    const top=ins.filter(x=>x[0]!=="info").slice(0,3);
+    if(top.length)L.push("ملاحظات:",...top.map(x=>"• "+stripTags(x[1])));
     shareText(L.join("\n"));
   };
   refresh();
@@ -267,17 +476,19 @@ function mount(rootId,key){
 /* ---------- لوحة التقارير الشاملة ---------- */
 function dashboard(rootId){
   const root=document.getElementById(rootId);
-  const st={k:"month",f:"",t:"",data:{},err:{},moreT:false,moreL:false,last:null};
+  const st={k:"month",f:"",t:"",data:{},err:{},moreT:false,moreC:false,moreL:false,printing:false,last:null};
   root.innerHTML=`
   <div class="print-head"><h2>${APP} — ملخص كل الأقسام</h2><div class="nums rpd"></div></div>
   <div class="card noprint">
     <div class="chips rch">${chipsHtml(st.k)}</div>
     <div class="two"><div><label>من</label><input type="date" class="rf"></div><div><label>إلى</label><input type="date" class="rt"></div></div>
   </div>
-  <div class="secgrid rs">${Array.from({length:4},()=>'<i class="sk" style="height:96px;border-radius:14px"></i>').join("")}</div>
-  <div class="card"><div class="sec-head"><h3>الإنتاج اليومي لكل الأقسام</h3></div><div class="rc"><i class="sk" style="height:170px"></i></div></div>
-  <div class="card"><div class="sec-head"><h3>أعلى الأصناف</h3></div><div class="scroll rt2"></div></div>
-  <div class="card"><div class="sec-head"><h3>طلبيات متأخرة</h3></div><div class="scroll rl"></div></div>
+  <div class="secgrid rs" data-ps="secs">${Array.from({length:4},()=>'<i class="sk" style="height:96px;border-radius:14px"></i>').join("")}</div>
+  <div class="card" data-ps="insights"><div class="sec-head"><h3>🧠 ملاحظات ذكية</h3></div><div class="rins"></div></div>
+  <div class="card" data-ps="chart"><div class="sec-head"><h3>الإنتاج اليومي لكل الأقسام</h3></div><div class="rc"><i class="sk" style="height:170px"></i></div></div>
+  <div class="card" data-ps="colors"><div class="sec-head"><h3>ألوان الرش</h3></div><div class="scroll rcol"></div></div>
+  <div class="card" data-ps="top"><div class="sec-head"><h3>أعلى الأصناف</h3></div><div class="scroll rt2"></div></div>
+  <div class="card" data-ps="late"><div class="sec-head"><h3>طلبيات متأخرة وراكدة</h3></div><div class="scroll rl"></div></div>
   <div class="card noprint"><h3>تصدير ونسخة احتياطية</h3>
     <div class="nums" style="margin-bottom:8px">خد نسخة من بياناتك بشكل دوري. ملف JSON فيه كل الجداول ويتحفظ عندك.</div>
     <div class="row"><button class="btn rx">تصدير الإنتاج (Excel)</button><button class="btn ghost rbk">نسخة احتياطية (JSON)</button><button class="btn ghost rpr">طباعة</button><button class="btn ghost rsh">مشاركة</button></div></div>`;
@@ -290,29 +501,62 @@ function dashboard(rootId){
     const per=KEYS.map(k=>{
       const d=st.data[k];if(!d)return{k,err:true};
       const rows=d.prod.filter(r=>inRange(r.d,f,t));
-      const prev=pr?sum(d.prod.filter(r=>inRange(r.d,pr[0],pr[1]))):null;
+      const prevT=pr?sum(d.prod.filter(r=>inRange(r.d,pr[0],pr[1]))):null;
       const open=d.ord?d.ord.filter(o=>o.status==="open"):null;
-      return{k,rows,total:sum(rows),delta:deltaOf(sum(rows),prev),open,late:open?open.filter(o=>isLate(o.status,o.date)).length:0};
+      return{k,rows,total:sum(rows),prevT,delta:deltaOf(sum(rows),prevT),open,bk:backlog(k,d),late:open?open.filter(o=>isLate(o.status,o.date)).length:0};
     });
     $(".rs").innerHTML=per.map(p=>{
       const c=SRC[p.k];
       if(p.err)return `<a class="seccard" href="javascript:void(0)" onclick="location.reload()" style="--c:${c.color}"><div class="h">${ico(c.icon)}${c.name}</div><div class="sm">تعذر التحميل — اضغط للمحاولة</div></a>`;
-      return `<a class="seccard" href="${c.page}#reports" style="--c:${c.color}"><div class="h">${ico(c.icon)}${c.name}</div><div class="big kv2">0</div><div class="sm">${c.noun} في الفترة</div>${p.delta?`<div class="kd ${p.delta[0]}">${p.delta[1]}</div>`:""}${p.open?`<div class="sm">${p.open.length} مفتوحة${p.late?` · <b style="color:var(--warn)">${p.late} متأخرة</b>`:""}</div>`:""}</a>`;
+      return `<a class="seccard" href="${c.page}#reports" style="--c:${c.color}"><div class="h">${ico(c.icon)}${c.name}</div><div class="big kv2">0</div><div class="sm">${c.noun} في الفترة</div>${p.delta?`<div class="kd ${p.delta[0]}">${p.delta[1]}</div>`:""}${p.open?`<div class="sm">${p.open.length} مفتوحة${p.late?` · <b style="color:var(--warn)">${p.late} متأخرة</b>`:""}</div>`:""}${p.bk&&p.bk.eta!=null?`<div class="sm">يخلص المتبقي في ~${etaTxt(p.bk.eta)}</div>`:""}</a>`;
     }).join("");
     $$(".rs .kv2").forEach((el,i)=>countUp(el,per.filter(p=>!p.err)[i].total));
     // رسم مجمّع
     const series=per.filter(p=>!p.err).map(p=>({name:SRC[p.k].name,color:SRC[p.k].color,rows:p.rows}));
     drawChart($(".rc"),{f,t,series});
+    // ملاحظات ذكية على مستوى المصنع
+    const ok=per.filter(p=>!p.err),I=[],gt=ok.reduce((a,p)=>a+p.total,0);
+    if(gt>0){
+      const lead=ok.slice().sort((a,b)=>b.total-a.total)[0];
+      I.push(["info",`أعلى قسم إنتاجًا: <b>${SRC[lead.k].name}</b> بـ ${nf(lead.total)} (${pctOf(lead.total,gt)}% من الإجمالي ${nf(gt)}).`]);
+    }
+    ok.forEach(p=>{
+      if(p.prevT==null)return;const c=SRC[p.k];
+      if(p.prevT>0){const d=Math.round((p.total-p.prevT)/p.prevT*100);if(d<=-25)I.push(["warn",`إنتاج <b>${c.name}</b> نزل ${Math.abs(d)}% عن الفترة السابقة (${nf(p.prevT)} ← ${nf(p.total)}).`]);else if(d>=25)I.push(["ok",`إنتاج <b>${c.name}</b> زاد ${d}% عن الفترة السابقة.`])}
+      else if(p.total===0&&f&&t&&daysBetween(f,t)>=2)I.push(["warn",`<b>${c.name}</b>: مفيش إنتاج في الفترة.`]);
+    });
+    const tl=ok.reduce((a,p)=>a+p.late,0),ts=ok.reduce((a,p)=>a+(p.bk?p.bk.stalled.length:0),0);
+    if(tl)I.push(["warn",`فيه <b>${ordN(tl)}</b> متأخرة (أكتر من ${LATE_DAYS} يوم).`]);
+    if(ts)I.push(["warn",`<b>${ordN(ts)}</b> راكدة من غير إنتاج 14 يوم: ${ok.filter(p=>p.bk&&p.bk.stalled.length).map(p=>SRC[p.k].name+" ("+p.bk.stalled.length+")").join("، ")}.`]);
+    const sp=per.find(p=>p.k==="spray"&&!p.err);
+    if(sp){
+      const gc=groupSum(sp.rows.filter(r=>r.sub),"col",SRC.spray);
+      if(gc.length)I.push(["info",`أكتر لون اترشّ: <b>${esc(gc[0][0])}</b> (${nf(gc[0][1])}).`]);
+      const mm=sum(sp.rows.filter(r=>r.oc&&r.sub&&r.sub!==r.oc));
+      if(mm)I.push(["warn",`في الرش <b>${nf(mm)}</b> قطعة اترشّت بلون مختلف عن لون الطلبية.`]);
+    }
+    I.sort((a,b)=>({warn:0,ok:1,info:2}[a[0]]-{warn:0,ok:1,info:2}[b[0]]));
+    $(".rins").innerHTML=I.length?insHtml(I.slice(0,8)):'<div class="empty">مفيش بيانات كفاية للملاحظات في الفترة دي</div>';
+    $('[data-ps="insights"]').toggleAttribute("data-empty",!I.length);
+    // ألوان الرش
+    const sprRows=sp?sp.rows.filter(r=>r.sub):[];
+    if(sprRows.length){
+      const gc=groupSum(sprRows,"col",SRC.spray),tot=sum(sprRows),cl=showMore(gc,st.moreC||st.printing);
+      $(".rcol").innerHTML=`<table><thead><tr><th>لون الرش</th><th>الكمية</th><th>النسبة</th></tr></thead><tbody>${cl.map(([k,v])=>{const p=pctOf(v,tot);return `<tr><td>${esc(k)}</td><td><b>${nf(v)}</b></td><td><div class="share"><div class="bar"><i style="width:${p}%;background:${SRC.spray.color}"></i></div><span>${p}%</span></div></td></tr>`}).join("")}</tbody><tfoot><tr><th>الإجمالي</th><th>${nf(tot)}</th><th></th></tr></tfoot></table>${gc.length>10&&!st.printing?`<button class="btn ghost sm more noprint" data-m="c">${st.moreC?"عرض أقل":`عرض الكل (${gc.length})`}</button>`:""}`;
+    }else $(".rcol").innerHTML='<div class="empty">مفيش إنتاج رش في الفترة دي</div>';
+    $('[data-ps="colors"]').toggleAttribute("data-empty",!sprRows.length);
     // أعلى الأصناف (كل الأقسام)
     const top=[];per.filter(p=>!p.err).forEach(p=>{const m=new Map();p.rows.forEach(r=>m.set(r.item,(m.get(r.item)||0)+r.qty));m.forEach((v,k)=>top.push({k,v,s:p.k}))});
-    top.sort((a,b)=>b.v-a.v);const tl=showMore(top,st.moreT);
-    $(".rt2").innerHTML=top.length?`<table><thead><tr><th>الصنف</th><th>القسم</th><th>الكمية</th></tr></thead><tbody>${tl.map(x=>`<tr><td>${esc(x.k)}</td><td><span class="badge" style="--c:${SRC[x.s].color}">${SRC[x.s].name}</span></td><td><b>${nf(x.v)}</b></td></tr>`).join("")}</tbody></table>${top.length>10?`<button class="btn ghost sm more noprint" data-m="t">${st.moreT?"عرض أقل":`عرض الكل (${top.length})`}</button>`:""}`:'<div class="empty">مفيش بيانات في الفترة دي</div>';
-    // متأخرة
-    const late=[];per.forEach(p=>{if(p.open)p.open.filter(o=>isLate(o.status,o.date)).forEach(o=>late.push({...o,s:p.k}))});
-    late.sort((a,b)=>(a.date||"").localeCompare(b.date||""));const ll=showMore(late,st.moreL);
-    $(".rl").innerHTML=late.length?`<table><thead><tr><th>الطلبية</th><th>القسم</th><th>العمر</th><th>المتبقي</th></tr></thead><tbody>${ll.map(o=>`<tr><td><b>${esc(o.item)}</b>${o.sub?`<div class="nums" style="font-size:.8rem">${esc(o.sub)}</div>`:""}</td><td><a href="${SRC[o.s].page}" class="badge" style="--c:${SRC[o.s].color};text-decoration:none">${SRC[o.s].name}</a></td><td><span class="nums">${ageTxt(o.date)}</span></td><td><b>${nf(Math.max(o.req-o.done,0))}</b></td></tr>`).join("")}</tbody></table>${late.length>10?`<button class="btn ghost sm more noprint" data-m="l">${st.moreL?"عرض أقل":`عرض الكل (${late.length})`}</button>`:""}`:`<div class="empty">مفيش طلبيات متأخرة (أكتر من ${LATE_DAYS} يوم) 👌</div>`;
+    top.sort((a,b)=>b.v-a.v);const tv=showMore(top,st.moreT||st.printing);
+    $(".rt2").innerHTML=top.length?`<table><thead><tr><th>الصنف</th><th>القسم</th><th>الكمية</th></tr></thead><tbody>${tv.map(x=>`<tr><td>${esc(x.k)}</td><td><span class="badge" style="--c:${SRC[x.s].color}">${SRC[x.s].name}</span></td><td><b>${nf(x.v)}</b></td></tr>`).join("")}</tbody></table>${top.length>10&&!st.printing?`<button class="btn ghost sm more noprint" data-m="t">${st.moreT?"عرض أقل":`عرض الكل (${top.length})`}</button>`:""}`:'<div class="empty">مفيش بيانات في الفترة دي</div>';
+    $('[data-ps="top"]').toggleAttribute("data-empty",!top.length);
+    // متأخرة وراكدة
+    const late=[];per.forEach(p=>{if(p.open)p.open.forEach(o=>{const l=isLate(o.status,o.date),sl=p.bk&&p.bk.by.get(o.id),stl=!!(sl&&sl.stalled);if(l||stl)late.push({...o,s:p.k,late:l,stalled:stl})})});
+    late.sort((a,b)=>(a.date||"").localeCompare(b.date||""));const ll=showMore(late,st.moreL||st.printing);
+    $(".rl").innerHTML=late.length?`<table><thead><tr><th>الطلبية</th><th>القسم</th><th>العمر</th><th>المتبقي</th></tr></thead><tbody>${ll.map(o=>`<tr><td><b>${esc(o.item)}</b>${o.sub?`<div class="nums" style="font-size:.8rem">${esc(o.sub)}</div>`:""}</td><td><a href="${SRC[o.s].page}" class="badge" style="--c:${SRC[o.s].color};text-decoration:none">${SRC[o.s].name}</a></td><td>${o.late?'<span class="tag late">متأخرة</span> ':""}${o.stalled?'<span class="tag">راكدة</span> ':""}<span class="nums">${ageTxt(o.date)}</span></td><td><b>${nf(Math.max(o.req-o.done,0))}</b></td></tr>`).join("")}</tbody></table>${late.length>10&&!st.printing?`<button class="btn ghost sm more noprint" data-m="l">${st.moreL?"عرض أقل":`عرض الكل (${late.length})`}</button>`:""}`:`<div class="empty">مفيش طلبيات متأخرة أو راكدة 👌</div>`;
+    $('[data-ps="late"]').toggleAttribute("data-empty",!late.length);
     $(".rpd").textContent=fmtP(f,t)+" · طُبع في "+fmtD(today());
-    st.last={f,t,per,top,late};
+    st.last={f,t,per,top,late,I};
   }
   async function refresh(force){
     const res=await Promise.allSettled(KEYS.map(k=>getData(k,force)));
@@ -326,11 +570,11 @@ function dashboard(rootId){
   $(".rch").onclick=e=>{const b=e.target.closest(".chip");if(!b)return;st.k=b.dataset.k;$$(".rch .chip").forEach(c=>c.classList.toggle("on",c===b));syncDates();draw()};
   const custom=()=>{st.k="custom";st.f=$(".rf").value;st.t=$(".rt").value;$$(".rch .chip").forEach(c=>c.classList.remove("on"));draw()};
   $(".rf").onchange=custom;$(".rt").onchange=custom;
-  root.addEventListener("click",e=>{const mo=e.target.closest(".more");if(!mo)return;const m=mo.dataset.m;if(m==="t")st.moreT=!st.moreT;else st.moreL=!st.moreL;draw()});
+  root.addEventListener("click",e=>{const mo=e.target.closest(".more");if(!mo)return;const m=mo.dataset.m;if(m==="t")st.moreT=!st.moreT;else if(m==="c")st.moreC=!st.moreC;else st.moreL=!st.moreL;draw()});
   $(".rx").onclick=()=>{
     if(!st.last)return;const{f,t,per}=st.last;
-    const rows=per.filter(p=>!p.err).flatMap(p=>p.rows.map(r=>[SRC[p.k].name,r.d,r.item,r.sub,r.qty])).sort((a,b)=>a[1].localeCompare(b[1]));
-    csvDownload(`تقرير-الأقسام-${f||"الكل"}${t&&t!==f?"-"+t:""}.csv`,["القسم","التاريخ","الصنف","اللون/الكود","الكمية"],rows);
+    const rows=per.filter(p=>!p.err).flatMap(p=>p.rows.map(r=>[SRC[p.k].name,r.d,r.item,r.sub,r.qty,r.w||""])).sort((a,b)=>a[1].localeCompare(b[1]));
+    csvDownload(`تقرير-الأقسام-${f||"الكل"}${t&&t!==f?"-"+t:""}.csv`,["القسم","التاريخ","الصنف","اللون/الكود (لون الرش في الرش)","الكمية","العامل"],rows);
   };
   $(".rbk").onclick=async e=>{
     const b=e.currentTarget;b.disabled=true;b.classList.add("loading");
@@ -342,14 +586,19 @@ function dashboard(rootId){
       toast(Object.keys(out.errors).length?"تم التحميل مع تعذر بعض الجداول":"تم تحميل النسخة الاحتياطية");
     }finally{b.disabled=false;b.classList.remove("loading")}
   };
-  $(".rpr").onclick=()=>window.print();
+  $(".rpr").onclick=()=>{
+    if(!st.last)return;const L=st.last;
+    const has={secs:true,insights:L.I.length>0,chart:L.per.some(p=>!p.err&&p.total>0),colors:!$('[data-ps="colors"]').hasAttribute("data-empty"),top:L.top.length>0,late:L.late.length>0};
+    printDialog(root,"dash",[["secs","كروت الأقسام",has.secs],["insights","الملاحظات الذكية",has.insights],["chart","الرسم البياني",has.chart],["colors","ألوان الرش",has.colors],["top","أعلى الأصناف",has.top],["late","طلبيات متأخرة وراكدة",has.late]],{before(){st.printing=true;draw()},after(){st.printing=false;draw()}});
+  };
   $(".rsh").onclick=()=>{
-    if(!st.last)return;const{f,t,per,late}=st.last;
-    shareText([`📊 ملخص الأقسام`,`الفترة: ${fmtP(f,t)}`,...per.filter(p=>!p.err).map(p=>`• ${SRC[p.k].name}: ${nf(p.total)}`),`طلبيات متأخرة: ${late.length}`].join("\n"));
+    if(!st.last)return;const{f,t,per,late,I}=st.last;
+    const w=I.filter(x=>x[0]==="warn").slice(0,3);
+    shareText([`📊 ملخص الأقسام`,`الفترة: ${fmtP(f,t)}`,...per.filter(p=>!p.err).map(p=>`• ${SRC[p.k].name}: ${nf(p.total)}`),`طلبيات متأخرة: ${late.filter(x=>x.late).length}`,...(w.length?["ملاحظات:",...w.map(x=>"• "+stripTags(x[1]))]:[])].join("\n"));
   };
   refresh();
   return{refresh:()=>refresh(true)};
 }
 
-return{mount,dashboard,sources:SRC,getData};
+return{mount,dashboard,sources:SRC,getData,backlog,ordN,insHtml,printDialog,workerStats,groupSum,etaTxt};
 })();

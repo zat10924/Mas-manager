@@ -270,7 +270,7 @@ window.addEventListener("beforeprint",()=>{
       g.innerHTML='<div><span></span>إعداد: '+esc(ME&&ME.name?ME.name:"")+'</div><div><span></span>مراجعة</div><div><span></span>اعتماد المدير</div>';w.appendChild(g)}
   }
   const org=(SET.get("org","")||"").trim()||(typeof APP!=="undefined"?APP:"إدارة الأقسام");
-  const paper=SET.get("paper","A4"),orient=SET.get("orient","portrait"),note=(SET.get("pnote","")||"").trim();
+  const paper=SET.get("paper","A4"),orient=window.__po||SET.get("orient","portrait"),note=(SET.get("pnote","")||"").trim();
   const by="طُبع بواسطة "+(ME&&ME.name?ME.name:"النظام"),when=new Date().toLocaleString("ar-EG");
   const cm=/Chrome\/(\d+)/.exec(navigator.userAgent),mb=!!cm&&+cm[1]>=131;
   let heads=[...document.querySelectorAll(".print-head")].filter(p=>p.parentElement&&p.parentElement.getClientRects().length);
@@ -662,7 +662,7 @@ function postponeOrder(sec,table,o,reload){
 /* ===== القوائم الثابتة: اقتراحات + تصحيح الأخطاء الإملائية قبل الحفظ ===== */
 let CAT=null,_catP=null;
 const PAGE_KIND=/decoration/.test(location.pathname)?"code":"color";
-const NAME_SEL="#m-item,#m-color,#m-color2,#m-name,#m-code,.nr .c,.it,.sb";
+const NAME_SEL="#m-item,#m-color,#m-color2,#m-name,#m-code,#m-sc,.msc,.nr .c,.it,.sb";
 const kindOf=el=>(el.id==="m-item"||el.classList.contains("it"))?"item":el.id==="m-code"?"code":el.dataset.kind||PAGE_KIND;
 const CATM={item:new Map(),color:new Map(),code:new Map()};
 function catReady(){
@@ -729,9 +729,18 @@ async function wkLoad(){
   const l=document.getElementById("wk-list");if(l)l.innerHTML=WK.map(n=>`<option value="${esc(n)}">`).join("")
 }
 const XF=(deco)=>{wkLoad();return (deco?'<label>الرسمة — كود أو وصف (اختياري)</label><input id="m-ds" placeholder="مثال: كود 125 أو وردة بحواف ذهبي" maxlength="120">':'')+'<label>'+(deco?'اسم العامل':'اسم العامل (اختياري)')+'</label><input id="m-w" list="wk-list" placeholder="اختار من العمال أو اكتب اسم"><datalist id="wk-list">'+(WK||[]).map(n=>`<option value="${esc(n)}">`).join("")+'</datalist><label>ملاحظة (اختياري)</label><input id="m-n" placeholder="أي تعليق على الشغل">'};
-const xfRead=()=>{const o={},w=(document.getElementById("m-w")||{}).value,n=(document.getElementById("m-n")||{}).value;if(w&&w.trim())o.worker=w.trim();if(n&&n.trim())o.note=n.trim();const d=(document.getElementById("m-ds")||{}).value;if(d&&d.trim())o.design=d.trim();return o};
+// لون الرش: خانة منسدلة من قائمة الألوان، بتتملّى مسبقًا بلون الطلبية (تقدر تغيّره لو اترشّ بلون تاني)
+const XS=(def,id="m-sc")=>'<label>لون الرش</label><input id="'+id+'" data-kind="color" value="'+esc(def||"")+'" placeholder="لون الرش" autocomplete="off" maxlength="60">';
+const xfRead=()=>{const o={},w=(document.getElementById("m-w")||{}).value,n=(document.getElementById("m-n")||{}).value;if(w&&w.trim())o.worker=w.trim();if(n&&n.trim())o.note=n.trim();const d=(document.getElementById("m-ds")||{}).value;if(d&&d.trim())o.design=d.trim();const sc=(document.getElementById("m-sc")||{}).value;if(sc&&sc.trim())o.spray_color=sc.trim();return o};
+let _scWarn=false;
 async function insertRow(t,row){
   let r=await db.from(t).insert(CID?row:noCid(row));
+  // عمود spray_color لسه ما اتضافش في Supabase: نسجّل الإنتاج من غيره ونفكّر المستخدم يشغّل الملف
+  if(r.error&&/spray_color/.test(r.error.message||"")&&row.spray_color){
+    const{spray_color,...rest}=row;row=rest;
+    if(!_scWarn){_scWarn=true;try{toast("اتسجّل الإنتاج لكن لون الرش ما اتحفظش — شغّل ملف setup_spray_color.sql في Supabase","warn")}catch(e){}}
+    r=await db.from(t).insert(CID?row:noCid(row));
+  }
   if(r.error&&/worker|note|design/.test(r.error.message||"")&&(row.worker||row.note||row.design)){const{worker,note,design,...rest}=row;row=rest;r=await db.from(t).insert(CID?row:noCid(row))}
   if(r.error&&/client_id/.test(r.error.message||"")){CID=false;r=await db.from(t).insert(noCid(row))}
   return r;

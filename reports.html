@@ -22,7 +22,7 @@
 <script>try{var n=performance.getEntriesByType("navigation")[0];if(sessionStorage.getItem("sp")&&!(n&&n.type==="reload"))document.getElementById("splash").remove()}catch(e){}</script>
 <div class="wrap">
   <h1>التقارير</h1>
-  <div class="card noprint" id="dayBar"><h3>التقرير اليومي</h3><div class="two"><div><label>اليوم</label><input type="date" id="dayD"></div><div style="display:flex;align-items:flex-end;gap:6px"><button class="btn" id="dayGo" style="flex:1">عرض</button><button class="btn ghost" onclick="window.print()" style="flex:1">PDF / طباعة</button></div></div></div>
+  <div class="card noprint" id="dayBar"><h3>التقرير اليومي</h3><div class="two"><div><label>اليوم</label><input type="date" id="dayD"></div><div style="display:flex;align-items:flex-end;gap:6px"><button class="btn" id="dayGo" style="flex:1">عرض</button><button class="btn ghost" id="dayPr" style="flex:1">PDF / طباعة</button></div></div></div>
   <div id="daily"></div>
   <div id="dash"></div>
 </div>
@@ -31,29 +31,79 @@
 <script src="common.js"></script>
 <script src="reports.js"></script>
 <script>
-let ctl=null;
+let ctl=null,lastDaily=null;
+const WDN=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+const isFri=d=>new Date(d+"T00:00:00Z").getUTCDay()===5;
+async function workerTargets(){
+  try{const{data,error}=await db.from("workers").select("name,daily_target").eq("active",true);if(error)return new Map();return new Map((data||[]).filter(x=>x.daily_target>0).map(x=>[x.name,x.daily_target]))}catch(e){return new Map()}
+}
+const dl=(cur,prev,lbl)=>prev>0?(()=>{const p=Math.round((cur-prev)/prev*100);return `<div class="kd ${p>0?"up":p<0?"down":"flat"}">${p>0?"▲ ":p<0?"▼ ":"= "}${Math.abs(p)}% عن ${lbl}</div>`})():"";
 async function daily(){
   const day=document.getElementById("dayD").value||today(),box=document.getElementById("daily");
   box.innerHTML='<i class="sk" style="height:120px;border-radius:14px"></i>';
   const S=Reports.sources,keys=Object.keys(S);
-  const res=await Promise.allSettled(keys.map(k=>Reports.getData(k)));
-  const W=new Map(),NT=[];let tot=0,html="",wq=0,wg=0,late=0,open=0;
+  const[res,tg]=await Promise.all([Promise.allSettled(keys.map(k=>Reports.getData(k))),workerTargets()]);
+  // إجمالي كل يوم (كل الأقسام) + لكل قسم: عشان المقارنة بأمس ومتوسط آخر 7 أيام شغل
+  const dayTot=new Map(),secDay={};
+  res.forEach((r,i)=>{if(r.status!=="fulfilled")return;const m=new Map();r.value.prod.forEach(x=>{m.set(x.d,(m.get(x.d)||0)+x.qty);dayTot.set(x.d,(dayTot.get(x.d)||0)+x.qty)});secDay[keys[i]]=m});
+  let prevDay="";for(let d=addDays(day,-1),n=0;n<14;d=addDays(d,-1),n++)if(!isFri(d)&&(dayTot.get(d)||0)>0){prevDay=d;break}
+  const last7=[];for(let d=addDays(day,-1),n=0;n<21&&last7.length<7;d=addDays(d,-1),n++)if(!isFri(d)&&(dayTot.get(d)||0)>0)last7.push(d);
+  const avg7=last7.length?last7.reduce((a,d)=>a+dayTot.get(d),0)/last7.length:0;
+  const W=new Map(),WT=new Map(),NT=[],I=[],cards=[];let tot=0,wq=0,wg=0,late=0,open=0,stalled=0,sprayMM=0;
   res.forEach((r,i)=>{
-    const c=S[keys[i]];
-    if(r.status!=="fulfilled"){html+=`<div class="card"><h3>${c.name}</h3><div class="empty">تعذر التحميل</div></div>`;return}
+    const k=keys[i],c=S[k];
+    if(r.status!=="fulfilled"){cards.push(`<div class="card" data-ps="sec_${k}"><h3>${c.name}</h3><div class="empty">تعذر التحميل</div></div>`);return}
     const d=r.value,rows=d.prod.filter(x=>x.d===day),sum=rows.reduce((a,x)=>a+x.qty,0);tot+=sum;
-    if(d.ord){const o=d.ord.filter(x=>x.status==="open");open+=o.length;late+=o.filter(x=>isLate(x.status,x.date)).length}
+    if(d.ord){const o=d.ord.filter(x=>x.status==="open");open+=o.length;late+=o.filter(x=>isLate(x.status,x.date)).length;const bk=Reports.backlog(k,d);if(bk)stalled+=bk.stalled.length}
     if(d.waste){const w=d.waste.filter(x=>x.d===day);wq+=w.reduce((a,x)=>a+x.qty,0);wg+=w.reduce((a,x)=>a+x.good,0)}
-    rows.forEach(x=>{if(x.w){const k=x.w+"|"+c.name,o=W.get(k)||{w:x.w,s:c.name,q:0};o.q+=x.qty;W.set(k,o)}if(x.n)NT.push({s:c.name,t:x.item+(x.sub?" — "+x.sub:""),n:x.n,w:x.w})});
-    const m=new Map();rows.forEach(x=>{const k=x.item+(x.sub?" — "+x.sub:"");m.set(k,(m.get(k)||0)+x.qty)});
-    html+=`<div class="card"><div class="top"><h3 style="margin:0">${c.name}</h3><span class="tag">${nf(sum)}</span></div>${m.size?`<table><thead><tr><th>الصنف</th><th>الكمية</th></tr></thead><tbody>${[...m].sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${esc(k)}</td><td><b>${nf(v)}</b></td></tr>`).join("")}</tbody></table>`:'<div class="empty">مفيش إنتاج مسجل في اليوم ده</div>'}</div>`;
+    rows.forEach(x=>{if(x.w){const kk=x.w+"|"+c.name,o=W.get(kk)||{w:x.w,s:c.name,q:0};o.q+=x.qty;W.set(kk,o);WT.set(x.w,(WT.get(x.w)||0)+x.qty)}if(x.n)NT.push({s:c.name,t:x.item+(x.sub?" — "+x.sub:""),n:x.n,w:x.w})});
+    // مقارنة القسم بمتوسطه (آخر 7 أيام شغل)
+    const sd=secDay[k],sdays=[];for(let dd=addDays(day,-1),n=0;n<21&&sdays.length<7;dd=addDays(dd,-1),n++)if(!isFri(dd)&&(sd.get(dd)||0)>0)sdays.push(dd);
+    const savg=sdays.length?sdays.reduce((a,dd)=>a+sd.get(dd),0)/sdays.length:0;
+    if(savg>0&&!isFri(day)&&day<=today()){
+      if(sum===0)I.push(["warn",`<b>${c.name}</b> ما سجّلش إنتاج ${day===today()?"لحد دلوقتي":"في اليوم ده"} (متوسطه ${nf(Math.round(savg))}/يوم).`]);
+      else if(sum<savg*.6)I.push(["warn",`إنتاج <b>${c.name}</b> (${nf(sum)}) أقل من متوسطه (${nf(Math.round(savg))}) بـ ${Math.round((1-sum/savg)*100)}%.`]);
+      else if(sum>savg*1.3)I.push(["ok",`إنتاج <b>${c.name}</b> (${nf(sum)}) أعلى من متوسطه (${nf(Math.round(savg))}).`]);
+    }
+    // تجميع الصنف + اللون
+    const m=new Map();rows.forEach(x=>{const kk=x.item+(x.sub?" — "+x.sub:"");m.set(kk,(m.get(kk)||0)+x.qty)});
+    let extra="";
+    if(k==="spray"&&rows.length){
+      const cm=new Map();rows.forEach(x=>{if(x.sub)cm.set(x.sub,(cm.get(x.sub)||0)+x.qty)});
+      if(cm.size)extra=`<div class="nums" style="margin:2px 0 4px">ألوان الرش اليوم:</div><div class="cchips">${[...cm].sort((a,b)=>b[1]-a[1]).map(([cl,q])=>`<span class="tag">${esc(cl)} · <b>${nf(q)}</b></span>`).join("")}</div>`;
+      const mm=rows.filter(x=>x.oc&&x.sub&&x.oc!==x.sub);sprayMM=mm.reduce((a,x)=>a+x.qty,0);
+      if(cm.size>1){const top=[...cm].sort((a,b)=>b[1]-a[1])[0];I.push(["info",`أكتر لون اترشّ النهارده: <b>${esc(top[0])}</b> (${nf(top[1])} · ${Math.round(top[1]/sum*100)}%).`])}
+      if(sprayMM)I.push(["warn",`<b>${nf(sprayMM)}</b> قطعة في الرش اترشّت بلون مختلف عن لون الطلبية.`]);
+    }
+    cards.push(`<div class="card" data-ps="sec_${k}"${m.size?"":" data-empty"}><div class="top"><h3 style="margin:0">${c.name}</h3><span class="tag">${nf(sum)}</span></div>${extra}${m.size?`<table><thead><tr><th>الصنف${c.sub?" — "+c.sub:""}</th><th>الكمية</th></tr></thead><tbody>${[...m].sort((a,b)=>b[1]-a[1]).map(([kk,v])=>`<tr><td>${esc(kk)}</td><td><b>${nf(v)}</b></td></tr>`).join("")}</tbody></table>`:'<div class="empty">مفيش إنتاج مسجل في اليوم ده</div>'}</div>`);
   });
-  const wp=wq+wg?(wq/(wq+wg)*100).toFixed(1)+"%":"-";
-  box.innerHTML=`<div class="print-head"><h2>التقرير اليومي</h2><div class="nums">${fmtD(day)}</div></div>
-   <div class="kpis"><div class="kpi"><div class="kv">${nf(tot)}</div><small>إجمالي الإنتاج</small></div><div class="kpi"><div class="kv">${nf(wq)}</div><small>هالك الجليز</small></div><div class="kpi"><div class="kv">${wp}</div><small>نسبة الهالك</small></div><div class="kpi"><div class="kv">${open}${late?` <small>(${late} متأخرة)</small>`:""}</div><small>طلبيات مفتوحة</small></div></div>`+html+(W.size?`<div class="card"><h3>العمال</h3><table><thead><tr><th>العامل</th><th>القسم</th><th>الكمية</th></tr></thead><tbody>${[...W.values()].sort((a,b)=>b.q-a.q).map(o=>`<tr><td><b>${esc(o.w)}</b></td><td>${o.s}</td><td><b>${nf(o.q)}</b></td></tr>`).join("")}</tbody></table></div>`:"")+(NT.length?`<div class="card"><h3>ملاحظات اليوم</h3>${NT.map(x=>`<div class="line"><b>${x.s} · ${esc(x.t)}</b>${x.w?` <span class="tag">${esc(x.w)}</span>`:""}<div class="nums">${esc(x.n)}</div></div>`).join("")}</div>`:"");
+  const wp=wq+wg?(wq/(wq+wg)*100):0;
+  // ملاحظات ذكية عامة
+  if(prevDay&&dayTot.get(prevDay)>0){const p=Math.round((tot-dayTot.get(prevDay))/dayTot.get(prevDay)*100);if(Math.abs(p)>=10)I.unshift([p>0?"ok":"warn",`إجمالي النهارده ${p>0?"أعلى":"أقل"} من ${prevDay===addDays(day,-1)?"أمس":"آخر يوم شغل ("+fmtD(prevDay)+")"} بـ ${Math.abs(p)}%.`])}
+  if(avg7>0&&tot>0){const p=Math.round((tot-avg7)/avg7*100);if(Math.abs(p)>=15)I.push([p>0?"ok":"warn",`الإجمالي ${p>0?"فوق":"تحت"} متوسط آخر ${last7.length} أيام شغل (${nf(Math.round(avg7))}) بـ ${Math.abs(p)}%.`])}
+  if(wq&&wp>=10)I.push(["warn",`نسبة هالك الجليز <b>${wp.toFixed(1)}%</b> (${nf(wq)} قطعة) — أعلى من الحد المعتاد.`]);
+  const wl=[...WT].sort((a,b)=>b[1]-a[1]);
+  if(wl.length)I.push(["info",`أعلى عامل: <b>${esc(wl[0][0])}</b> بـ ${nf(wl[0][1])}.`]);
+  const below=wl.filter(([n,q])=>tg.has(n)&&q<tg.get(n)*.7);
+  if(below.length&&!isFri(day))I.push(["warn",`${below.length} عامل تحت 70% من معدله اليومي: ${below.slice(0,3).map(([n,q])=>esc(n)+" ("+nf(q)+" من "+nf(tg.get(n))+")").join("، ")}.`]);
+  if(late)I.push(["warn",`فيه <b>${Reports.ordN(late)}</b> متأخرة${stalled?` و<b>${Reports.ordN(stalled)}</b> راكدة`:""}.`]);
+  else if(stalled)I.push(["warn",`فيه <b>${Reports.ordN(stalled)}</b> راكدة (مفيش إنتاج عليها من +14 يوم).`]);
+  const ord={warn:0,ok:1,info:2};I.sort((a,b)=>ord[a[0]]-ord[b[0]]);
+  const wRows=[...W.values()].sort((a,b)=>b.q-a.q);
+  box.innerHTML=`<div class="print-head"><h2>التقرير اليومي</h2><div class="nums">${WDN[new Date(day+"T00:00:00Z").getUTCDay()]} ${fmtD(day)}</div></div>
+   <div class="kpis" data-ps="kpi"><div class="kpi"><div class="kv">${nf(tot)}</div><small>إجمالي الإنتاج</small>${dl(tot,dayTot.get(prevDay)||0,prevDay===addDays(day,-1)?"أمس":"آخر يوم شغل")}${dl(tot,avg7,"متوسط "+last7.length+" أيام")}</div><div class="kpi"><div class="kv">${nf(wq)}</div><small>هالك الجليز</small></div><div class="kpi"><div class="kv">${wq+wg?wp.toFixed(1)+"%":"-"}</div><small>نسبة الهالك</small></div><div class="kpi"><div class="kv">${open}${late?` <small>(${late} متأخرة)</small>`:""}</div><small>طلبيات مفتوحة</small></div></div>
+   <div class="card" data-ps="insights"${I.length?"":" data-empty"}><div class="sec-head"><h3>🧠 ملاحظات ذكية</h3></div>${I.length?Reports.insHtml(I.slice(0,9)):'<div class="empty">مفيش ملاحظات خاصة لليوم ده</div>'}</div>`
+   +cards.join("")
+   +(wRows.length?`<div class="card" data-ps="workers"><h3>العمال</h3><table><thead><tr><th>العامل</th><th>القسم</th><th>الكمية</th></tr></thead><tbody>${wRows.map(o=>`<tr><td><b>${esc(o.w)}</b></td><td>${o.s}</td><td><b>${nf(o.q)}</b></td></tr>`).join("")}</tbody></table>${tg.size&&wl.some(([n])=>tg.has(n))?`<table style="margin-top:8px"><thead><tr><th>العامل</th><th>إجمالي اليوم</th><th>المعدل</th><th>الإنجاز</th></tr></thead><tbody>${wl.filter(([n])=>tg.has(n)).map(([n,q])=>{const p=Math.round(q/tg.get(n)*100);return `<tr><td><b>${esc(n)}</b></td><td>${nf(q)}</td><td>${nf(tg.get(n))}</td><td><span class="tag ${p>=100?"ok":p<70?"late":""}">${p}%</span></td></tr>`}).join("")}</tbody></table>`:""}</div>`:"")
+   +(NT.length?`<div class="card" data-ps="notes"><h3>ملاحظات اليوم</h3>${NT.map(x=>`<div class="line"><b>${x.s} · ${esc(x.t)}</b>${x.w?` <span class="tag">${esc(x.w)}</span>`:""}<div class="nums">${esc(x.n)}</div></div>`).join("")}</div>`:"");
+  lastDaily={keys,res,S,hasW:wRows.length>0,hasN:NT.length>0,hasI:I.length>0,secHas:Object.fromEntries(keys.map(k=>[k,!box.querySelector('[data-ps="sec_'+k+'"]')?.hasAttribute("data-empty")]))};
+}
+function printDaily(){
+  const L=lastDaily;if(!L)return;
+  Reports.printDialog(document.getElementById("daily"),"daily",[["kpi","الأرقام الرئيسية",true],["insights","الملاحظات الذكية",L.hasI],...L.keys.map(k=>["sec_"+k,"قسم "+L.S[k].name,L.secHas[k]]),["workers","العمال والمعدل",L.hasW],["notes","ملاحظات اليوم",L.hasN]]);
 }
 async function load(){if(ctl)await ctl.refresh()}
-(async()=>{if(await requireAuth("reports.html")){renderNav("reports.html");document.getElementById("dayD").value=today();document.getElementById("dayGo").onclick=daily;document.getElementById("dayD").onchange=daily;daily();ctl=Reports.dashboard("dash");settle()}})();
+(async()=>{if(await requireAuth("reports.html")){renderNav("reports.html");document.getElementById("dayD").value=today();document.getElementById("dayGo").onclick=daily;document.getElementById("dayPr").onclick=printDaily;document.getElementById("dayD").onchange=daily;daily();ctl=Reports.dashboard("dash");settle()}})();
 </script>
 <script src="install.js" defer></script>
 </body>
