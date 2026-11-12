@@ -969,11 +969,11 @@ async function freeTodayQty(sec){
 const NEED_V2=m=>/free_production|relation|does not exist|schema cache|could not find/i.test(m||"");
 function freeProduction(sec,done){
   if(!SEC_AR[sec]||sec==="repair"||sec==="casting")return;
-  const deco=sec==="deco",lab=deco?"كود الرسمة":"اللون",kind=deco?"code":"color";
+  const deco=sec==="deco",spr=sec==="spray",lab=deco?"كود الرسمة":"اللون",kind=deco?"code":"color";
   const rowHtml=()=>`<div class="itemblk mrow"><div class="ih"><b class="mn"></b><button type="button" class="rmi" aria-label="حذف الصنف">✕ حذف</button></div>
     <label>الصنف</label><input class="it" placeholder="اسم الصنف" autocomplete="off">
-    <div class="two"><div><label>${lab} (اختياري)</label><input class="sb" data-kind="${kind}" placeholder="${lab}" autocomplete="off"></div>
-    <div><label>الكمية</label><input type="number" class="mq2" min="1" inputmode="numeric"></div></div></div>`;
+    <div class="two"><div><label>${lab}${spr?" (لون الصنف — اختياري)":" (اختياري)"}</label><input class="sb" data-kind="${kind}" placeholder="${lab}" autocomplete="off"></div>
+    <div><label>الكمية</label><input type="number" class="mq2" min="1" inputmode="numeric"></div></div>${spr?'<label>لون الرش</label><input class="msc" data-kind="color" placeholder="لون الرش" autocomplete="off" maxlength="60">':""}</div>`;
   openModal("إنتاج بدون طلبية · "+SEC_AR[sec],
     `<div class="hint" style="margin:0 0 6px">سجّل أكتر من صنف مرة واحدة. بيتسجّل في إنتاج القسم وتقاريره من غير ما يتربط بطلبية.</div>
     <div id="mrows"></div>
@@ -982,18 +982,19 @@ function freeProduction(sec,done){
     const box=document.getElementById("mrows"),els=[...box.querySelectorAll(".mrow")];
     const todo=[];
     for(let i=0;i<els.length;i++){
-      const el=els[i],item=el.querySelector(".it").value.trim(),sub=el.querySelector(".sb").value.trim(),qv=el.querySelector(".mq2").value.trim();
-      if(!item&&!sub&&!qv)continue;
+      const el=els[i],item=el.querySelector(".it").value.trim(),sub=el.querySelector(".sb").value.trim(),qv=el.querySelector(".mq2").value.trim(),sc=spr?el.querySelector(".msc").value.trim():"";
+      if(!item&&!sub&&!qv&&!sc)continue;
       if(!item){toast("اكتب اسم الصنف رقم "+(i+1));return false}
       const q=parseInt(qv);
       if(!q||q<1){toast("اكتب كمية صحيحة للصنف: "+item);return false}
-      todo.push({el,item,sub,q});
+      if(spr&&!sc){toast("اكتب لون الرش للصنف: "+item);return false}
+      todo.push({el,item,sub,q,sc});
     }
     if(!todo.length){toast("اكتب صنف واحد على الأقل");return false}
     const d=document.getElementById("m-d").value||today(),xf=xfRead();
     let ok=0,off=0;const bad=[];
     for(const t of todo){
-      const id=uuid(),row={section:sec,item:t.item,sub:t.sub||null,qty:t.q,prod_date:d,client_id:id,...xf};
+      const id=uuid(),row={section:sec,item:t.item,sub:t.sub||null,qty:t.q,prod_date:d,client_id:id,...xf,...(t.sc?{spray_color:t.sc}:{})};
       let res;try{res=await insertRow("free_production",row)}catch(e){res={error:{message:String(e)}}}
       if(res.error&&isNet(res.error)){
         Q_.add({id,table:"free_production",row,sec,rid:"free",qty:t.q,txt:t.item+(t.sub?" · "+t.sub:"")+" (بدون طلبية)"});updateBadge();

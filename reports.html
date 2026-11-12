@@ -71,9 +71,7 @@ async function daily(){
     if(k==="spray"&&rows.length){
       const cm=new Map();rows.forEach(x=>{if(x.sub)cm.set(x.sub,(cm.get(x.sub)||0)+x.qty)});
       if(cm.size)extra=`<div class="nums" style="margin:2px 0 4px">ألوان الرش اليوم:</div><div class="cchips">${[...cm].sort((a,b)=>b[1]-a[1]).map(([cl,q])=>`<span class="tag">${esc(cl)} · <b>${nf(q)}</b></span>`).join("")}</div>`;
-      const mm=rows.filter(x=>x.oc&&x.sub&&x.oc!==x.sub);sprayMM=mm.reduce((a,x)=>a+x.qty,0);
       if(cm.size>1){const top=[...cm].sort((a,b)=>b[1]-a[1])[0];I.push(["info",`أكتر لون اترشّ النهارده: <b>${esc(top[0])}</b> (${nf(top[1])} · ${Math.round(top[1]/sum*100)}%).`])}
-      if(sprayMM)I.push(["warn",`<b>${nf(sprayMM)}</b> قطعة في الرش اترشّت بلون مختلف عن لون الطلبية.`]);
     }
     cards.push(`<div class="card" data-ps="sec_${k}"${m.size?"":" data-empty"}><div class="top"><h3 style="margin:0">${c.name}</h3><span class="tag">${nf(sum)}</span></div>${extra}${m.size?`<table><thead><tr><th>الصنف${c.sub?" — "+c.sub:""}</th><th>الكمية</th></tr></thead><tbody>${[...m].sort((a,b)=>b[1]-a[1]).map(([kk,v])=>`<tr><td>${esc(kk)}</td><td><b>${nf(v)}</b></td></tr>`).join("")}</tbody></table>`:'<div class="empty">مفيش إنتاج مسجل في اليوم ده</div>'}</div>`);
   });

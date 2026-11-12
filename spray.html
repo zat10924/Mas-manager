@@ -44,13 +44,13 @@ let orders=[],prods=[],tab=location.hash==="#reports"?"prod":"open",Q="",repCtl=
 function logHtml(id){
   const p=prods.filter(x=>x.order_id===id),o=orders.find(x=>x.id===id);
   if(!p.length)return"";
-  const sc=e=>e.spray_color&&o&&e.spray_color!==o.color?` · <b>${esc(e.spray_color)}</b>`:"";
+  const sc=e=>e.spray_color?` · <b>${esc(e.spray_color)}</b>`:"";
   return '<div class="nums" style="font-size:.85rem">'+p.slice(0,6).map(e=>`${e.qty} (${fmtD(e.prod_date)}${sc(e)})`).join(" · ")+(p.length>6?` · +${p.length-6}`:"")+"</div>"+colorsHtml(p,o);
 }
-// ملخص ألوان الرش الفعلية للطلبية (يظهر بس لو اترشّ بلون غير لون الطلبية)
+// ملخص ألوان الرش المسجلة على الطلبية (لون الصنف حاجة ولون الرش حاجة تانية)
 function colorsHtml(p,o){
-  const m=new Map();p.forEach(e=>{const c=e.spray_color||(o&&o.color)||"";if(c)m.set(c,(m.get(c)||0)+e.qty)});
-  if(!o||m.size<2&&(!m.size||m.has(o.color)))return"";
+  const m=new Map();p.forEach(e=>{if(e.spray_color)m.set(e.spray_color,(m.get(e.spray_color)||0)+e.qty)});
+  if(!o||!m.size)return"";
   return '<div class="nums" style="font-size:.85rem">ألوان الرش: '+[...m].map(([c,q])=>`<span class="tag">${esc(c)} · ${nf(q)}</span>`).join(" ")+"</div>";
 }
 
@@ -98,11 +98,11 @@ async function syncStatus(id){
 
 function produce(id){
   const o=orders.find(x=>x.id===id),rem=o.qty_required-o.produced;
-  openModal(`إنتاج ${esc(o.item)} · ${esc(o.color)}`,`<div class="nums">المتبقي: <b>${rem}</b></div><label>الكمية اللي رشيتها</label><input type="number" id="m-q" min="1" max="${rem}" inputmode="numeric"><label>التاريخ</label><input type="date" id="m-d" value="${today()}">${XS(o.color)}${XF()}`,async()=>{
+  openModal(`إنتاج ${esc(o.item)} · ${esc(o.color)}`,`<div class="nums">المتبقي: <b>${rem}</b></div><label>الكمية اللي رشيتها</label><input type="number" id="m-q" min="1" max="${rem}" inputmode="numeric"><label>التاريخ</label><input type="date" id="m-d" value="${today()}">${XS("")}${XF()}`,async()=>{
     const q=parseInt(document.getElementById("m-q").value);
     if(!q||q<1){toast("اكتب كمية صحيحة");return false}
     if(q>rem){toast("الكمية أكبر من المتبقي ("+rem+")");return false}
-    const xr=xfRead();if(!xr.spray_color)xr.spray_color=o.color; // لون الرش دايمًا بيتسجل (الافتراضي لون الطلبية)
+    const xr=xfRead();if(!xr.spray_color){toast("اكتب لون الرش");return false} // لون الرش مطلوب (مختلف عن لون الصنف)
     const{error}=await insertRow("spray_production",{order_id:id,qty:q,prod_date:document.getElementById("m-d").value||today(),...xr});
     if(error){toast("خطأ: "+error.message);return false}
     const done=await syncStatus(id);await load();toast(done?"الطلبية خلصت ✅":"تم التسجيل");

@@ -57,12 +57,12 @@ async function load(){
       if(o.error)throw new Error("load");
       const om=new Map(o.data.map(x=>[x.id,x]));
       rows=o.data.filter(x=>x.status==="open").map(x=>({id:x.id,oid:x.id,title:x.item,sub:x.color,req:x.qty_required,done:x.produced,date:x.order_date}));
-      tod=(p.data||[]).map(e=>{const x=om.get(e.order_id),sc=e.spray_color||"";return{k:"line",tb:"spray_production",id:e.id,qty:e.qty,date:e.prod_date,worker:e.worker||"",note:e.note||"",design:"",sc,txt:x?x.item+" · "+x.color+(sc&&sc!==x.color?" · لون الرش: "+sc:""):"—",max:x?x.qty_required-x.produced+e.qty:0,sync:x?{sv:"spray_status",o:"spray_orders",oid:x.id}:null}});
+      tod=(p.data||[]).map(e=>{const x=om.get(e.order_id),sc=e.spray_color||"";return{k:"line",tb:"spray_production",id:e.id,qty:e.qty,date:e.prod_date,worker:e.worker||"",note:e.note||"",design:"",sc,txt:x?x.item+" · "+x.color+(sc?" · لون الرش: "+sc:""):"—",max:x?x.qty_required-x.produced+e.qty:0,sync:x?{sv:"spray_status",o:"spray_orders",oid:x.id}:null}});
     }
     // الإنتاج بدون طلبية (لو الجدول موجود)
     try{
       const f=await db.from("free_production").select("*").eq("section",sec).eq("prod_date",t).order("id",{ascending:false});
-      if(!f.error)tod.unshift(...(f.data||[]).map(e=>({k:"free",tb:"free_production",id:e.id,qty:e.qty,date:e.prod_date,item:e.item,sub:e.sub||"",worker:e.worker||"",note:e.note||"",design:e.design||"",txt:e.item+(e.sub?" · "+e.sub:"")+" · بدون طلبية"})));
+      if(!f.error)tod.unshift(...(f.data||[]).map(e=>({k:"free",tb:"free_production",id:e.id,qty:e.qty,date:e.prod_date,item:e.item,sub:e.sub||"",sc:e.spray_color||"",worker:e.worker||"",note:e.note||"",design:e.design||"",txt:e.item+(e.sub?" · "+e.sub:"")+(e.spray_color?" · لون الرش: "+e.spray_color:"")+" · بدون طلبية"})));
     }catch(e){}
     try{localStorage.setItem("pc_"+sec,JSON.stringify({rows,tod,at:Date.now()}))}catch(e){}
     stale=0;
@@ -108,7 +108,7 @@ function pick(r,el){
 }
 async function saveOne(r,q,d,sc){
   const c=SEC[sec],id=uuid(),tb=c.p||"spray_production";
-  const row=c.p?{line_id:r.id,qty:q,prod_date:d,client_id:id}:{order_id:r.id,qty:q,prod_date:d,client_id:id,spray_color:sc||r.sub};
+  const row=c.p?{line_id:r.id,qty:q,prod_date:d,client_id:id}:{order_id:r.id,qty:q,prod_date:d,client_id:id,spray_color:sc};
   const it={id,table:tb,row,sec,rid:r.id,qty:q,txt:r.title+" · "+r.sub,sync:c.o?{lv:c.l,o:c.o,oid:r.oid}:{sv:"spray_status",o:"spray_orders",oid:r.id}};
   let res;try{res=await insertRow(tb,row)}catch(e){res={error:{message:String(e)}}}
   if(res.error&&isNet(res.error)){Q_.add(it);updateBadge();return{off:1}}
@@ -122,14 +122,15 @@ function multiModal(){
     const rem=r.req-r.done;
     return `<div class="line"><div class="r"><b>${esc(r.title)}</b><span class="tag">${esc(r.sub)}</span></div>
       <div class="nums">تم <b>${nf(r.done)}</b> من <b>${nf(r.req)}</b> · المتبقي <b>${nf(rem)}</b></div>
-      <div class="row" style="flex-wrap:nowrap;margin-top:6px"><input type="number" class="mq" data-id="${r.id}" min="1" max="${rem}" inputmode="numeric" placeholder="الكمية" style="margin:0"><button type="button" class="btn ghost sm" onclick="this.previousElementSibling.value=${rem}">الكل (${rem})</button></div>${sec==="spray"?`<label style="margin-top:6px">لون الرش</label><input class="msc" data-id="${r.id}" data-kind="color" value="${esc(r.sub)}" placeholder="لون الرش" autocomplete="off" maxlength="60" style="margin:0">`:""}</div>`}).join(""),async()=>{
+      <div class="row" style="flex-wrap:nowrap;margin-top:6px"><input type="number" class="mq" data-id="${r.id}" min="1" max="${rem}" inputmode="numeric" placeholder="الكمية" style="margin:0"><button type="button" class="btn ghost sm" onclick="this.previousElementSibling.value=${rem}">الكل (${rem})</button></div>${sec==="spray"?`<label style="margin-top:6px">لون الرش</label><input class="msc" data-id="${r.id}" data-kind="color" value="" placeholder="لون الرش" autocomplete="off" maxlength="60" style="margin:0">`:""}</div>`}).join(""),async()=>{
     const d=document.getElementById("m-d").value||today(),todo=[];
     for(const r of items){
       const v=document.querySelector('.mq[data-id="'+r.id+'"]').value.trim();if(!v)continue;
       const q=parseInt(v),rem=r.req-r.done;
       if(!q||q<1){toast("كمية غلط في: "+r.title+" · "+r.sub);return false}
       if(q>rem){toast("الكمية أكبر من المتبقي ("+rem+") في: "+r.title+" · "+r.sub);return false}
-      const sc=sec==="spray"?((document.querySelector('.msc[data-id="'+r.id+'"]')||{}).value||"").trim()||r.sub:"";
+      const sc=sec==="spray"?((document.querySelector('.msc[data-id="'+r.id+'"]')||{}).value||"").trim():"";
+      if(sec==="spray"&&!sc){toast("اكتب لون الرش في: "+r.title+" · "+r.sub);return false}
       todo.push([r,q,sc]);
     }
     if(!todo.length){toast("اكتب كمية لبند واحد على الأقل");return false}
@@ -161,7 +162,7 @@ async function delEntry(i){
 }
 function editEnt(i){
   const e=tod[i];if(!e||!e.k||e.pend)return;
-  const deco=sec==="deco",free=e.k==="free",lab=deco?"كود الرسمة":"اللون",sid=deco?"m-code":"m-color",sprayLine=sec==="spray"&&!free;
+  const deco=sec==="deco",free=e.k==="free",lab=deco?"كود الرسمة":sec==="spray"?"لون الصنف":"اللون",sid=deco?"m-code":"m-color",sprayLine=sec==="spray";
   openModal("تعديل تسجيل الإنتاج",
     (free?`<label>الصنف</label><input id="m-item" autocomplete="off"><label>${lab} (اختياري)</label><input id="${sid}" autocomplete="off">`
          :`<div class="nums"><b>${esc(e.txt)}</b></div>`)+
@@ -176,6 +177,7 @@ function editEnt(i){
     const patch={qty:q,prod_date:d,worker:v("m-w")||null,note:v("m-n")||null};
     if(deco)patch.design=v("m-ds")||null;
     if(sprayLine)patch.spray_color=v("m-sc")||null;
+    if(sprayLine&&!v("m-sc")){toast("اكتب لون الرش");return false}
     if(free){const item=v("m-item");if(!item){toast("اكتب الصنف");return false}patch.item=item;patch.sub=v(sid)||null}
     let r=await db.from(e.tb).update(patch).eq("id",e.id).select();
     if(r.error&&/worker|note|design|spray_color/.test(r.error.message||"")){const{worker,note,design,spray_color,...rest}=patch;r=await db.from(e.tb).update(rest).eq("id",e.id).select()}
@@ -201,12 +203,12 @@ function quick(r){
   if(last&&last<=rem&&!chips.some(c=>c[0]===last))chips.unshift([last,"آخر مرة ("+last+")"]);
   openModal(`${esc(r.title)} · ${esc(r.sub)}`,`<div class="nums">المتبقي: <b>${nf(rem)}</b></div>
     <div class="row" style="flex-wrap:wrap;gap:6px;margin:8px 0">${chips.map(c=>`<button type="button" class="btn ghost sm" onclick="document.getElementById('m-q').value=${c[0]}">${c[1]}</button>`).join("")}</div>
-    <label>الكمية</label><input type="number" id="m-q" min="1" max="${rem}" inputmode="numeric"><label>التاريخ</label><input type="date" id="m-d" value="${today()}">${sec==="spray"?XS(r.sub):""}${XF(sec==="deco")}`,async()=>{
+    <label>الكمية</label><input type="number" id="m-q" min="1" max="${rem}" inputmode="numeric"><label>التاريخ</label><input type="date" id="m-d" value="${today()}">${sec==="spray"?XS(""):""}${XF(sec==="deco")}`,async()=>{
     const q=parseInt(document.getElementById("m-q").value);
     if(!q||q<1){toast("اكتب كمية صحيحة");return false}
     if(q>rem){toast("الكمية أكبر من المتبقي ("+rem+")");return false}
     const c=SEC[sec],d=document.getElementById("m-d").value||today(),id=uuid(),tb=c.p||"spray_production";
-    const xr=xfRead();if(sec==="spray"&&!xr.spray_color)xr.spray_color=r.sub;
+    const xr=xfRead();if(sec==="spray"&&!xr.spray_color){toast("اكتب لون الرش");return false}
     const row={...(c.p?{line_id:r.id,qty:q,prod_date:d,client_id:id}:{order_id:r.id,qty:q,prod_date:d,client_id:id}),...xr};
     const it={id,table:tb,row,sec,rid:r.id,qty:q,txt:r.title+" · "+r.sub,sync:c.o?{lv:c.l,o:c.o,oid:r.oid}:{sv:"spray_status",o:"spray_orders",oid:r.id}};
     let res;try{res=await insertRow(tb,row)}catch(e){res={error:{message:String(e)}}}

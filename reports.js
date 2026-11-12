@@ -30,7 +30,9 @@ async function freeRows(sec){
       out.push(...data);if(data.length<1000)break;
     }
   }catch(e){return[]}
-  return out.map(x=>({d:D(x.prod_date),item:x.item||"—",sub:x.sub||"",qty:+x.qty||0,w:x.worker||"",n:x.note||"",free:true}));
+  return out.map(x=>sec==="spray"
+    ?{d:D(x.prod_date),item:x.item||"—",sub:x.spray_color||"",oc:x.sub||"",qty:+x.qty||0,w:x.worker||"",n:x.note||"",free:true}
+    :{d:D(x.prod_date),item:x.item||"—",sub:x.sub||"",qty:+x.qty||0,w:x.worker||"",n:x.note||"",free:true});
 }
 const groupBy=(arr,k)=>{const m=new Map();arr.forEach(x=>{const v=x[k];(m.get(v)||m.set(v,[]).get(v)).push(x)});return m};
 
@@ -74,14 +76,14 @@ const SRC={
       const[o,l,p]=await Promise.all([all("deco_orders","id,item,order_date,status"),all("deco_lines_status","id,order_id,code,total_required,produced"),all("deco_production","*")]);
       const out=fromLines(o,l,p,"code");out.prod.push(...await freeRows("deco"));return out;
     }},
-  // الرش: كل تسجيل إنتاج ليه «لون الرش» (spray_color). لو فاضي (تسجيلات قديمة) بنستخدم لون الطلبية.
-  // oc = لون الطلبية الأصلي عشان نكشف لو اترشّ بلون مختلف.
+  // الرش: لون الصنف (oc) حاجة، و«لون الرش» (sub = spray_color) حاجة تانية مسجلة على كل تسجيل إنتاج.
+  // التسجيلات القديمة اللي من غير لون رش بتتحسب «بدون لون رش».
   spray:{name:"رش",page:"spray.html",icon:"spray",color:"#B8862B",noun:"الإنتاج",sub:"لون الرش",
     async fetch(){
       const[s,p]=await Promise.all([all("spray_status","*"),all("spray_production","*")]);
       const S=new Map(s.map(x=>[x.id,x])),fr=await freeRows("spray");
       return{
-        prod:p.map(x=>{const o=S.get(x.order_id),oc=o?String(o.color??""):"";return{d:D(x.prod_date),item:o?.item||"—",sub:String(x.spray_color||oc||""),oc,qty:+x.qty||0,w:x.worker||"",n:x.note||""}}).concat(fr),
+        prod:p.map(x=>{const o=S.get(x.order_id),oc=o?String(o.color??""):"";return{d:D(x.prod_date),item:o?.item||"—",sub:String(x.spray_color||""),oc,qty:+x.qty||0,w:x.worker||"",n:x.note||""}}).concat(fr),
         ord:s.map(o=>({id:o.id,item:o.item,sub:String(o.color??""),date:D(o.order_date),status:o.status,req:+o.qty_required||0,done:Math.min(+o.produced||0,+o.qty_required||0)}))
       };
     }},
@@ -196,14 +198,10 @@ function sectionInsights(c){
     const nos=rows.filter(r=>!r.sub);
     if(nos.length&&sum(nos)/total>=.2)I.push(["warn",`${pctOf(sum(nos),total)}% من الإنتاج متسجل من غير ${cfg.sub}.`]);
   }
-  // 7) رش: اترشّ بلون مختلف عن لون الطلبية
+  // 7) رش: أكتر تركيبة (لون الصنف ← لون الرش)
   if(key==="spray"){
-    const mm=rows.filter(r=>r.oc&&r.sub&&r.sub!==r.oc);
-    if(mm.length){
-      const q=sum(mm),mp=new Map();mm.forEach(r=>{const kk=r.oc+" ← "+r.sub;mp.set(kk,(mp.get(kk)||0)+r.qty)});
-      const ex=[...mp].sort((a,b)=>b[1]-a[1]).slice(0,2).map(([kk,v])=>esc(kk)+" ("+nf(v)+")").join("، ");
-      I.push(["warn",`<b>${nf(q)}</b> قطعة اترشّت بلون مختلف عن لون الطلبية: ${ex}. راجع إن ده مقصود.`]);
-    }
+    const mp=new Map();rows.forEach(r=>{if(r.oc&&r.sub){const kk=r.oc+" ← "+r.sub;mp.set(kk,(mp.get(kk)||0)+r.qty)}});
+    if(mp.size>1){const t=[...mp].sort((a,b)=>b[1]-a[1])[0];I.push(["info",`أكتر تركيبة: صنف بلون <b>${esc(t[0].split(" ← ")[0])}</b> اترشّ <b>${esc(t[0].split(" ← ")[1])}</b> (${nf(t[1])}).`])}
   }
   // 8) العمال
   if(hasW){
@@ -414,7 +412,7 @@ function mount(rootId,key){
     $('[data-ps="workers"]').toggleAttribute("data-empty",!ws.length);
     // سجل التفاصيل
     const lg=rows.slice().sort((a,b)=>b.d.localeCompare(a.d)),CAP=400,lv=st.printing?lg.slice(0,CAP):showMore(lg,st.moreL);
-    const subCell=r=>esc(r.sub||"—")+(key==="spray"&&r.oc&&r.sub&&r.oc!==r.sub?`<div class="nums" style="font-size:.78rem">لون الطلبية: ${esc(r.oc)}</div>`:"");
+    const subCell=r=>esc(r.sub||"—")+(key==="spray"&&r.oc?`<div class="nums" style="font-size:.78rem">لون الصنف: ${esc(r.oc)}</div>`:"");
     $(".rlg").innerHTML=lg.length?`<table><thead><tr><th>التاريخ</th><th>الصنف</th>${subLbl?`<th>${subLbl}</th>`:""}<th>الكمية</th><th>العامل</th><th>ملاحظة</th></tr></thead><tbody>${lv.map(r=>`<tr><td>${fmtD(r.d)}</td><td>${esc(r.item)}${r.free?' <span class="tag">بدون طلبية</span>':""}</td>${subLbl?`<td>${subCell(r)}</td>`:""}<td><b>${nf(r.qty)}</b></td><td>${esc(r.w||"—")}</td><td>${esc(r.n||"—")}</td></tr>`).join("")}</tbody></table>${st.printing?(lg.length>CAP?`<div class="hint">اتعرض أحدث ${CAP} تسجيل من ${nf(lg.length)} — الباقي في ملف Excel.</div>`:""):(lg.length>10?`<button class="btn ghost sm more noprint" data-m="l">${st.moreL?"عرض أقل":`عرض الكل (${lg.length})`}</button>`:"")}`:'<div class="empty">مفيش تسجيلات في الفترة دي</div>';
     $('[data-ps="log"]').toggleAttribute("data-empty",!lg.length);
     $(".rpd").textContent=fmtP(f,t)+(st.item?" · الصنف: "+st.item:"")+(st.col?" · "+subLbl+": "+st.col:"")+(st.wk?" · العامل: "+st.wk:"")+" · طُبع في "+fmtD(today());
@@ -447,7 +445,7 @@ function mount(rootId,key){
   });
   $(".rx").onclick=()=>{
     if(!st.last)return;const{f,t,rows}=st.last,sp=key==="spray";
-    csvDownload(`${cfg.name}-تقرير-${f||"الكل"}${t&&t!==f?"-"+t:""}.csv`,["التاريخ","الصنف",cfg.sub||"-",...(sp?["لون الطلبية"]:[]),"الكمية","العامل","ملاحظة"],rows.slice().sort((a,b)=>a.d.localeCompare(b.d)).map(r=>[r.d,r.item,r.sub,...(sp?[r.oc||""]:[]),r.qty,r.w||"",r.n||""]));
+    csvDownload(`${cfg.name}-تقرير-${f||"الكل"}${t&&t!==f?"-"+t:""}.csv`,["التاريخ","الصنف",cfg.sub||"-",...(sp?["لون الصنف"]:[]),"الكمية","العامل","ملاحظة"],rows.slice().sort((a,b)=>a.d.localeCompare(b.d)).map(r=>[r.d,r.item,r.sub,...(sp?[r.oc||""]:[]),r.qty,r.w||"",r.n||""]));
   };
   $(".rpr").onclick=()=>{
     if(!st.last)return;
@@ -532,8 +530,6 @@ function dashboard(rootId){
     if(sp){
       const gc=groupSum(sp.rows.filter(r=>r.sub),"col",SRC.spray);
       if(gc.length)I.push(["info",`أكتر لون اترشّ: <b>${esc(gc[0][0])}</b> (${nf(gc[0][1])}).`]);
-      const mm=sum(sp.rows.filter(r=>r.oc&&r.sub&&r.sub!==r.oc));
-      if(mm)I.push(["warn",`في الرش <b>${nf(mm)}</b> قطعة اترشّت بلون مختلف عن لون الطلبية.`]);
     }
     I.sort((a,b)=>({warn:0,ok:1,info:2}[a[0]]-{warn:0,ok:1,info:2}[b[0]]));
     $(".rins").innerHTML=I.length?insHtml(I.slice(0,8)):'<div class="empty">مفيش بيانات كفاية للملاحظات في الفترة دي</div>';
