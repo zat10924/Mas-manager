@@ -22,7 +22,7 @@
 <script>try{var n=performance.getEntriesByType("navigation")[0];if(sessionStorage.getItem("sp")&&!(n&&n.type==="reload"))document.getElementById("splash").remove()}catch(e){}</script>
 <div class="wrap">
   <h1>التقارير</h1>
-  <div class="card noprint" id="dayBar"><h3>التقرير اليومي</h3><div class="two"><div><label>اليوم</label><input type="date" id="dayD"></div><div style="display:flex;align-items:flex-end;gap:6px"><button class="btn" id="dayGo" style="flex:1">عرض</button><button class="btn ghost" id="dayPr" style="flex:1">PDF / طباعة</button></div></div></div>
+  <div class="card noprint" id="dayBar"><h3>التقرير اليومي</h3><div class="two"><div><label>اليوم</label><input type="date" id="dayD"></div><div style="display:flex;align-items:flex-end;gap:6px"><button class="btn" id="dayGo" style="flex:1">عرض</button><button class="btn ghost" id="dayEd" style="flex:1">✏️ تعديل</button><button class="btn ghost" id="dayPr" style="flex:1">PDF / طباعة</button></div></div></div>
   <div id="daily"></div>
   <div id="dash"></div>
 </div>
@@ -94,7 +94,7 @@ async function daily(){
    <div class="card" data-ps="insights"${I.length?"":" data-empty"}><div class="sec-head"><h3>🧠 ملاحظات ذكية</h3></div>${I.length?Reports.insHtml(I.slice(0,9)):'<div class="empty">مفيش ملاحظات خاصة لليوم ده</div>'}</div>`
    +cards.join("")
    +(wRows.length?`<div class="card" data-ps="workers"><h3>العمال</h3><table><thead><tr><th>العامل</th><th>القسم</th><th>الكمية</th></tr></thead><tbody>${wRows.map(o=>`<tr><td><b>${esc(o.w)}</b></td><td>${o.s}</td><td><b>${nf(o.q)}</b></td></tr>`).join("")}</tbody></table>${tg.size&&wl.some(([n])=>tg.has(n))?`<table style="margin-top:8px"><thead><tr><th>العامل</th><th>إجمالي اليوم</th><th>المعدل</th><th>الإنجاز</th></tr></thead><tbody>${wl.filter(([n])=>tg.has(n)).map(([n,q])=>{const p=Math.round(q/tg.get(n)*100);return `<tr><td><b>${esc(n)}</b></td><td>${nf(q)}</td><td>${nf(tg.get(n))}</td><td><span class="tag ${p>=100?"ok":p<70?"late":""}">${p}%</span></td></tr>`}).join("")}</tbody></table>`:""}</div>`:"")
-   +((can("edit")||can("delete"))&&ENT.length?`<div class="card noprint"><div class="sec-head"><h3>✏️ تسجيلات اليوم — تعديل / حذف</h3></div><div class="hint" style="margin:0 0 6px">لو فيه تسجيل غلط عدّله أو احذفه من هنا، والأرقام والتقرير بيتحدّثوا.</div>${ENT.map(([k,x],i)=>`<div class="line fe"><span><span class="badge" style="--c:${S[k].color}">${S[k].name}</span> ${esc(Reports.entryTxt(x))}${k==="spray"&&x.oc?` <span class="nums">(لون الصنف: ${esc(x.oc)})</span>`:""}${x.w?` <span class="nums">· ${esc(x.w)}</span>`:""}</span><span style="display:flex;align-items:center;gap:6px;white-space:nowrap"><b>${nf(x.qty)}</b>${Reports.actBtns(i,x)}</span></div>`).join("")}</div>`:"")
+   +`<div class="card noprint" id="editCard"><div class="sec-head"><h3>✏️ تسجيلات اليوم — تعديل / حذف</h3></div>`+(!(can("edit")||can("delete"))?'<div class="empty">حسابك ملوش صلاحية تعديل أو حذف التسجيلات. اطلبها من المدير.</div>':!ENT.length?'<div class="empty">مفيش تسجيلات في اليوم ده. غيّر التاريخ من فوق.</div>':`<div class="hint" style="margin:0 0 6px">لو فيه تسجيل غلط عدّله أو احذفه من هنا، والأرقام والتقرير بيتحدّثوا.</div>${ENT.map(([k,x],i)=>`<div class="line fe"><span><span class="badge" style="--c:${S[k].color}">${S[k].name}</span> ${esc(Reports.entryTxt(x))}${k==="spray"&&x.oc?` <span class="nums">(لون الصنف: ${esc(x.oc)})</span>`:""}${x.w?` <span class="nums">· ${esc(x.w)}</span>`:""}</span><span style="display:flex;align-items:center;gap:6px;white-space:nowrap"><b>${nf(x.qty)}</b>${Reports.actBtns(i,x)}</span></div>`).join("")}`)+`</div>`
    +(NT.length?`<div class="card" data-ps="notes"><h3>ملاحظات اليوم</h3>${NT.map(x=>`<div class="line"><b>${x.s} · ${esc(x.t)}</b>${x.w?` <span class="tag">${esc(x.w)}</span>`:""}<div class="nums">${esc(x.n)}</div></div>`).join("")}</div>`:"");
   lastDaily={keys,res,S,hasW:wRows.length>0,hasN:NT.length>0,hasI:I.length>0,secHas:Object.fromEntries(keys.map(k=>[k,!box.querySelector('[data-ps="sec_'+k+'"]')?.hasAttribute("data-empty")]))};
 }
@@ -108,7 +108,7 @@ function printDaily(){
   Reports.printDialog(document.getElementById("daily"),"daily",[["kpi","الأرقام الرئيسية",true],["insights","الملاحظات الذكية",L.hasI],...L.keys.map(k=>["sec_"+k,"قسم "+L.S[k].name,L.secHas[k]]),["workers","العمال والمعدل",L.hasW],["notes","ملاحظات اليوم",L.hasN]]);
 }
 async function load(){if(ctl)await ctl.refresh()}
-(async()=>{if(await requireAuth("reports.html")){renderNav("reports.html");document.getElementById("dayD").value=today();document.getElementById("dayGo").onclick=daily;document.getElementById("dayPr").onclick=printDaily;document.getElementById("dayD").onchange=daily;daily();ctl=Reports.dashboard("dash");settle()}})();
+(async()=>{if(await requireAuth("reports.html")){renderNav("reports.html");document.getElementById("dayD").value=today();document.getElementById("dayGo").onclick=daily;document.getElementById("dayPr").onclick=printDaily;document.getElementById("dayEd").onclick=()=>{const c=document.getElementById("editCard");if(c)c.scrollIntoView({behavior:"smooth",block:"start"});else toast("استنى التقرير يحمّل")};document.getElementById("dayD").onchange=daily;daily();ctl=Reports.dashboard("dash");settle()}})();
 </script>
 <script src="install.js" defer></script>
 </body>
