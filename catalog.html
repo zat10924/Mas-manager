@@ -25,6 +25,7 @@
   <div class="tabs noprint" id="tb"><button class="btn on" data-k="item">الأصناف</button><button class="btn ghost" data-k="color">الألوان</button><button class="btn ghost" data-k="code">أكواد الزخرفة</button></div>
   <div class="nums" id="hint" style="margin-bottom:8px"></div>
   <div class="catact noprint"><button class="btn" id="addx" type="button"><svg class="ui" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="14" height="14" rx="2"/><circle cx="8" cy="8" r="1.5"/><path d="m17 13-3.5-3.5L5 17"/><path d="M19 17v6M16 20h6"/></svg><span>إضافة بصورة وكود</span></button><button class="btn ghost" id="add" type="button"><svg class="ui" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h12M3 12h8M3 18h8"/><path d="M18 9v8M14 13h8"/></svg><span>عدة أسماء</span></button></div>
+  <div class="catbar noprint"><button class="btn ghost" id="vw" type="button"></button><button class="btn ghost" id="sa" type="button">تحديد الكل</button><button class="btn" id="pdf" type="button"></button></div>
   <div class="search"><input type="search" id="q" placeholder="بحث…" aria-label="بحث"></div>
   <div id="list"></div>
 </div>
@@ -34,6 +35,7 @@
 <script src="common.js"></script>
 <script>
 let kind="item",all=[],Q="";
+let view=(()=>{try{return localStorage.getItem("catview")||"grid"}catch(e){return"grid"}})();const SEL=new Set();
 const NAMES={item:"الأصناف",color:"الألوان",code:"أكواد الزخرفة"};
 const HINT={item:"الأصناف (باسمها وكودها وصورتها) بتظهر في القوائم المنسدلة للطلبيات والهالك والتصليح.",color:"الألوان بتظهر في القوائم المنسدلة للجليز والرش.",code:"أكواد الرسمات بتظهر في القوائم المنسدلة للزخرفة (ممكن تضيف صورة الرسمة)."};
 const NEED="لازم تشغّل ملف setup_v2.sql في Supabase الأول (SQL Editor ← Run)";
@@ -43,11 +45,20 @@ async function load(){
   skel("list",3);
   const{data,error}=await db.from("catalog").select("*").order("name");
   if(error){fail("list",load);return}
-  all=data;draw();
+  data.sort((a,b)=>String(a.name).localeCompare(String(b.name),"ar",{numeric:true}));all=data;draw();
 }
 function draw(){
   document.getElementById("hint").textContent=HINT[kind]+" ("+nf(all.filter(x=>x.kind===kind).length)+")";
   const rs=all.filter(x=>x.kind===kind&&hit(norm(Q),x.name,x.code||""));
+  bar(rs);
+  if(view==="grid"&&rs.length){
+    document.getElementById("list").innerHTML=`<div class="cgrid">${rs.map(x=>{const im=safeAv(x.image),sl=SEL.has(x.id);
+      return `<div class="gc ${sl?"sel":""}"><label class="gk"><input type="checkbox" data-s="${x.id}" ${sl?"checked":""} aria-label="تحديد"></label>
+      <div class="gi ${im?"has":""}" ${im?`data-z="${x.id}" style="background-image:url('${im}')" role="button" aria-label="تكبير الصورة"`:""}>${im?"":NOPIC}</div>
+      <b>${esc(x.name)}</b>${x.code?`<small>${esc(x.code)}</small>`:""}
+      <span class="ga"><button class="btn ghost sm" data-e="${x.id}" aria-label="تعديل">${ib("edit","تعديل")}</button><button class="btn ghost sm dang" data-d="${x.id}" aria-label="حذف">${ib("trash","حذف")}</button></span></div>`}).join("")}</div>`;
+    return;
+  }
   document.getElementById("list").innerHTML=rs.length?`<div class="card">${rs.map(x=>{
     const im=safeAv(x.image);
     return `<div class="cent"><span class="cthumb ${im?"has":""}" ${im?`data-z="${x.id}" style="background-image:url('${im}')" role="button" aria-label="تكبير الصورة"`:""}>${im?"":NOPIC}</span>
@@ -135,6 +146,51 @@ document.getElementById("list").onclick=async e=>{
     await load();toast("تم الحذف");
   }
 };
+
+/* ===== شريط العرض والتحديد + PDF للعميل ===== */
+const rowsNow=()=>all.filter(x=>x.kind===kind&&hit(norm(Q),x.name,x.code||""));
+function bar(rs){
+  rs=rs||rowsNow();
+  const v=document.getElementById("vw");v.textContent=view==="grid"?"عرض قائمة":"عرض معرض صور";
+  const n=[...SEL].filter(id=>rs.some(x=>x.id===id)).length;
+  document.getElementById("pdf").textContent=n?"PDF للعميل ("+nf(n)+" محدد)":"PDF للعميل (الكل)";
+  document.getElementById("sa").textContent=n&&n===rs.length?"إلغاء التحديد":"تحديد الكل";
+}
+document.getElementById("vw").onclick=()=>{view=view==="grid"?"list":"grid";try{localStorage.setItem("catview",view)}catch(e){}draw()};
+document.getElementById("sa").onclick=()=>{
+  const rs=rowsNow(),all_=rs.every(x=>SEL.has(x.id));
+  rs.forEach(x=>all_?SEL.delete(x.id):SEL.add(x.id));draw();
+};
+document.getElementById("list").addEventListener("change",e=>{
+  const c=e.target.closest("[data-s]");if(!c)return;
+  const id=+c.dataset.s;c.checked?SEL.add(id):SEL.delete(id);
+  c.closest(".gc")?.classList.toggle("sel",c.checked);bar();
+});
+document.getElementById("pdf").onclick=()=>{
+  const rs=rowsNow(),pick=rs.filter(x=>SEL.has(x.id)),use=pick.length?pick:rs;
+  if(!use.length){toast("مفيش حاجة تتصدّر");return}
+  const dt={item:"كتالوج الأصناف",color:"ألوان",code:"كتالوج الرسومات"}[kind];
+  openModal("PDF للعميل · "+nf(use.length)+" عنصر",`<label>عنوان الملف</label><input id="p-t" maxlength="80" value="${esc(dt)}">
+    <label>ملاحظة تحت العنوان (اختياري، زي رقم التواصل)</label><input id="p-n" maxlength="120" autocomplete="off">
+    <label>عدد الصور في الصف</label><select id="p-c"><option value="2">2 (كبيرة)</option><option value="3" selected>3</option><option value="4">4 (صغيرة)</option></select>
+    <div class="hint">هيفتح شاشة الطباعة، اختار منها «حفظ كـ PDF» وبعدها شاركه للعميل.</div>`,async()=>{
+    const o={title:document.getElementById("p-t").value.trim()||dt,note:document.getElementById("p-n").value.trim(),cols:+document.getElementById("p-c").value};
+    closeModal();await buildPdf(use,o);return false;
+  },"إنشاء PDF");
+};
+async function buildPdf(rs,o){
+  document.getElementById("pdfroot")?.remove();
+  const d=document.createElement("div");d.id="pdfroot";
+  const dt=new Date().toLocaleDateString("ar-EG",{year:"numeric",month:"long",day:"numeric"});
+  d.innerHTML=`<div class="pdfph"><img src="logo-full.png" alt=""><div><h2>${esc(o.title)}</h2>${o.note?`<p>${esc(o.note)}</p>`:""}<small>${dt}</small></div></div>
+  <div class="pdfpg c${o.cols}">${rs.map(x=>{const im=safeAv(x.image);
+    return `<div class="pdfpc"><div class="pdfpi">${im?`<img src="${im}" alt="">`:""}</div><b>${esc(kind==="code"?"كود "+x.name:x.name)}</b>${x.code?`<small>الكود: ${esc(x.code)}</small>`:""}</div>`}).join("")}</div>`;
+  document.body.appendChild(d);document.body.classList.add("pdfmode");
+  try{await d.querySelector(".pdfph img").decode()}catch(e){}
+  const done=()=>{document.body.classList.remove("pdfmode");d.remove();window.removeEventListener("afterprint",done)};
+  window.addEventListener("afterprint",done);
+  setTimeout(()=>window.print(),200);
+}
 document.getElementById("add").onclick=addNames;
 document.getElementById("addx").onclick=addEntry;
 document.getElementById("q").oninput=e=>{Q=e.target.value;draw()};
