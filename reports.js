@@ -302,12 +302,21 @@ function printDialog(root,scope,secs,hooks={}){
   const body=`<div class="hint" style="margin:0 0 8px">اختار الأقسام اللي تظهر في الورق. الأقسام الفاضية بتتخفى لوحدها.</div>
     <div class="row" style="flex-wrap:wrap;gap:6px;margin:0 0 8px">${PS_PRESETS.map((p,i)=>`<button type="button" class="btn ghost sm" data-pre="${i}">${p[0]}</button>`).join("")}</div>
     ${secs.map(([id,lb,has])=>`<label class="sw" style="cursor:pointer;${has?"":"opacity:.55"}"><span>${lb}${has?"":"<small>مفيش بيانات</small>"}</span><input type="checkbox" class="psx" data-id="${id}" ${has&&on(id)?"checked":""} ${has?"":"disabled"}></label>`).join("")}
-    <label>اتجاه الصفحة</label><select id="ps-o"><option value="auto" ${mode==="auto"?"selected":""}>تلقائي (عرضي لو فيه جدول تفصيلي)</option><option value="portrait" ${mode==="portrait"?"selected":""}>طولي</option><option value="landscape" ${mode==="landscape"?"selected":""}>عرضي</option></select>`;
+    <label>اتجاه الصفحة</label><select id="ps-o"><option value="auto" ${mode==="auto"?"selected":""}>تلقائي (عرضي لو فيه جدول تفصيلي)</option><option value="portrait" ${mode==="portrait"?"selected":""}>طولي</option><option value="landscape" ${mode==="landscape"?"selected":""}>عرضي</option></select>
+    <h3 style="margin:14px 0 4px">تعديل قبل الطباعة</h3><div class="hint" style="margin:0 0 4px">بيتغيّر على الورق بس — البيانات نفسها ما بتتأثرش.</div>
+    <label>عنوان التقرير (اختياري)</label><input id="ps-t" maxlength="80" placeholder="سيبه فاضي للعنوان الأصلي">
+    <label>ملاحظة تظهر أعلى التقرير (اختياري)</label><input id="ps-n" maxlength="200" placeholder="مثال: تقرير مراجعة نهاية الأسبوع">
+    <label>اسم المُعِد (اختياري)</label><input id="ps-by" maxlength="60" value="${esc((saved&&saved.by)||"")}" placeholder="الافتراضي: اسم المستخدم الحالي">`;
   openModal("🖨️ خيارات الطباعة",body,async()=>{
     const ids=[...document.querySelectorAll(".psx:checked")].map(x=>x.dataset.id);
     if(!ids.length){toast("اختار قسم واحد على الأقل");return false}
     const om=document.getElementById("ps-o").value;
-    SET.set("ps_"+scope,{s:ids,o:om});
+    const pt=document.getElementById("ps-t").value.trim(),pn=document.getElementById("ps-n").value.trim(),pby=document.getElementById("ps-by").value.trim();
+    SET.set("ps_"+scope,{s:ids,o:om,by:pby});
+    window.__pby=pby||null;
+    const ph=root.querySelector(".print-head"),h2=ph&&ph.querySelector("h2");
+    if(h2&&pt){h2.dataset.ot=h2.textContent;h2.textContent=pt}
+    if(ph&&pn){const n=document.createElement("div");n.className="ps-note";n.textContent=pn;ph.appendChild(n)}
     const land=om==="landscape"||(om==="auto"&&ids.includes("log"));
     window.__po=land?"landscape":(om==="portrait"||om==="auto"?"portrait":null);
     secs.forEach(([id])=>root.querySelectorAll('[data-ps="'+id+'"]').forEach(el=>el.classList.toggle("ps-off",!ids.includes(id))));
@@ -316,7 +325,9 @@ function printDialog(root,scope,secs,hooks={}){
     document.body.classList.add("pr-"+scope);
     let done=false;
     const clean=()=>{
-      if(done)return;done=true;window.__po=null;document.body.classList.remove("pr-"+scope);
+      if(done)return;done=true;window.__po=null;window.__pby=null;document.body.classList.remove("pr-"+scope);
+      root.querySelectorAll(".ps-note").forEach(n=>n.remove());
+      root.querySelectorAll(".print-head h2[data-ot]").forEach(h=>{h.textContent=h.dataset.ot;delete h.dataset.ot});
       root.querySelectorAll(".ps-off,.ps-empty").forEach(el=>el.classList.remove("ps-off","ps-empty"));
       if(hooks.after)hooks.after();
     };

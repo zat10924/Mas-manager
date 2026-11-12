@@ -857,3 +857,5 @@ svg.i,.tabbar svg,.iconbtn svg,.ico svg,.search svg,.seccard .h svg,.side .sh sv
   .rlg td,.rlg th{padding:4px 6px!important}
 }
 @media print{body.pr-daily #dash,body.pr-dash #daily,body.pr-dash #dayBar{display:none!important}}
+.ps-note{display:none}
+@media print{.ps-note{display:block!important;margin:0 0 10px;padding:7px 16px;border:1px dashed #B9984C;border-radius:8px;background:#FFFDF8!important;color:#421B24!important;font-weight:700;font-size:10pt}}

@@ -57,7 +57,7 @@ window.masCacheClear=()=>{try{localStorage.removeItem("masc_uid")}catch(e){}retu
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {global:{fetch:MASC.fetch}});
 
 /* ===== إصدار البرنامج (غيّر الرقم هنا عند كل تحديث) ===== */
-const APP_VERSION = "2.6.2";
+const APP_VERSION = "2.6.3";
 // مفتاح الإشعارات العام (آمن إنه يبقى ظاهر)
 const VAPID_PUBLIC = "BMI1dksSzpLuotH8TRjMLlwd53SaAltxeJkdfGYnb0GNTjQLbqXy-HDXbWZUlA5jtahNrND9TZRV7afcjnDfLhs";
 /* مستودع GitHub: منه بتتجاب «ما الجديد» تلقائيًا من رسائل الـ commit العربي */
@@ -65,6 +65,7 @@ const GH_REPO = "zat10924/zat10924.github.io";
 const APP_BUILD = "2026-11-12";
 // آخر التحديثات (الأحدث أولاً) — بتظهر في الإعدادات > البرنامج > «ما الجديد»
 const APP_CHANGES = [
+  ["2.6.3", "2026-11-12", ["الطباعة: تعديل عنوان التقرير وإضافة ملاحظة واسم المُعِد قبل الطباعة (على الورق بس)"]],
   ["2.6.2", "2026-11-12", ["الرش: لون الرش بقى مستقل عن لون الصنف ومطلوب في كل تسجيل (على طلبية أو بدون طلبية)، وبيظهر في التقارير","لازم تشغّل setup_spray_color.sql المحدّث"]],
   ["2.6.1", "2026-11-12", ["الرش: «إنتاج بدون طلبية» بقت فيه خانة «لون الرش» (إجباري)"]],
   ["2.6.0", "2026-11-12", [

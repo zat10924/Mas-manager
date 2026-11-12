@@ -267,11 +267,11 @@ window.addEventListener("beforeprint",()=>{
   if(SET.get("psign",true)&&!document.getElementById("psg")){
     const w=document.querySelector(".wrap");
     if(w){const g=document.createElement("div");g.className="print-sign";g.id="psg";
-      g.innerHTML='<div><span></span>إعداد: '+esc(ME&&ME.name?ME.name:"")+'</div><div><span></span>مراجعة</div><div><span></span>اعتماد المدير</div>';w.appendChild(g)}
+      g.innerHTML='<div><span></span>إعداد: '+esc(window.__pby||(ME&&ME.name?ME.name:""))+'</div><div><span></span>مراجعة</div><div><span></span>اعتماد المدير</div>';w.appendChild(g)}
   }
   const org=(SET.get("org","")||"").trim()||(typeof APP!=="undefined"?APP:"إدارة الأقسام");
   const paper=SET.get("paper","A4"),orient=window.__po||SET.get("orient","portrait"),note=(SET.get("pnote","")||"").trim();
-  const by="طُبع بواسطة "+(ME&&ME.name?ME.name:"النظام"),when=new Date().toLocaleString("ar-EG");
+  const by="طُبع بواسطة "+(window.__pby||(ME&&ME.name?ME.name:"النظام")),when=new Date().toLocaleString("ar-EG");
   const cm=/Chrome\/(\d+)/.exec(navigator.userAgent),mb=!!cm&&+cm[1]>=131;
   let heads=[...document.querySelectorAll(".print-head")].filter(p=>p.parentElement&&p.parentElement.getClientRects().length);
   if(!heads.length){
