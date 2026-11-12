@@ -24,7 +24,7 @@
   <h1>الأصناف والألوان</h1>
   <div class="tabs noprint" id="tb"><button class="btn on" data-k="item">الأصناف</button><button class="btn ghost" data-k="color">الألوان</button><button class="btn ghost" data-k="code">أكواد الزخرفة</button></div>
   <div class="nums" id="hint" style="margin-bottom:8px"></div>
-  <div class="catact noprint"><button class="btn" id="addx" type="button">+ إضافة بصورة وكود</button><button class="btn ghost" id="add" type="button">+ عدة أسماء</button><button class="btn" id="impd" type="button" hidden>استيراد أكواد الرسمات (101 → 154) بصورها</button></div>
+  <div class="catact noprint"><button class="btn" id="addx" type="button"><svg class="ui" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="14" height="14" rx="2"/><circle cx="8" cy="8" r="1.5"/><path d="m17 13-3.5-3.5L5 17"/><path d="M19 17v6M16 20h6"/></svg><span>إضافة بصورة وكود</span></button><button class="btn ghost" id="add" type="button"><svg class="ui" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h12M3 12h8M3 18h8"/><path d="M18 9v8M14 13h8"/></svg><span>عدة أسماء</span></button></div>
   <div class="search"><input type="search" id="q" placeholder="بحث…" aria-label="بحث"></div>
   <div id="list"></div>
 </div>
@@ -46,14 +46,13 @@ async function load(){
   all=data;draw();
 }
 function draw(){
-  {const b=document.getElementById("impd");if(b)b.hidden=kind!=="code"}
   document.getElementById("hint").textContent=HINT[kind]+" ("+nf(all.filter(x=>x.kind===kind).length)+")";
   const rs=all.filter(x=>x.kind===kind&&hit(norm(Q),x.name,x.code||""));
   document.getElementById("list").innerHTML=rs.length?`<div class="card">${rs.map(x=>{
     const im=safeAv(x.image);
     return `<div class="cent"><span class="cthumb ${im?"has":""}" ${im?`data-z="${x.id}" style="background-image:url('${im}')" role="button" aria-label="تكبير الصورة"`:""}>${im?"":NOPIC}</span>
       <div class="ct"><b>${esc(x.name)}</b>${x.code?`<small>الكود: <span class="cnum">${esc(x.code)}</span></small>`:""}</div>
-      <span class="ca"><button class="btn ghost sm" data-e="${x.id}">تعديل</button><button class="btn ghost sm" data-d="${x.id}">حذف</button></span></div>`}).join("")}</div>`:`<div class="empty">${Q?"مفيش نتائج":"القائمة فاضية. اضغط «إضافة»."}</div>`;
+      <span class="ca"><button class="btn ghost sm" data-e="${x.id}" aria-label="تعديل">${ib("edit","تعديل")}</button><button class="btn ghost sm dang" data-d="${x.id}" aria-label="حذف">${ib("trash","حذف")}</button></span></div>`}).join("")}</div>`:`<div class="empty">${Q?"مفيش نتائج":"القائمة فاضية. اضغط «إضافة»."}</div>`;
 }
 function addNames(){
   openModal("إضافة إلى "+NAMES[kind],`<label>اكتب اسم في كل سطر</label><textarea id="m-cn" rows="6" style="width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)"></textarea>`,async()=>{
@@ -145,31 +144,6 @@ document.querySelectorAll("#tb button").forEach(b=>b.onclick=()=>{
 (async()=>{if(await requireAuth("catalog.html")){renderNav("catalog.html");load().finally(settle)}})();
 </script>
 <script src="install.js" defer>
-/* ===== استيراد أكواد الرسمات بصورها ===== */
-document.getElementById("impd").onclick=async function(){
-  const btn=this;btn.disabled=true;const old=btn.textContent;
-  try{
-    if(!window.DESIGN_IMGS)await new Promise((ok,no)=>{const sc=document.createElement("script");sc.src="design_imgs.js?v="+Date.now();sc.onload=ok;sc.onerror=()=>no(new Error("ملف design_imgs.js مش مرفوع"));document.head.appendChild(sc)});
-    await load();
-    const have=new Map(all.filter(x=>x.kind==="code").map(x=>[norm(x.name),x]));
-    const add=[],upd=[];
-    Object.entries(window.DESIGN_IMGS).forEach(([n,im])=>{const e=have.get(norm(n));e?upd.push([e,im]):add.push({kind:"code",name:n,image:im})});
-    let done=0,fail=0,msg="";
-    for(let i=0;i<add.length;i+=6){
-      btn.textContent="جاري الإضافة… "+done+"/"+(add.length+upd.length);
-      const{error}=await db.from("catalog").insert(add.slice(i,i+6));
-      if(error){fail+=add.slice(i,i+6).length;msg=error.message}else done+=add.slice(i,i+6).length;
-    }
-    for(const[e,im]of upd){
-      btn.textContent="جاري التحديث… "+done+"/"+(add.length+upd.length);
-      const r=await db.rpc("catalog_set_meta",{p_id:e.id,p_code:e.code||"",p_image:im,p_set_image:true});
-      if(r.error){fail++;msg=r.error.message}else done++;
-    }
-    await load();
-    toast(fail?("تم "+done+" وفشل "+fail+": "+msg):("تم: إضافة "+add.length+" وتحديث "+upd.length),fail?"bad":undefined);
-  }catch(e){toast("خطأ: "+e.message,"bad")}
-  btn.disabled=false;btn.textContent=old;
-};
 </script>
 </body>
 </html>
