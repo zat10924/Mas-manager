@@ -31,7 +31,7 @@
 <script src="common.js"></script>
 <script src="reports.js"></script>
 <script>
-let ctl=null,lastDaily=null;
+let ctl=null,lastDaily=null,ENT=[];
 const WDN=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
 const isFri=d=>new Date(d+"T00:00:00Z").getUTCDay()===5;
 async function workerTargets(){
@@ -49,6 +49,7 @@ async function daily(){
   let prevDay="";for(let d=addDays(day,-1),n=0;n<14;d=addDays(d,-1),n++)if(!isFri(d)&&(dayTot.get(d)||0)>0){prevDay=d;break}
   const last7=[];for(let d=addDays(day,-1),n=0;n<21&&last7.length<7;d=addDays(d,-1),n++)if(!isFri(d)&&(dayTot.get(d)||0)>0)last7.push(d);
   const avg7=last7.length?last7.reduce((a,d)=>a+dayTot.get(d),0)/last7.length:0;
+  ENT=[];
   const W=new Map(),WT=new Map(),NT=[],I=[],cards=[];let tot=0,wq=0,wg=0,late=0,open=0,stalled=0,sprayMM=0;
   res.forEach((r,i)=>{
     const k=keys[i],c=S[k];
@@ -56,7 +57,7 @@ async function daily(){
     const d=r.value,rows=d.prod.filter(x=>x.d===day),sum=rows.reduce((a,x)=>a+x.qty,0);tot+=sum;
     if(d.ord){const o=d.ord.filter(x=>x.status==="open");open+=o.length;late+=o.filter(x=>isLate(x.status,x.date)).length;const bk=Reports.backlog(k,d);if(bk)stalled+=bk.stalled.length}
     if(d.waste){const w=d.waste.filter(x=>x.d===day);wq+=w.reduce((a,x)=>a+x.qty,0);wg+=w.reduce((a,x)=>a+x.good,0)}
-    rows.forEach(x=>{if(x.w){const kk=x.w+"|"+c.name,o=W.get(kk)||{w:x.w,s:c.name,q:0};o.q+=x.qty;W.set(kk,o);WT.set(x.w,(WT.get(x.w)||0)+x.qty)}if(x.n)NT.push({s:c.name,t:x.item+(x.sub?" — "+x.sub:""),n:x.n,w:x.w})});
+    rows.forEach(x=>{if(x.id)ENT.push([k,x]);if(x.w){const kk=x.w+"|"+c.name,o=W.get(kk)||{w:x.w,s:c.name,q:0};o.q+=x.qty;W.set(kk,o);WT.set(x.w,(WT.get(x.w)||0)+x.qty)}if(x.n)NT.push({s:c.name,t:x.item+(x.sub?" — "+x.sub:""),n:x.n,w:x.w})});
     // مقارنة القسم بمتوسطه (آخر 7 أيام شغل)
     const sd=secDay[k],sdays=[];for(let dd=addDays(day,-1),n=0;n<21&&sdays.length<7;dd=addDays(dd,-1),n++)if(!isFri(dd)&&(sd.get(dd)||0)>0)sdays.push(dd);
     const savg=sdays.length?sdays.reduce((a,dd)=>a+sd.get(dd),0)/sdays.length:0;
@@ -93,9 +94,15 @@ async function daily(){
    <div class="card" data-ps="insights"${I.length?"":" data-empty"}><div class="sec-head"><h3>🧠 ملاحظات ذكية</h3></div>${I.length?Reports.insHtml(I.slice(0,9)):'<div class="empty">مفيش ملاحظات خاصة لليوم ده</div>'}</div>`
    +cards.join("")
    +(wRows.length?`<div class="card" data-ps="workers"><h3>العمال</h3><table><thead><tr><th>العامل</th><th>القسم</th><th>الكمية</th></tr></thead><tbody>${wRows.map(o=>`<tr><td><b>${esc(o.w)}</b></td><td>${o.s}</td><td><b>${nf(o.q)}</b></td></tr>`).join("")}</tbody></table>${tg.size&&wl.some(([n])=>tg.has(n))?`<table style="margin-top:8px"><thead><tr><th>العامل</th><th>إجمالي اليوم</th><th>المعدل</th><th>الإنجاز</th></tr></thead><tbody>${wl.filter(([n])=>tg.has(n)).map(([n,q])=>{const p=Math.round(q/tg.get(n)*100);return `<tr><td><b>${esc(n)}</b></td><td>${nf(q)}</td><td>${nf(tg.get(n))}</td><td><span class="tag ${p>=100?"ok":p<70?"late":""}">${p}%</span></td></tr>`}).join("")}</tbody></table>`:""}</div>`:"")
+   +((can("edit")||can("delete"))&&ENT.length?`<div class="card noprint"><div class="sec-head"><h3>✏️ تسجيلات اليوم — تعديل / حذف</h3></div><div class="hint" style="margin:0 0 6px">لو فيه تسجيل غلط عدّله أو احذفه من هنا، والأرقام والتقرير بيتحدّثوا.</div>${ENT.map(([k,x],i)=>`<div class="line fe"><span><span class="badge" style="--c:${S[k].color}">${S[k].name}</span> ${esc(Reports.entryTxt(x))}${k==="spray"&&x.oc?` <span class="nums">(لون الصنف: ${esc(x.oc)})</span>`:""}${x.w?` <span class="nums">· ${esc(x.w)}</span>`:""}</span><span style="display:flex;align-items:center;gap:6px;white-space:nowrap"><b>${nf(x.qty)}</b>${Reports.actBtns(i,x)}</span></div>`).join("")}</div>`:"")
    +(NT.length?`<div class="card" data-ps="notes"><h3>ملاحظات اليوم</h3>${NT.map(x=>`<div class="line"><b>${x.s} · ${esc(x.t)}</b>${x.w?` <span class="tag">${esc(x.w)}</span>`:""}<div class="nums">${esc(x.n)}</div></div>`).join("")}</div>`:"");
   lastDaily={keys,res,S,hasW:wRows.length>0,hasN:NT.length>0,hasI:I.length>0,secHas:Object.fromEntries(keys.map(k=>[k,!box.querySelector('[data-ps="sec_'+k+'"]')?.hasAttribute("data-empty")]))};
 }
+document.getElementById("daily").addEventListener("click",e=>{
+  const b=e.target.closest("[data-act]");if(!b)return;
+  const en=ENT[+b.dataset.i];if(!en)return;
+  (b.dataset.act==="edit"?Reports.editEntry:Reports.deleteEntry)(en[1],en[0],daily);
+});
 function printDaily(){
   const L=lastDaily;if(!L)return;
   Reports.printDialog(document.getElementById("daily"),"daily",[["kpi","الأرقام الرئيسية",true],["insights","الملاحظات الذكية",L.hasI],...L.keys.map(k=>["sec_"+k,"قسم "+L.S[k].name,L.secHas[k]]),["workers","العمال والمعدل",L.hasW],["notes","ملاحظات اليوم",L.hasN]]);

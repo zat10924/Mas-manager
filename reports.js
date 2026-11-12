@@ -31,14 +31,14 @@ async function freeRows(sec){
     }
   }catch(e){return[]}
   return out.map(x=>sec==="spray"
-    ?{d:D(x.prod_date),item:x.item||"—",sub:x.spray_color||"",oc:x.sub||"",qty:+x.qty||0,w:x.worker||"",n:x.note||"",free:true}
-    :{d:D(x.prod_date),item:x.item||"—",sub:x.sub||"",qty:+x.qty||0,w:x.worker||"",n:x.note||"",free:true});
+    ?{d:D(x.prod_date),item:x.item||"—",sub:x.spray_color||"",oc:x.sub||"",qty:+x.qty||0,w:x.worker||"",n:x.note||"",free:true,id:x.id,tb:"free_production",raw:x}
+    :{d:D(x.prod_date),item:x.item||"—",sub:x.sub||"",qty:+x.qty||0,w:x.worker||"",n:x.note||"",free:true,id:x.id,tb:"free_production",raw:x});
 }
 const groupBy=(arr,k)=>{const m=new Map();arr.forEach(x=>{const v=x[k];(m.get(v)||m.set(v,[]).get(v)).push(x)});return m};
 
-function fromLines(orders,lines,prods,subKey,waste){
+function fromLines(orders,lines,prods,subKey,waste,tb){
   const O=new Map(orders.map(o=>[o.id,o])),L=new Map(lines.map(l=>[l.id,l])),byO=groupBy(lines,"order_id");
-  const prod=prods.map(p=>{const l=L.get(p.line_id),o=l&&O.get(l.order_id);return{d:D(p.prod_date),item:o?.item||"—",sub:l?String(l[subKey]??""):"",qty:+p.qty||0,w:p.worker||"",n:[p.design,p.note].filter(Boolean).join(" · ")}});
+  const prod=prods.map(p=>{const l=L.get(p.line_id),o=l&&O.get(l.order_id);return{d:D(p.prod_date),item:o?.item||"—",sub:l?String(l[subKey]??""):"",qty:+p.qty||0,w:p.worker||"",n:[p.design,p.note].filter(Boolean).join(" · "),id:p.id,tb,raw:p,oid:l&&l.order_id,max:l?(+l.total_required||0)-(+l.produced||0)+(+p.qty||0):0}});
   const ord=orders.map(o=>{
     const ls=byO.get(o.id)||[];
     return{id:o.id,item:o.item,sub:ls.map(l=>l[subKey]).join("، "),date:D(o.order_date),status:o.status,
@@ -69,12 +69,12 @@ const SRC={
       }
       const names=new Map(o.map(x=>[x.id,x.item]));
       w.forEach(x=>{if(!x.item&&x.order_id)x.item=names.get(x.order_id)});
-      const out=fromLines(o,l,p,"color",w);out.prod.push(...await freeRows("glaze"));return out;
+      const out=fromLines(o,l,p,"color",w,"glaze_production");out.prod.push(...await freeRows("glaze"));return out;
     }},
   deco:{name:"زخرفة",page:"decoration.html",icon:"deco",color:"#5E5A8C",noun:"الإنتاج",sub:"الكود",
     async fetch(){
       const[o,l,p]=await Promise.all([all("deco_orders","id,item,order_date,status"),all("deco_lines_status","id,order_id,code,total_required,produced"),all("deco_production","*")]);
-      const out=fromLines(o,l,p,"code");out.prod.push(...await freeRows("deco"));return out;
+      const out=fromLines(o,l,p,"code",null,"deco_production");out.prod.push(...await freeRows("deco"));return out;
     }},
   // الرش: لون الصنف (oc) حاجة، و«لون الرش» (sub = spray_color) حاجة تانية مسجلة على كل تسجيل إنتاج.
   // التسجيلات القديمة اللي من غير لون رش بتتحسب «بدون لون رش».
@@ -83,7 +83,7 @@ const SRC={
       const[s,p]=await Promise.all([all("spray_status","*"),all("spray_production","*")]);
       const S=new Map(s.map(x=>[x.id,x])),fr=await freeRows("spray");
       return{
-        prod:p.map(x=>{const o=S.get(x.order_id),oc=o?String(o.color??""):"";return{d:D(x.prod_date),item:o?.item||"—",sub:String(x.spray_color||""),oc,qty:+x.qty||0,w:x.worker||"",n:x.note||""}}).concat(fr),
+        prod:p.map(x=>{const o=S.get(x.order_id),oc=o?String(o.color??""):"";return{d:D(x.prod_date),item:o?.item||"—",sub:String(x.spray_color||""),oc,qty:+x.qty||0,w:x.worker||"",n:x.note||"",id:x.id,tb:"spray_production",raw:x,oid:x.order_id,max:o?(+o.qty_required||0)-(+o.produced||0)+(+x.qty||0):0}}).concat(fr),
         ord:s.map(o=>({id:o.id,item:o.item,sub:String(o.color??""),date:D(o.order_date),status:o.status,req:+o.qty_required||0,done:Math.min(+o.produced||0,+o.qty_required||0)}))
       };
     }},
@@ -288,6 +288,54 @@ async function shareText(text){
   window.open("https://wa.me/?text="+encodeURIComponent(text),"_blank");
 }
 const showMore=(list,flag)=>flag?list:list.slice(0,10);
+/* ---------- تعديل / حذف تسجيل إنتاج من جوه التقارير ---------- */
+const SYNC={glaze:{lv:"glaze_lines_status",o:"glaze_orders"},deco:{lv:"deco_lines_status",o:"deco_orders"},spray:{sv:"spray_status",o:"spray_orders"}};
+// بعد أي تعديل/حذف: نعيد حساب حالة الطلبية (مفتوحة/مكتملة) زي صفحة تسجيل الإنتاج
+async function resyncOrder(row,key){
+  const s=SYNC[key];if(!s||!row.oid)return;
+  if(s.lv){await syncAfter({sync:{lv:s.lv,o:s.o,oid:row.oid}});return}
+  const{data}=await db.from(s.sv).select("*").eq("id",row.oid).single();
+  const done=!!data&&data.produced>=data.qty_required;
+  if(data&&data.status!==(done?"done":"open"))await db.from(s.o).update({status:done?"done":"open"}).eq("id",row.oid);
+}
+const actBtns=(i,r)=>(can("edit")?`<button class="btn ghost sm" type="button" data-act="edit" data-i="${i}">تعديل</button> `:"")+(can("delete")?`<button class="btn ghost sm" type="button" data-act="del" data-i="${i}">حذف</button>`:"");
+const entryTxt=r=>r.item+(r.sub?" · "+r.sub:"");
+function editEntry(row,key,done){
+  if(!row||!row.id)return;
+  const deco=key==="deco",spray=key==="spray",free=!!row.free,raw=row.raw||{};
+  const lab=deco?"كود الرسمة":spray?"لون الصنف":"اللون",sid=deco?"m-code":"m-color";
+  if(row.max)row={...row,max:Math.max(row.max,row.qty)}; // مسموح دايمًا ترجّع الكمية لقيمتها الحالية أو أقل
+  openModal("تعديل تسجيل الإنتاج",
+    (free?`<label>الصنف</label><input id="m-item" autocomplete="off"><label>${lab} (اختياري)</label><input id="${sid}" autocomplete="off">`
+         :`<div class="nums"><b>${esc(entryTxt(row))}</b></div>`)+
+    `<label>الكمية</label><input type="number" id="m-q" min="1" ${row.max?`max="${row.max}"`:""} inputmode="numeric" value="${row.qty}">`+
+    (row.max?`<div class="hint" style="margin:0">أقصى كمية ممكنة للبند ده: ${nf(row.max)}</div>`:"")+
+    `<label>التاريخ</label><input type="date" id="m-d" value="${esc(row.d||today())}">${spray?XS(raw.spray_color||""):""}${XF(deco)}`,async()=>{
+    const q=parseInt(document.getElementById("m-q").value);
+    if(!q||q<1){toast("اكتب كمية صحيحة");return false}
+    if(row.max&&q>row.max){toast("الكمية أكبر من المتاح ("+row.max+")");return false}
+    const v=id=>((document.getElementById(id)||{}).value||"").trim();
+    const patch={qty:q,prod_date:v("m-d")||row.d||today(),worker:v("m-w")||null,note:v("m-n")||null};
+    if(deco)patch.design=v("m-ds")||null;
+    if(spray){if(!v("m-sc")){toast("اكتب لون الرش");return false}patch.spray_color=v("m-sc")}
+    if(free){const item=v("m-item");if(!item){toast("اكتب الصنف");return false}patch.item=item;patch.sub=v(sid)||null}
+    let r=await db.from(row.tb).update(patch).eq("id",row.id).select();
+    if(r.error&&/worker|note|design|spray_color/.test(r.error.message||"")){const{worker,note,design,spray_color,...rest}=patch;r=await db.from(row.tb).update(rest).eq("id",row.id).select()}
+    if(r.error){toast(isNet(r.error)?"التعديل محتاج اتصال بالإنترنت":"خطأ: "+r.error.message,"bad");return false}
+    if(!r.data||!r.data.length){toast("لم يتم التعديل، راجع الصلاحيات","bad");return false}
+    await resyncOrder(row,key);cache[key]=null;toast("تم التعديل");if(done)done();
+  },"حفظ التعديل");
+  const set=(id,val)=>{const el=document.getElementById(id);if(el&&val)el.value=val};
+  if(free){set("m-item",row.free&&spray?raw.item:row.item);set(sid,free?raw.sub:"")}
+  set("m-w",raw.worker);set("m-n",raw.note);set("m-ds",raw.design);
+}
+async function deleteEntry(row,key,done){
+  if(!row||!row.id)return;
+  if(!await ask("حذف تسجيل الإنتاج ده؟ ("+esc(entryTxt(row))+" · "+nf(row.qty)+")"))return;
+  const{data,error}=await db.from(row.tb).delete().eq("id",row.id).select();
+  if(error||!data.length){toast(error?(isNet(error)?"الحذف محتاج اتصال بالإنترنت":"خطأ: "+error.message):"لم يتم الحذف، راجع الصلاحيات","bad");return}
+  await resyncOrder(row,key);cache[key]=null;toast("تم الحذف");if(done)done();
+}
 const stripTags=h=>String(h).replace(/<[^>]+>/g,"").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">");
 
 /* ---------- طباعة ذكية ----------
@@ -423,8 +471,9 @@ function mount(rootId,key){
     $('[data-ps="workers"]').toggleAttribute("data-empty",!ws.length);
     // سجل التفاصيل
     const lg=rows.slice().sort((a,b)=>b.d.localeCompare(a.d)),CAP=400,lv=st.printing?lg.slice(0,CAP):showMore(lg,st.moreL);
+    st.lvRows=lv;const canAct=!st.printing&&(can("edit")||can("delete"));
     const subCell=r=>esc(r.sub||"—")+(key==="spray"&&r.oc?`<div class="nums" style="font-size:.78rem">لون الصنف: ${esc(r.oc)}</div>`:"");
-    $(".rlg").innerHTML=lg.length?`<table><thead><tr><th>التاريخ</th><th>الصنف</th>${subLbl?`<th>${subLbl}</th>`:""}<th>الكمية</th><th>العامل</th><th>ملاحظة</th></tr></thead><tbody>${lv.map(r=>`<tr><td>${fmtD(r.d)}</td><td>${esc(r.item)}${r.free?' <span class="tag">بدون طلبية</span>':""}</td>${subLbl?`<td>${subCell(r)}</td>`:""}<td><b>${nf(r.qty)}</b></td><td>${esc(r.w||"—")}</td><td>${esc(r.n||"—")}</td></tr>`).join("")}</tbody></table>${st.printing?(lg.length>CAP?`<div class="hint">اتعرض أحدث ${CAP} تسجيل من ${nf(lg.length)} — الباقي في ملف Excel.</div>`:""):(lg.length>10?`<button class="btn ghost sm more noprint" data-m="l">${st.moreL?"عرض أقل":`عرض الكل (${lg.length})`}</button>`:"")}`:'<div class="empty">مفيش تسجيلات في الفترة دي</div>';
+    $(".rlg").innerHTML=lg.length?`<table><thead><tr><th>التاريخ</th><th>الصنف</th>${subLbl?`<th>${subLbl}</th>`:""}<th>الكمية</th><th>العامل</th><th>ملاحظة</th>${canAct?'<th class="noprint"></th>':""}</tr></thead><tbody>${lv.map(r=>`<tr><td>${fmtD(r.d)}</td><td>${esc(r.item)}${r.free?' <span class="tag">بدون طلبية</span>':""}</td>${subLbl?`<td>${subCell(r)}</td>`:""}<td><b>${nf(r.qty)}</b></td><td>${esc(r.w||"—")}</td><td>${esc(r.n||"—")}</td>${canAct?`<td class="noprint" style="white-space:nowrap">${r.id?actBtns(st.lvRows.indexOf(r),r):""}</td>`:""}</tr>`).join("")}</tbody></table>${st.printing?(lg.length>CAP?`<div class="hint">اتعرض أحدث ${CAP} تسجيل من ${nf(lg.length)} — الباقي في ملف Excel.</div>`:""):(lg.length>10?`<button class="btn ghost sm more noprint" data-m="l">${st.moreL?"عرض أقل":`عرض الكل (${lg.length})`}</button>`:"")}`:'<div class="empty">مفيش تسجيلات في الفترة دي</div>';
     $('[data-ps="log"]').toggleAttribute("data-empty",!lg.length);
     $(".rpd").textContent=fmtP(f,t)+(st.item?" · الصنف: "+st.item:"")+(st.col?" · "+subLbl+": "+st.col:"")+(st.wk?" · العامل: "+st.wk:"")+" · طُبع في "+fmtD(today());
     st.last={f,t,rows,total,g,open,best,ins,ws,bk};
@@ -449,6 +498,8 @@ function mount(rootId,key){
   $(".rcl").onchange=e=>{st.col=e.target.value;draw()};
   $(".rw").onchange=e=>{st.wk=e.target.value;draw()};
   root.addEventListener("click",e=>{
+    const ab=e.target.closest("[data-act]");
+    if(ab){const r=st.lvRows[+ab.dataset.i];if(!r)return;(ab.dataset.act==="edit"?editEntry:deleteEntry)(r,key,()=>refresh(true));return}
     const sg=e.target.closest(".seg button");
     if(sg){st.by=sg.dataset.by;st.moreB=false;draw();return}
     const mo=e.target.closest(".more");
@@ -607,5 +658,5 @@ function dashboard(rootId){
   return{refresh:()=>refresh(true)};
 }
 
-return{mount,dashboard,sources:SRC,getData,backlog,ordN,insHtml,printDialog,workerStats,groupSum,etaTxt};
+return{mount,dashboard,sources:SRC,getData,backlog,ordN,editEntry,deleteEntry,actBtns,entryTxt,insHtml,printDialog,workerStats,groupSum,etaTxt};
 })();
