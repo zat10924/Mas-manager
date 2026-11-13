@@ -1082,9 +1082,10 @@ function freeProduction(sec,done){
   // مسودة: بتتحفظ أول بأول وبترجع لو الصفحة اتقفلت أو النت قطع (24 ساعة)
   const DK="draft_free_"+sec,modal=document.getElementById("mrows").closest(".modal");
   const snap=()=>[...box.querySelectorAll(".mrow")].map(el=>({i:el.querySelector(".it").value,s:el.querySelector(".sb").value,q:el.querySelector(".mq2").value,c:spr?el.querySelector(".msc").value:""}));
-  const saveDraft=()=>{try{const rows=snap().filter(r=>r.i||r.s||r.q||r.c);if(rows.length)localStorage.setItem(DK,JSON.stringify({at:Date.now(),rows}));else localStorage.removeItem(DK)}catch(e){}};
-  let draft=null;try{draft=JSON.parse(localStorage.getItem(DK))}catch(e){}
-  if(draft&&Date.now()-draft.at<864e5&&draft.rows&&draft.rows.length){
+  // المسودة اتلغت: بنمسح أي مسودة قديمة ومبنحفظش جديد
+  const saveDraft=()=>{try{localStorage.removeItem(DK)}catch(e){}};
+  let draft=null;saveDraft();
+  if(draft&&draft.rows&&draft.rows.length){
     draft.rows.forEach((r,n)=>{if(n>0||!box.querySelector(".mrow"))add(false);const el=box.lastElementChild;el.querySelector(".it").value=r.i;el.querySelector(".sb").value=r.s;el.querySelector(".mq2").value=r.q;if(spr&&r.c)el.querySelector(".msc").value=r.c});
     toast("رجّعنا آخر مسودة اتكتبت");
   }else add(true);

@@ -238,7 +238,8 @@ mx.onclick=()=>{multi=false;sel.clear();draw()};
 mgo.onclick=multiModal;
 logd.onchange=()=>{D=logd.value||today();skel("today",1);load()};
 function quick(r){
-  if(!r)return;
+  if(r&&typeof r!=="object")r=rows.find(x=>String(x.id)===String(r));
+  if(!r||!(r.req>=0)||typeof r.sub==="function"){toast("البند ده مش متحمّل صح — دوس «تحديث» وجرّب تاني","warn");return}
   const rem=r.req-r.done;
   if(rem<=0){toast("البند ده مكتمل بالفعل","warn");return}
   const lk="lq_"+sec+"_"+r.id;let last=0;try{last=+localStorage.getItem(lk)||0}catch(e){}
