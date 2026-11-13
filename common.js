@@ -230,7 +230,7 @@ function renderNav(active){
   const app=typeof APP!=="undefined"?APP:"إدارة الأقسام";
   const h=document.createElement("header");h.className="topbar";
   h.innerHTML=`<button class="iconbtn lbl" id="mn" aria-label="القائمة">${MENU}<span>القائمة</span></button><span class="brand"><img src="icon.svg" alt="MAS"><span class="bt"><b>MAS</b><small>الماس للخزف والصيني</small></span></span><span class="sp"></span><button class="iconbtn lbl" id="rf" aria-label="تحديث">${ico("refresh")}<span>تحديث</span></button><span class="tbw"><button ${avAttr(ME.avatar,"avatar")} id="av" aria-label="حسابي" aria-haspopup="true">${avText(ME.avatar,initialOf())}</button><small>حسابي</small></span>`;
-  const sg=s=>`<div class="sg" style="--c:${s[3]}"><a class="sh ${s[0]===active?"on":""}" href="${s[0]}">${ico(s[2])}<span>${s[1]}</span></a>${s[0]===active&&SUBS[s[0]]?`<div class="sub">${subsOf(s[0]).map(x=>`<a href="${s[0]}#${x[1]}" data-h="${x[1]}">${x[0]}</a>`).join("")}</div>`:""}</div>`;
+  const sg=s=>`<div class="sg" style="--c:${s[3]}"><a class="sh ${s[0]===active?"on":""}" href="${s[0]}">${ico(s[2])}<span>${s[1]}</span></a>${s[0]===active&&SUBS[s[0]]?`<div class="sub">${subsOf(s[0]).map(x=>`<a href="${s[0]}#${x[1]}" data-h="${x[1]}">${tabIco(x[1],"si")}<span>${x[0]}</span></a>`).join("")}</div>`:""}</div>`;
   const NAVG=(()=>{try{return JSON.parse(localStorage.getItem("navg")||"{}")}catch(e){return{}}})();
   const grp=(t,a)=>{
     if(!a.length)return"";
@@ -1275,3 +1275,70 @@ addEventListener("load",()=>setTimeout(async()=>{
     if(await pushSave(sub)){localStorage.setItem("push_uid",session.user.id);localStorage.setItem("push_sync",String(Date.now()))}
   }catch(e){}
 },4000));
+
+/* ===== v5.2: تبويبات موحّدة بأيقونات + جداول مقروءة على الموبايل ===== */
+const TABI={
+  open:'<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h4"/>',
+  done:'<circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/>',
+  rep:'<path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="m19 6-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/>',
+  prod:'<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 16v-5M12 16V7M17 16v-3"/>',
+  wk:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>',
+  log:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 8v5l3 2"/>',
+  daily:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  orders:'<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11v6M9 14h6"/>',
+  general:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  item:'<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/>',
+  color:'<path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.65-.75 1.65-1.69 0-.44-.18-.84-.44-1.13-.29-.29-.44-.65-.44-1.12a1.64 1.64 0 0 1 1.67-1.67h2c3.05 0 5.55-2.5 5.55-5.55C21.97 6 17.46 2 12 2z"/><circle cx="13.5" cy="6.5" r=".8"/><circle cx="17.5" cy="10.5" r=".8"/><circle cx="6.5" cy="12" r=".8"/><circle cx="8.5" cy="7.5" r=".8"/>',
+  code:'<path d="M20 12l-8 8-9-9V3h8z"/><path d="M7.5 7.5h.01"/>',
+  bk:'<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
+  all:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  glaze:'<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/><path d="M9 15a3 3 0 0 0 3 3"/>',
+  deco:'<path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.65-.75 1.65-1.69 0-.44-.18-.84-.44-1.13-.29-.29-.44-.65-.44-1.12a1.64 1.64 0 0 1 1.67-1.67h2c3.05 0 5.55-2.5 5.55-5.55C21.97 6 17.46 2 12 2z"/><circle cx="13.5" cy="6.5" r=".8"/><circle cx="6.5" cy="12" r=".8"/>',
+  spray:'<path d="M3 3h.01M7 5h.01M11 3h.01M3 7h.01M7 9h.01M3 11h.01"/><rect x="15" y="5" width="4" height="4"/><path d="m19 9 2 2v10c0 .6-.4 1-1 1h-6c-.6 0-1-.4-1-1V11l2-2"/>',
+  repair:'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+  casting:'<path d="M8 2h8"/><path d="M9 2v4c0 1.4-4 2.6-4 8a7 7 0 0 0 14 0c0-5.4-4-6.6-4-8V2"/><path d="M5.5 13h13"/>'
+};
+const TABTXT={"مفتوحة":"open","مكتملة":"done","الهالك":"rep","تقارير":"prod","التقارير":"prod","العمال":"wk","السجل":"log","اليومي":"daily","الطلبيات":"orders","العام":"general","الأصناف":"item","الألوان":"color","أكواد الزخرفة":"code","سجل النشاط":"log","النسخ الاحتياطي":"bk","الكل":"all","جليز":"glaze","زخرفة":"deco","رش":"spray","تصليح":"repair","الصب اليدوي":"casting"};
+const TABALIAS={rep:"rep",wk:"wk",bk:"bk",deco:"deco"};
+const tabIco=(k,c)=>TABI[k]?`<svg class="ti ${c||""}" viewBox="0 0 24 24" aria-hidden="true">${TABI[k]}</svg>`:"";
+function tabKey(b){
+  const d=b.dataset||{};
+  if(d.tk)return d.tk;
+  let k=b.id&&b.id.startsWith("t-")?b.id.slice(2):(d.t||d.k||d.s||"");
+  if(!TABI[k])k=TABTXT[(b.textContent||"").trim()]||(k===""&&TABTXT[(b.textContent||"").trim()])||"";
+  return k;
+}
+function upgradeTabs(root){
+  (root||document).querySelectorAll(".tabs").forEach(box=>{
+    const bs=box.querySelectorAll("button");if(!bs.length)return;
+    box.classList.add("itabs");box.setAttribute("role","tablist");box.style.setProperty("--n",bs.length);
+    bs.forEach(b=>{
+      if(b.dataset.tk!==undefined)return;
+      const k=tabKey(b),t=(b.textContent||"").trim();
+      b.dataset.tk=k;b.setAttribute("role","tab");
+      b.innerHTML=tabIco(k)+"<span class=\"tl\">"+t+"</span>";
+    });
+  });
+}
+/* عدّاد صغير على التبويب (مثلاً عدد الطلبيات المفتوحة) */
+function tabCount(k,n){
+  document.querySelectorAll('.tabs button[data-tk="'+k+'"]').forEach(b=>{
+    let e=b.querySelector(".tc");
+    if(!e){e=document.createElement("em");e.className="tc";b.appendChild(e)}
+    e.textContent=n;e.hidden=!(n>0);
+  });
+}
+/* الجداول على الشاشات الصغيرة تتحول لبطاقات: كل خانة معاها عنوانها */
+function cardTables(root){
+  (root||document).querySelectorAll(".scroll table:not([data-ct]):not(.nocard)").forEach(t=>{
+    const hs=[...t.querySelectorAll("thead th")].map(h=>(h.textContent||"").trim());
+    t.dataset.ct="1";if(!hs.length||t.querySelector("td[colspan]"))return;
+    t.querySelectorAll("tbody tr").forEach(r=>[...r.children].forEach((c,i)=>{if(hs[i])c.setAttribute("data-label",hs[i])}));
+    t.classList.add("ct");
+  });
+}
+(function(){
+  let q=0;const run=()=>{q=0;try{upgradeTabs();cardTables()}catch(e){}};
+  new MutationObserver(()=>{if(!q)q=requestAnimationFrame(run)}).observe(document.documentElement,{childList:true,subtree:true});
+  run();
+})();

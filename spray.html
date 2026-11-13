@@ -67,6 +67,7 @@ function drawStats(){
   kpis("stats",[["طلبيات مفتوحة",open.length],["المتبقي للإنجاز",open.reduce((a,o)=>a+Math.max(o.qty_required-o.produced,0),0)],["إنتاج النهارده",prods.filter(p=>p.prod_date===t).reduce((a,p)=>a+p.qty,0)+FREE_T,"var(--ok)"]]);
 }
 function renderOrders(){
+  try{tabCount("open",orders.filter(o=>o.status==="open").length);tabCount("done",orders.filter(o=>o.status==="done").length)}catch(e){}
   drawStats();
   const list=orders.filter(o=>o.status===tab&&hit(Q,o.item,o.color)),box=document.getElementById("orders");
   if(!list.length){box.innerHTML=`<div class="empty">${Q?"مفيش نتائج للبحث":tab==="open"?"مفيش طلبيات مفتوحة. اضغط «طلبية جديدة».":"مفيش طلبيات مكتملة."}</div>`;return}

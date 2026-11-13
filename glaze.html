@@ -110,6 +110,7 @@ function drawStats(){
 }
 function renderOrders(){
   drawStats();
+  try{tabCount("open",orders.filter(o=>o.status==="open").length);tabCount("done",orders.filter(o=>o.status==="done").length)}catch(e){}
   const list=orders.filter(o=>o.status===tab&&hit(Q,o.item,...lines.filter(x=>x.order_id===o.id).map(x=>x.color)));
   const box=document.getElementById("orders");
   if(!list.length){box.innerHTML=`<div class="empty">${Q?"مفيش نتائج للبحث":tab==="open"?"مفيش طلبيات مفتوحة. اضغط «طلبية جديدة».":"مفيش طلبيات مكتملة."}</div>`;return}

@@ -120,6 +120,7 @@ function drawStats(){
   kpis("stats",[["طلبيات مفتوحة",open.length],["المتبقي للإنجاز",lines.filter(l=>ids.has(l.order_id)).reduce((a,l)=>a+Math.max(l.total_required-l.produced,0),0)],["إنتاج النهارده",prods.filter(p=>p.prod_date===t).reduce((a,p)=>a+p.qty,0)+FREE_T,"var(--ok)"]]);
 }
 function renderOrders(){
+  try{tabCount("open",orders.filter(o=>o.status==="open").length);tabCount("done",orders.filter(o=>o.status==="done").length)}catch(e){}
   drawStats();
   const list=orders.filter(o=>o.status===tab&&hit(Q,o.item,...lines.filter(x=>x.order_id===o.id).map(x=>x.code)));
   const box=document.getElementById("orders");

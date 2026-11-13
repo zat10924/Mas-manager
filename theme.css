@@ -997,3 +997,49 @@ html.bigbtn .tabs button,html.bigbtn .seg button{min-height:48px}
 
 /* تقرير الطلبيات: عزل الطباعة */
 @media print{body.pr-orders #daily,body.pr-orders #dash,body.pr-orders #dayBar{display:none!important}body.pr-daily #ordersRep,body.pr-dash #ordersRep{display:none!important}}
+
+/* =====================================================================
+   v5.2 — تبويبات داخل القسم بأيقونات + قراءة أوضح
+   ===================================================================== */
+.tabs.itabs{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(72px,1fr);gap:6px;padding:6px;margin:12px 0 14px;border-radius:18px;overflow-x:auto;scrollbar-width:none;background:var(--card);border:1px solid var(--line);box-shadow:0 2px 10px rgba(66,27,36,.07)}
+.tabs.itabs::-webkit-scrollbar{display:none}
+.tabs.itabs .btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:62px;padding:8px 4px 7px;border-radius:14px;border:2px solid transparent;background:transparent;color:var(--ink);font-size:.88rem;font-weight:700;line-height:1.25;box-shadow:none;position:relative;white-space:normal;text-align:center}
+.tabs.itabs .btn.ghost{background:transparent;color:var(--ink);border-color:transparent}
+.tabs.itabs .btn.ghost:hover{background:color-mix(in srgb,var(--pri) 8%,transparent);border-color:transparent}
+.tabs.itabs .btn .ti{width:26px;height:26px;flex:none;fill:none;stroke:var(--pri);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+.tabs.itabs .btn .tl{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tabs.itabs .btn.on,:root[data-theme=dark] .tabs.itabs .btn.on,:root:not([data-theme=light]) .tabs.itabs .btn.on{background:var(--pri)!important;color:#fff!important;border-color:var(--gold,#D7B96F);box-shadow:0 6px 16px rgba(66,27,36,.28)}
+.tabs.itabs .btn.on .ti{stroke:var(--gold-l,#E8D49B);transform:scale(1.08)}
+.tabs.itabs .btn:active{transform:scale(.96)}
+.tabs.itabs .btn:focus-visible{outline:3px solid var(--gold,#D7B96F);outline-offset:1px}
+.tabs.itabs .tc{position:absolute;top:4px;inset-inline-start:6px;min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:var(--gold,#D7B96F);color:#3a1e0f;font-weight:800;font-size:.74rem;line-height:20px;font-style:normal;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.tabs.itabs .tc[hidden]{display:none}
+@media(max-width:360px){.tabs.itabs .btn{font-size:.8rem}.tabs.itabs .btn .ti{width:23px;height:23px}}
+
+/* أيقونات القائمة الجانبية الفرعية */
+.side .sub a{display:flex;align-items:center;gap:10px;padding:10px 12px;font-size:.95rem}
+.side .sub a .ti{width:19px;height:19px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
+.side .sub a.on{background:rgba(215,185,111,.14);font-weight:800}
+.side .sub a.on .ti{opacity:1}
+
+/* عناوين وبطاقات أوضح */
+.card h3,.sec-head h3{font-size:1.08rem;font-weight:800;color:var(--ink)}
+.wrap{line-height:1.6}
+
+/* الجداول على الموبايل → بطاقات (بدون تمرير أفقي) */
+@media screen and (max-width:700px){
+  .scroll{overflow-x:visible}
+  table.ct{display:block;background:none}
+  table.ct thead{display:none}
+  table.ct tbody{display:flex;flex-direction:column;gap:10px}
+  table.ct tr{display:block;background:color-mix(in srgb,var(--bg) 55%,var(--card));border:1px solid var(--line);border-inline-start:4px solid var(--pri);border-radius:14px;padding:4px 14px}
+  table.ct td{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 0;border:0;border-bottom:1px dashed var(--line);text-align:start;font-size:.96rem;min-height:38px}
+  table.ct td:last-child{border-bottom:0}
+  table.ct td::before{content:attr(data-label);flex:none;color:var(--mute);font-size:.84rem;font-weight:700}
+  table.ct td:not([data-label])::before{content:none}
+  table.ct td:first-child{font-size:1.04rem;font-weight:800;border-bottom:2px solid var(--line);justify-content:flex-start}
+  table.ct td:first-child::before{content:none}
+  table.ct td>*{max-width:100%}
+  table.ct td:empty{display:none}
+}
+@media print{.tabs.itabs{display:none!important}}
