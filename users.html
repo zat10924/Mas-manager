@@ -63,7 +63,7 @@ function render(){
     return `<div class="card ${off?"off":""}"><div class="urow">
       <span ${avAttr(r.avatar,"avatar big")}>${avText(r.avatar,(r.full_name||realEmail(r.email)||"?").trim().charAt(0).toUpperCase())}</span>
       <div class="ut"><b>${esc(r.full_name||"بدون اسم")}${me?' <span class="tag">أنت</span>':""}</b><small>${esc(realEmail(r.email)||"بدون إيميل — دخول بالاسم")}</small>${r.last_seen?`<small style="display:block">آخر ظهور: ${ageTxt(r.last_seen)}</small>`:""}
-        <div class="utags"><span class="tag ${r.role==="admin"?"role-admin":""}">${ROLE_AR[r.role]||"بدون صلاحية"}</span>${r.role&&r.role!=="admin"?(ss.length?ss.map(k=>`<span class="tag">${SEC_AR[k]}</span>`).join(""):'<span class="tag">بدون قسم</span>'):""}${off?'<span class="tag bad">موقوف</span>':""}${locked?'<span class="tag lock" title="حسابات المديرين بتتعدّل من Supabase بس">🔒 محمي</span>':""}</div>
+        <div class="utags"><span class="tag ${r.role==="admin"?"role-admin":""}">${ROLE_AR[r.role]||"بدون صلاحية"}</span>${r.role&&r.role!=="admin"?(ss.length?ss.map(k=>`<span class="tag">${SEC_AR[k]}</span>`).join(""):'<span class="tag">بدون قسم</span>'):""}${off?'<span class="tag bad">موقوف</span>':""}${locked?'<span class="tag lock" title="حسابات المديرين بتتعدّل من Supabase بس">'+ui("lock")+'محمي</span>':""}</div>
         ${r.phone||r.whatsapp?`<div class="cline">${contactBtns(r)}</div>`:""}</div>
       ${locked?"":`<button class="btn ghost sm" data-e="${r.id}">تعديل</button>`}</div></div>`}).join("")
     :'<div class="empty">مفيش مستخدمين مطابقين</div>';

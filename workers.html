@@ -57,13 +57,13 @@ async function load(){
 function tgt(x){
   const t=+x.daily_target||0;if(!t)return"";
   const p=prodToday.get(x.name)||0,pc=Math.round(p/t*100),c=pc>=100?"var(--ok)":pc>=70?"var(--gold-d,#b9984c)":"var(--bad,#c0392b)";
-  return `<div class="nums" style="margin-top:4px">المعدل المطلوب يوميًا: <b>${nf(t)}</b> · ${pc>=100?"حقق المعدل ✓":"ناقص "+nf(t-p)}</div><div style="height:7px;border-radius:6px;background:var(--line);margin:4px 0 2px;overflow:hidden"><i style="display:block;height:100%;width:${Math.min(100,pc)}%;background:${c};border-radius:6px"></i></div><div class="nums" style="color:${c}">${pc}% من المعدل</div>`}
+  return `<div class="nums" style="margin-top:4px">المعدل المطلوب يوميًا: <b>${nf(t)}</b> · ${pc>=100?ib("check","حقق المعدل"):"ناقص "+nf(t-p)}</div><div style="height:7px;border-radius:6px;background:var(--line);margin:4px 0 2px;overflow:hidden"><i style="display:block;height:100%;width:${Math.min(100,pc)}%;background:${c};border-radius:6px"></i></div><div class="nums" style="color:${c}">${pc}% من المعدل</div>`}
 function draw(){
   const act=all.filter(x=>x.active).length;
   kpis("stats",[["إجمالي العمال",all.length],["نشطين",act,"var(--ok)"],["إنتاج اليوم (بالأسماء)",[...prodToday.values()].reduce((a,b)=>a+b,0)]]);
   const rs=all.filter(x=>(!sec||x.section===sec)&&hit(norm(Q),x.name,x.phone||""));
   document.getElementById("list").innerHTML=rs.length?`<div class="card">${rs.map(x=>`<div class="line ${x.active?"":"full"}" style="${x.active?"":"opacity:.6"}"><div class="r"><b>${esc(x.name)}</b><span>${x.section?`<span class="tag">${SECN[x.section]||esc(x.section)}</span> `:""}${x.active?"":'<span class="tag late">موقوف</span>'}</span></div>
-    <div class="nums">${x.phone?"📞 "+esc(x.phone)+" · ":""}${prodToday.get(x.name)?"إنتاج النهارده: <b>"+nf(prodToday.get(x.name))+"</b>":"لسه مفيش إنتاج النهارده"}</div>${tgt(x)}
+    <div class="nums">${x.phone?ui("phone")+" "+esc(x.phone)+" · ":""}${prodToday.get(x.name)?"إنتاج النهارده: <b>"+nf(prodToday.get(x.name))+"</b>":"لسه مفيش إنتاج النهارده"}</div>${tgt(x)}
     <div class="row" style="margin-top:4px"><button class="btn ghost sm" data-e="${x.id}">تعديل</button><button class="btn ghost sm" data-t="${x.id}">${x.active?"إيقاف":"تفعيل"}</button><button class="btn ghost sm" data-d="${x.id}">حذف</button></div></div>`).join("")}</div>`:`<div class="empty">${Q?"مفيش نتائج":"مفيش عمال. اضغط «إضافة عامل»."}</div>`;
 }
 function form(x){

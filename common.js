@@ -49,7 +49,7 @@ const Snd=(()=>{
   function play(k,force){
     const ui=k==="tap"||k==="open";
     if(SET.get("snd",true)&&(force||!ui||SET.get("sndtap",true)))(SEQ[k]||[]).forEach(a=>note(...a));
-    if(SET.get("hap",true)&&navigator.vibrate&&VIB[k]&&!document.hidden){try{navigator.vibrate(VIB[k])}catch(e){}}
+    if(SET.get("hap",true)&&navigator.vibrate&&VIB[k]&&!document.hidden&&(!navigator.userActivation||navigator.userActivation.hasBeenActive)){try{navigator.vibrate(VIB[k])}catch(e){}}
   }
   return{play,warm:ac,tap(){const n=performance.now();if(n-last>40){last=n;play("tap")}}};
 })();
@@ -95,6 +95,15 @@ const ICONS={
 const ico=k=>`<svg class="ic ic-${k}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[k]}</svg>`;
 /* أيقونات الأزرار والتقارير (خطية، بتاخد لون النص) */
 const UIC={
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  moon:'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+  hourglass:'<path d="M5 22h14M5 2h14"/><path d="M17 22v-4.2a2 2 0 0 0-.6-1.4L12 12l-4.4 4.4a2 2 0 0 0-.6 1.4V22"/><path d="M7 2v4.2a2 2 0 0 0 .6 1.4L12 12l4.4-4.4a2 2 0 0 0 .6-1.4V2"/>',
+  wifioff:'<path d="M2 2l20 20"/><path d="M8.5 16.4a5 5 0 0 1 7 0"/><path d="M2 8.8a15 15 0 0 1 4.2-2.6M10.7 5.1A15 15 0 0 1 22 8.8"/><path d="M5 12.9a10 10 0 0 1 5.2-2.7M13.7 10.3A10 10 0 0 1 19 12.9"/><path d="M12 20h.01"/>',
+  lock:'<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  phone:'<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  check:'<path d="m5 12 5 5L20 7"/>',
+  checksq:'<path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
   edit:'<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/>',
   trash:'<path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="m19 6-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/>',
   print:'<path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/>',
@@ -112,7 +121,7 @@ const ib=(k,t)=>ui(k)+"<span>"+t+"</span>";
 // [الملف, الاسم, الأيقونة, اللون]
 const PROD=["production.html","تسجيل الإنتاج","clip","#2e8b57"];
 const REPORTS=["reports.html","التقارير","chart","#2a7f9e"];
-const CATALOG=["catalog.html","الأصناف والألوان","pkg","#8a6d3b"];
+const CATALOG=["catalog.html","الأصناف والأكواد","pkg","#8a6d3b"];
 const SEARCH=["search.html","بحث شامل","search","#3b6fd0"];
 const WORKERS=["workers.html","العمال","hat","#c76a2b"];
 const ACTIVITY=["activity.html","سجل النشاط والنسخ","pulse","#5b6b8c"];
@@ -221,7 +230,13 @@ function renderNav(active){
   const h=document.createElement("header");h.className="topbar";
   h.innerHTML=`<button class="iconbtn lbl" id="mn" aria-label="القائمة">${MENU}<span>القائمة</span></button><span class="brand"><img src="icon.svg" alt="MAS"><span class="bt"><b>MAS</b><small>الماس للخزف والصيني</small></span></span><span class="sp"></span><button class="iconbtn lbl" id="rf" aria-label="تحديث">${ico("refresh")}<span>تحديث</span></button><span class="tbw"><button ${avAttr(ME.avatar,"avatar")} id="av" aria-label="حسابي" aria-haspopup="true">${avText(ME.avatar,initialOf())}</button><small>حسابي</small></span>`;
   const sg=s=>`<div class="sg" style="--c:${s[3]}"><a class="sh ${s[0]===active?"on":""}" href="${s[0]}">${ico(s[2])}<span>${s[1]}</span></a>${s[0]===active&&SUBS[s[0]]?`<div class="sub">${subsOf(s[0]).map(x=>`<a href="${s[0]}#${x[1]}" data-h="${x[1]}">${x[0]}</a>`).join("")}</div>`:""}</div>`;
-  const grp=(t,a)=>a.length?`<div class="sgrp"><div class="sgt">${t}</div>${a.join("")}</div>`:"";
+  const NAVG=(()=>{try{return JSON.parse(localStorage.getItem("navg")||"{}")}catch(e){return{}}})();
+  const grp=(t,a)=>{
+    if(!a.length)return"";
+    const body=a.join(""),hasOn=/class="sh on"/.test(body);
+    const open=hasOn||(t in NAVG?NAVG[t]:(t==="الإنتاج"||t==="الأقسام"));
+    return `<div class="sgrp${open?"":" shut"}" data-g="${t}"><button type="button" class="sgt" aria-expanded="${open}"><span>${t}</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div class="sgb">${body}</div></div>`;
+  };
   const side=document.createElement("aside");side.className="side";side.id="side";
   side.innerHTML=`<div class="side-head"><img src="icon.svg" alt="MAS"><div><b class="wm">MAS <span>الماس</span></b><em class="wsub">للخزف والصيني · إدارة الأقسام</em><small>${esc(ME.name||"")}${ME.name?" · ":""}${ROLE_AR[ME.role]||""}</small></div></div>
   <nav><a class="sh ${active===""||active==="index.html"?"on":""}" href="index.html" style="--c:var(--pri)">${ico("home")}<span>الرئيسية</span></a>
@@ -233,8 +248,14 @@ function renderNav(active){
   <div class="side-foot"><a class="sh ${active===PROFILE[0]?"on":""}" href="profile.html" style="--c:var(--pri)">${ico("user")}<span>ملفي الشخصي</span></a><a class="sh ${active===SETTINGS[0]?"on":""}" href="settings.html" style="--c:var(--pri)">${ico("cog")}<span>الإعدادات</span></a><button class="sh" id="th"></button><button class="sh" id="out">${ico("out")}<span>تسجيل الخروج</span></button><div class="ver" title="تاريخ الإصدار ${APP_BUILD}">الإصدار ${APP_VERSION}</div></div>`;
   const scrim=document.createElement("div");scrim.className="scrim";scrim.id="scrim";
   document.body.prepend(h);document.body.appendChild(side);document.body.appendChild(scrim);
-  const open=v=>document.body.classList.toggle("sideopen",v);
+  const open=v=>{document.body.classList.toggle("sideopen",v);const m=h.querySelector("#mn");m&&m.setAttribute("aria-expanded",v?"true":"false")};
+  h.querySelector("#mn").setAttribute("aria-expanded","false");h.querySelector("#mn").setAttribute("aria-controls","side");
   h.querySelector("#mn").onclick=()=>open(true);scrim.onclick=()=>open(false);
+  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&document.body.classList.contains("sideopen"))open(false)});
+  side.querySelectorAll(".sgt").forEach(b=>b.onclick=()=>{
+    const g=b.parentElement,shut=g.classList.toggle("shut");b.setAttribute("aria-expanded",String(!shut));
+    NAVG[g.dataset.g]=!shut;try{localStorage.setItem("navg",JSON.stringify(NAVG))}catch(e){}
+  });
   h.querySelector("#rf").onclick=async e=>{const b=e.currentTarget;if(b.dataset.busy)return;b.dataset.busy="1";b.classList.add("spin");try{await new Promise(r=>requestAnimationFrame(()=>setTimeout(r,0)));if(typeof load==="function")await Promise.race([load(),new Promise(r=>setTimeout(r,12000))])}catch(x){}finally{delete b.dataset.busy;setTimeout(()=>b.classList.remove("spin"),400)}};
   side.querySelector("#th").onclick=toggleTheme;syncThemeIcon();
   side.querySelector("#th").insertAdjacentHTML("beforeend","<span>الوضع الليلي / النهاري</span>");
@@ -998,7 +1019,7 @@ const NEED_V2=m=>/free_production|relation|does not exist|schema cache|could not
 function freeProduction(sec,done){
   if(!SEC_AR[sec]||sec==="repair"||sec==="casting")return;
   const deco=sec==="deco",spr=sec==="spray",lab=deco?"كود الرسمة":"اللون",kind=deco?"code":"color";
-  const rowHtml=()=>`<div class="itemblk mrow"><div class="ih"><b class="mn"></b><button type="button" class="rmi" aria-label="حذف الصنف">✕ حذف</button></div>
+  const rowHtml=()=>`<div class="itemblk mrow"><div class="ih"><b class="mn"></b><button type="button" class="rmi" aria-label="حذف الصنف">${ib("trash","حذف")}</button></div>
     <label>الصنف</label><input class="it" placeholder="اسم الصنف" autocomplete="off">
     <div class="two"><div><label>${lab}${spr?" (لون الصنف — اختياري)":" (اختياري)"}</label><input class="sb" data-kind="${kind}" placeholder="${lab}" autocomplete="off"></div>
     <div><label>الكمية</label><input type="number" class="mq2" min="1" inputmode="numeric"></div></div>${spr?'<label>لون الرش</label><input class="msc" data-kind="color" placeholder="لون الرش" autocomplete="off" maxlength="60">':""}</div>`;

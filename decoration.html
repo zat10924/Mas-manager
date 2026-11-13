@@ -47,7 +47,24 @@
 <script>
 let orders=[],lines=[],tab=location.hash==="#reports"?"prod":"open",Q="",repCtl=null;
 
+/* صور أكواد الرسمات (بتظهر للعمال عند الإنتاج) */
+let CIMG=new Map(),cimgAt=0;
+async function loadCodeImgs(){
+  if(CIMG.size&&Date.now()-cimgAt<120000)return;
+  try{const r=await db.from("catalog").select("name,image").eq("kind","code").not("image","is",null);
+    if(!r.error&&r.data){CIMG=new Map(r.data.map(x=>[norm(x.name),safeAv(x.image)]).filter(x=>x[1]));cimgAt=Date.now()}}catch(e){}
+}
+const cimg=c=>CIMG.get(norm(c))||"";
+const cthumb=c=>{const u=cimg(c);return u?`<span class="dthumb" data-zc="${esc(c)}" style="background-image:url('${u}')" role="button" aria-label="تكبير صورة الرسمة"></span>`:""};
+function zoomCode(c){
+  const u=cimg(c);if(!u)return;
+  const d=document.createElement("div");d.className="ov";d.style.zIndex=60;
+  d.innerHTML=`<div class="modal"><h3>كود ${esc(c)}</h3><img class="zoomimg" alt="" src="${u}" style="max-height:70vh"><div class="row"><button class="btn ghost" id="zx" type="button" style="flex:1">إغلاق</button></div></div>`;
+  document.body.appendChild(d);d.onclick=e=>{if(e.target===d||e.target.id==="zx")d.remove()};
+}
+document.addEventListener("click",e=>{const z=e.target.closest("[data-zc]");if(z)zoomCode(z.dataset.zc)});
 async function load(){
+  await loadCodeImgs();
   const[o,l,pr,ft]=await Promise.all([
     db.from("deco_orders").select("*").order("created_at",{ascending:false}),
     db.from("deco_lines_status").select("*").order("id"),
@@ -113,11 +130,11 @@ function renderOrders(){
       <div class="top"><b>${esc(o.item)}</b><span>${lateOrder(o)?'<span class="tag late">متأخرة</span> ':""}<span class="tag ${done?"ok":""}">${done?"مكتملة":"مفتوحة"}</span></span></div>
       <div class="nums">${dueTag(o)}${o.postponed_count?` <span class="tag">اتأجلت ${o.postponed_count} مرة</span>`:""}</div>
       <div class="nums">تاريخ الطلبية: <b>${fmtD(o.order_date)}</b>${done?"":` · ${ageTxt(o.order_date)}`}</div>
-      ${done?'<div class="banner">الطلبية خلصت ✅</div>':""}
+      ${done?'<div class="banner ibt">'+ui("checkc")+'<span>اكتملت الطلبية</span></div>':""}
       ${ls.map(x=>{
         const rem=Math.max(x.total_required-x.produced,0),pct=Math.min(100,Math.round(x.produced/x.total_required*100));
         return `<div class="line ${rem===0?"full":""}">
-          <div class="r"><b>كود ${esc(x.code)}</b>
+          <div class="r"><span class="dl">${cthumb(x.code)}<b>كود ${esc(x.code)}</b></span>
           <span class="nums">مطلوب <b>${x.total_required}</b> · تم <b>${x.produced}</b> · متبقي <b>${rem}</b></span></div>
           <div class="bar"><i style="width:${pct}%"></i></div>
           ${logHtml(x.id)}
@@ -138,14 +155,14 @@ async function syncStatus(orderId){
 
 function produce(lineId){
   const x=lines.find(l=>l.id===lineId),rem=x.total_required-x.produced;
-  openModal(`إنتاج كود ${esc(x.code)}`,`<div class="nums">المتبقي: <b>${rem}</b></div><label>الكمية اللي عملتها</label><input type="number" id="m-q" min="1" max="${rem}" inputmode="numeric"><label>التاريخ</label><input type="date" id="m-d" value="${today()}">${XF(true)}`,async()=>{
+  openModal(`إنتاج كود ${esc(x.code)}`,`${cimg(x.code)?`<img class="dzoom" alt="" src="${cimg(x.code)}" data-zc="${esc(x.code)}">`:""}<div class="nums">المتبقي: <b>${rem}</b></div><label>الكمية اللي عملتها</label><input type="number" id="m-q" min="1" max="${rem}" inputmode="numeric"><label>التاريخ</label><input type="date" id="m-d" value="${today()}">${XF(true)}`,async()=>{
     const q=parseInt(document.getElementById("m-q").value);
     if(!q||q<1){toast("اكتب كمية صحيحة");return false}
     if(q>rem){toast("الكمية أكبر من المتبقي ("+rem+")");return false}
     const{error}=await insertRow("deco_production",{line_id:lineId,qty:q,prod_date:document.getElementById("m-d").value||today(),...xfRead()});
     if(error){toast("خطأ: "+error.message);return false}
     const done=await syncStatus(x.order_id);await load();
-    toast(done?"الطلبية خلصت ✅":"تم التسجيل");
+    toast(done?"اكتملت الطلبية":"تم التسجيل");
   });
 }
 
@@ -211,7 +228,7 @@ function increase(orderId){
 
 function newOrder(){
   const crow=()=>`<div class="two nr"><input placeholder="كود الرسمة" class="c"><input placeholder="الكمية" class="q" type="number" min="1" inputmode="numeric"></div>`;
-  const blk=n=>`<div class="itemblk"><div class="ih"><b>الصنف ${n}</b><button type="button" class="rmi" style="display:${n>1?"block":"none"}">حذف الصنف ✕</button></div><input class="it" placeholder="اسم الصنف"><label>الأكواد والكميات</label><div class="rows">${crow()}</div><button class="btn ghost sm addc" type="button">+ كود</button></div>`;
+  const blk=n=>`<div class="itemblk"><div class="ih"><b>الصنف ${n}</b><button type="button" class="rmi" style="display:${n>1?"block":"none"}">${ib("trash","حذف الصنف")}</button></div><input class="it" placeholder="اسم الصنف"><label>الأكواد والكميات</label><div class="rows">${crow()}</div><button class="btn ghost sm addc" type="button">+ كود</button></div>`;
   openModal("طلبية جديدة",`<label>تاريخ الطلبية</label><input type="date" id="m-od" value="${today()}"><label>تاريخ التسليم (اختياري)</label><input type="date" id="m-due"><div id="m-items">${blk(1)}</div><button class="btn sm" id="m-addi" type="button" style="width:100%;margin-top:4px">+ إضافة صنف</button>`,async()=>{
     const blocks=[...document.querySelectorAll("#m-items .itemblk")].map(b=>({
       item:b.querySelector(".it").value.trim(),

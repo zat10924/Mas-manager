@@ -78,7 +78,7 @@ function fill(){
   p_ph_n.value=ME.phone||"";p_wa_n.value=ME.whatsapp||"";p_same.checked=!!ME.phone&&ME.phone===ME.whatsapp;syncSame();links();
   p_fn.value=ME.name||"";p_em.value=realEmail(ME.email)||"— بدون إيميل —";
   p_role.textContent=ROLE_AR[ME.role]||"—";p_sec.textContent=secTxt;p_desc.textContent=ROLE_DESC[ME.role]||"";
-  p_perms.innerHTML=ME.role==="admin"?"":Object.entries(PERM_LBL).map(([k,l])=>`<div class="pk"><span>${l[0]}</span><span class="${can(k)?"y":"n"}">${can(k)?"✓ مسموح":"✕ غير مسموح"}</span></div>`).join("");
+  p_perms.innerHTML=ME.role==="admin"?"":Object.entries(PERM_LBL).map(([k,l])=>`<div class="pk"><span>${l[0]}</span><span class="${can(k)?"y":"n"}">${can(k)?ib("check","مسموح"):ib("x","غير مسموح")}</span></div>`).join("");
 }
 async function saveAvatar(v){
   let r=await db.rpc("set_my_avatar",{p_avatar:v});

@@ -49,7 +49,7 @@ async function wasteInsights(T){
   if(!items.length&&!reasons.length&&!warn)return"";
   const li=(a,fmt)=>a.map(([k,[w,t]])=>`<div class="line" style="display:flex;justify-content:space-between;gap:8px"><span>${esc(k)}</span><span class="nums">${fmt(w,t)}</span></div>`).join("");
   return`<div class="card"${warn?' style="border-color:var(--warn)"':""}><div class="top"><b>تحليل الهالك (جليز)</b><span class="tag">آخر 30 يوم</span></div>
-    ${warn?`<div class="nums" style="color:var(--bad);margin-bottom:6px">⚠ نسبة الهالك الأسبوع ده ${now.toFixed(1)}%${prev!==null?` (كانت ${prev.toFixed(1)}%)`:""}</div>`:""}
+    ${warn?`<div class="nums ibt" style="color:var(--bad);margin-bottom:6px">${ui("alert")}<span>نسبة الهالك الأسبوع ده ${now.toFixed(1)}%${prev!==null?` (كانت ${prev.toFixed(1)}%)`:""}</span></div>`:""}
     ${items.length?`<div class="nums" style="margin:6px 0 2px">أكتر الأصناف هالكًا</div>${li(items,(w,t)=>`${nf(w)} (${(w/t*100).toFixed(1)}%)`)}`:""}
     ${reasons.length?`<div class="nums" style="margin:8px 0 2px">أكتر الأسباب</div>${li(reasons,w=>nf(w))}`:""}</div>`;
 }

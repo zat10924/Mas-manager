@@ -23,7 +23,7 @@
 <div class="wrap">
   <div class="tabs noprint" id="secs"></div>
   <div class="kpis mini three" id="stats"></div>
-  <div class="row noprint" style="margin:0 0 8px"><button class="btn ghost sm" id="mbtn" type="button">☑ تحديد متعدد</button><button class="btn ghost sm" id="mall" type="button" hidden>تحديد الكل</button></div>
+  <div class="row noprint" style="margin:0 0 8px"><button class="btn ghost sm" id="mbtn" type="button"><svg class="ui" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>تحديد متعدد</span></button><button class="btn ghost sm" id="mall" type="button" hidden>تحديد الكل</button></div>
   <div class="prodact noprint"><button class="btn" id="freeBtn" type="button">＋ إنتاج بدون طلبية</button><button class="btn ghost" id="wasteBtn" type="button" hidden>＋ تسجيل هالك</button></div>
   <div id="list"></div>
   <div class="noprint" style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin:18px 2px 8px"><h3 id="logh" style="margin:0">تسجيلات النهارده</h3><input type="date" id="logd" aria-label="تاريخ التسجيلات" style="width:auto;margin:0"></div>
@@ -83,11 +83,11 @@ function draw(){
   document.getElementById("list").innerHTML=list.length?list.map(r=>{
     const rem=Math.max(r.req-r.done,0),p=r.req>0?Math.min(100,Math.round(r.done/r.req*100)):0,late=r.due?today()>r.due:isLate("open",r.date);
     return `<div class="card pr ${multi&&sel.has(r.id)?"sel":""}" data-id="${r.id}" style="cursor:pointer"><div class="top"><span style="display:flex;gap:8px;align-items:center;min-width:0">${multi?`<span class="ck ${sel.has(r.id)?"on":""}"></span>`:""}<b>${esc(r.title)}</b></span><span>${late?'<span class="tag late">متأخرة</span> ':""}<span class="tag">${esc(r.sub)}</span></span></div>
-      <div class="bar"><i style="width:${p}%"></i></div><div class="nums">تم <b>${nf(r.done)}</b> من <b>${nf(r.req)}</b> · متبقي <b>${nf(rem)}</b></div></div>`}).join(""):`<div class="empty">${q?"مفيش نتائج":"مفيش بنود مفتوحة 👌"}</div>`;
+      <div class="bar"><i style="width:${p}%"></i></div><div class="nums">تم <b>${nf(r.done)}</b> من <b>${nf(r.req)}</b> · متبقي <b>${nf(rem)}</b></div></div>`}).join(""):`<div class="empty">${q?"مفيش نتائج":"مفيش بنود مفتوحة"}</div>`;
   document.querySelectorAll(".pr").forEach(e=>e.onclick=()=>pick(rows.find(r=>String(r.id)===e.dataset.id),e));
   updBar();
   wasteBtn.hidden=sec!=="glaze";
-  if(stale)document.getElementById("list").insertAdjacentHTML("afterbegin",`<div class="card" style="border-color:var(--warn)"><b>⚠ مفيش اتصال</b><div class="nums">بيانات محفوظة من آخر اتصال (${new Date(stale).toLocaleTimeString("ar-EG",{hour:"2-digit",minute:"2-digit"})}). تسجيلاتك هتتحفظ وتتبعت لما النت يرجع.</div></div>`);
+  if(stale)document.getElementById("list").insertAdjacentHTML("afterbegin",`<div class="card" style="border-color:var(--warn)"><b class="ibt">${ui("wifioff")}لا يوجد اتصال</b><div class="nums">بيانات محفوظة من آخر اتصال (${new Date(stale).toLocaleTimeString("ar-EG",{hour:"2-digit",minute:"2-digit"})}). تسجيلاتك هتتحفظ وتتبعت لما النت يرجع.</div></div>`);
   const ce=can("edit")&&!stale,cd=can("delete")&&!stale;
   document.getElementById("logh").textContent=D===today()?"تسجيلات النهارده":"تسجيلات يوم "+fmtD(D);
   document.getElementById("logd").value=D;
@@ -95,7 +95,7 @@ function draw(){
 }
 // ===== تحديد متعدد: تسجيل إنتاج أكتر من بند في مرة واحدة =====
 function updBar(){
-  mbtn.textContent=multi?"✕ إنهاء التحديد":"☑ تحديد متعدد";mall.hidden=!multi;
+  mbtn.innerHTML=multi?ib("x","إنهاء التحديد"):ib("checksq","تحديد متعدد");mall.hidden=!multi;
   mbar.hidden=!multi;mgo.textContent=sel.size?"تسجيل "+sel.size+" بند":"اختر البنود";mgo.disabled=!sel.size;
 }
 function pick(r,el){
@@ -139,7 +139,7 @@ function multiModal(){
     multi=false;sel.clear();await load();
     if(bad.length)toast("اتسجل "+ok+" وفشل "+bad.length+": "+bad[0]);
     else if(off)toast("مفيش نت: اتحفظ "+ok+" بند على الجهاز وهيتسجلوا لما النت يرجع","warn");
-    else toast("تم تسجيل "+ok+" بند"+(fin?" — خلصت "+fin+" طلبية ✅":""));
+    else toast("تم تسجيل "+ok+" بند"+(fin?" — اكتملت "+fin+" طلبية":""));
   },"تسجيل الكل");
 }
 mbtn.onclick=()=>{multi=!multi;sel.clear();draw()};
@@ -219,7 +219,7 @@ function quick(r){
     if(res.error){toast("خطأ: "+res.error.message);return false}
     try{localStorage.setItem(lk,q)}catch(e){}
     const done=await syncAfter(it);
-    await load();toast(done?"الطلبية خلصت ✅":"تم التسجيل");
+    await load();toast(done?"اكتملت الطلبية":"تم التسجيل");
   });
 }
 function secs(){

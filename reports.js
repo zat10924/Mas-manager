@@ -279,7 +279,7 @@ function csvDownload(name,header,rows){
 async function shareText(text){
   const org=(SET.get("org","")||"").trim();
   if(SET.get("shareorg",false)&&org)text=org+"\n"+text;
-  if(SET.get("sharedt",false))text+="\n🕒 "+new Date().toLocaleString("ar-EG");
+  if(SET.get("sharedt",false))text+="\nتاريخ الإصدار: "+new Date().toLocaleString("ar-EG");
   const m=SET.get("share","auto");
   if(m==="copy"){
     try{await navigator.clipboard.writeText(text);toast("اتنسخ التقرير");return}catch(e){}
@@ -463,7 +463,7 @@ function mount(rootId,key){
       $(".ro").innerHTML=ol.length?`<table><thead><tr><th>الطلبية</th><th>العمر</th><th>الإنجاز</th><th>المتبقي</th><th>التقدير</th></tr></thead><tbody>${ov.map(o=>{
         const p=o.req?Math.min(100,Math.round(o.done/o.req*100)):0,late=isLate(o.status,o.date),b=bk&&bk.by.get(o.id),rem=Math.max(o.req-o.done,0);
         const est=!b||!rem?"—":b.stalled?'<span class="tag late">راكدة</span>':b.eta!=null?"~ "+etaTxt(b.eta):'<span class="nums">لا إنتاج حديث</span>';
-        return `<tr><td><b>${esc(o.item)}</b>${o.sub?`<div class="nums" style="font-size:.8rem">${esc(o.sub)}</div>`:""}</td><td>${late?'<span class="tag late">متأخرة</span> ':""}<span class="nums">${ageTxt(o.date)}</span></td><td><div class="share"><div class="bar"><i style="width:${p}%;background:${p>=100?"var(--ok)":cfg.color}"></i></div><span>${p}%</span></div></td><td><b>${nf(rem)}</b></td><td>${est}</td></tr>`}).join("")}</tbody></table><div class="hint" style="margin-top:4px">التقدير = المتبقي ÷ معدل إنتاج الصنف في آخر 14 يوم (بأيام الشغل).</div>${ol.length>10&&!st.printing?`<button class="btn ghost sm more noprint" data-m="o">${st.moreO?"عرض أقل":`عرض الكل (${ol.length})`}</button>`:""}`:'<div class="empty">مفيش طلبيات مفتوحة 👌</div>';
+        return `<tr><td><b>${esc(o.item)}</b>${o.sub?`<div class="nums" style="font-size:.8rem">${esc(o.sub)}</div>`:""}</td><td>${late?'<span class="tag late">متأخرة</span> ':""}<span class="nums">${ageTxt(o.date)}</span></td><td><div class="share"><div class="bar"><i style="width:${p}%;background:${p>=100?"var(--ok)":cfg.color}"></i></div><span>${p}%</span></div></td><td><b>${nf(rem)}</b></td><td>${est}</td></tr>`}).join("")}</tbody></table><div class="hint" style="margin-top:4px">التقدير = المتبقي ÷ معدل إنتاج الصنف في آخر 14 يوم (بأيام الشغل).</div>${ol.length>10&&!st.printing?`<button class="btn ghost sm more noprint" data-m="o">${st.moreO?"عرض أقل":`عرض الكل (${ol.length})`}</button>`:""}`:'<div class="empty">مفيش طلبيات مفتوحة</div>';
     }
     // أداء العمال
     const ws=workerStats(rows);
@@ -519,7 +519,7 @@ function mount(rootId,key){
   };
   $(".rsh").onclick=()=>{
     if(!st.last)return;const{f,t,total,g,open,best,ins,ws}=st.last;
-    const L=[`📊 تقرير ${cfg.name}`,`الفترة: ${fmtP(f,t)}`+(st.item?` · ${st.item}`:"")+(st.col?` · ${st.col}`:"")+(st.wk?` · ${st.wk}`:""),`إجمالي ${cfg.noun}: ${nf(total)}`];
+    const L=[`تقرير ${cfg.name}`,`الفترة: ${fmtP(f,t)}`+(st.item?` · ${st.item}`:"")+(st.col?` · ${st.col}`:"")+(st.wk?` · ${st.wk}`:""),`إجمالي ${cfg.noun}: ${nf(total)}`];
     if(best)L.push(`أفضل يوم: ${fmtD(best[0])} (${nf(best[1])})`);
     if(g.length)L.push("أعلى الأصناف:",...g.slice(0,5).map(([k,v])=>`• ${k}: ${nf(v)}`));
     if(subLbl){const gc=groupSum(st.last.rows.filter(r=>r.sub),"col",cfg);if(gc.length)L.push(`أعلى ${subLbl}:`,...gc.slice(0,4).map(([k,v])=>`• ${k}: ${nf(v)}`))}
@@ -611,7 +611,7 @@ function dashboard(rootId){
     // متأخرة وراكدة
     const late=[];per.forEach(p=>{if(p.open)p.open.forEach(o=>{const l=isLate(o.status,o.date),sl=p.bk&&p.bk.by.get(o.id),stl=!!(sl&&sl.stalled);if(l||stl)late.push({...o,s:p.k,late:l,stalled:stl})})});
     late.sort((a,b)=>(a.date||"").localeCompare(b.date||""));const ll=showMore(late,st.moreL||st.printing);
-    $(".rl").innerHTML=late.length?`<table><thead><tr><th>الطلبية</th><th>القسم</th><th>العمر</th><th>المتبقي</th></tr></thead><tbody>${ll.map(o=>`<tr><td><b>${esc(o.item)}</b>${o.sub?`<div class="nums" style="font-size:.8rem">${esc(o.sub)}</div>`:""}</td><td><a href="${SRC[o.s].page}" class="badge" style="--c:${SRC[o.s].color};text-decoration:none">${SRC[o.s].name}</a></td><td>${o.late?'<span class="tag late">متأخرة</span> ':""}${o.stalled?'<span class="tag">راكدة</span> ':""}<span class="nums">${ageTxt(o.date)}</span></td><td><b>${nf(Math.max(o.req-o.done,0))}</b></td></tr>`).join("")}</tbody></table>${late.length>10&&!st.printing?`<button class="btn ghost sm more noprint" data-m="l">${st.moreL?"عرض أقل":`عرض الكل (${late.length})`}</button>`:""}`:`<div class="empty">مفيش طلبيات متأخرة أو راكدة 👌</div>`;
+    $(".rl").innerHTML=late.length?`<table><thead><tr><th>الطلبية</th><th>القسم</th><th>العمر</th><th>المتبقي</th></tr></thead><tbody>${ll.map(o=>`<tr><td><b>${esc(o.item)}</b>${o.sub?`<div class="nums" style="font-size:.8rem">${esc(o.sub)}</div>`:""}</td><td><a href="${SRC[o.s].page}" class="badge" style="--c:${SRC[o.s].color};text-decoration:none">${SRC[o.s].name}</a></td><td>${o.late?'<span class="tag late">متأخرة</span> ':""}${o.stalled?'<span class="tag">راكدة</span> ':""}<span class="nums">${ageTxt(o.date)}</span></td><td><b>${nf(Math.max(o.req-o.done,0))}</b></td></tr>`).join("")}</tbody></table>${late.length>10&&!st.printing?`<button class="btn ghost sm more noprint" data-m="l">${st.moreL?"عرض أقل":`عرض الكل (${late.length})`}</button>`:""}`:`<div class="empty">مفيش طلبيات متأخرة أو راكدة</div>`;
     $('[data-ps="late"]').toggleAttribute("data-empty",!late.length);
     $(".rpd").textContent=fmtP(f,t)+" · طُبع في "+fmtD(today());
     st.last={f,t,per,top,late,I};
@@ -652,7 +652,7 @@ function dashboard(rootId){
   $(".rsh").onclick=()=>{
     if(!st.last)return;const{f,t,per,late,I}=st.last;
     const w=I.filter(x=>x[0]==="warn").slice(0,3);
-    shareText([`📊 ملخص الأقسام`,`الفترة: ${fmtP(f,t)}`,...per.filter(p=>!p.err).map(p=>`• ${SRC[p.k].name}: ${nf(p.total)}`),`طلبيات متأخرة: ${late.filter(x=>x.late).length}`,...(w.length?["ملاحظات:",...w.map(x=>"• "+stripTags(x[1]))]:[])].join("\n"));
+    shareText([`ملخص الأقسام`,`الفترة: ${fmtP(f,t)}`,...per.filter(p=>!p.err).map(p=>`• ${SRC[p.k].name}: ${nf(p.total)}`),`طلبيات متأخرة: ${late.filter(x=>x.late).length}`,...(w.length?["ملاحظات:",...w.map(x=>"• "+stripTags(x[1]))]:[])].join("\n"));
   };
   refresh();
   return{refresh:()=>refresh(true)};

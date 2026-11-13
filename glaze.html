@@ -120,7 +120,7 @@ function renderOrders(){
       <div class="top"><b>${esc(o.item)}</b><span>${lateOrder(o)?'<span class="tag late">متأخرة</span> ':""}<span class="tag ${done?"ok":""}">${done?"مكتملة":"مفتوحة"}</span></span></div>
       <div class="nums">${dueTag(o)}${o.postponed_count?` <span class="tag">اتأجلت ${o.postponed_count} مرة</span>`:""}</div>
       <div class="nums">تاريخ الطلبية: <b>${fmtD(o.order_date)}</b>${done?"":` · ${ageTxt(o.order_date)}`}</div>
-      ${done?'<div class="banner">الطلبية خلصت ✅</div>':""}
+      ${done?'<div class="banner ibt">'+ui("checkc")+'<span>اكتملت الطلبية</span></div>':""}
       ${ls.map(x=>{
         const rem=Math.max(x.total_required-x.produced,0),pct=Math.min(100,Math.round(x.produced/x.total_required*100));
         return `<div class="line ${rem===0?"full":""}">
@@ -156,7 +156,7 @@ function produce(lineId){
     if(error){toast("خطأ: "+error.message);return false}
     const done=await syncStatus(x.order_id);
     await load();
-    toast(done?"الطلبية خلصت ✅":"تم التسجيل");
+    toast(done?"اكتملت الطلبية":"تم التسجيل");
   });
 }
 
@@ -251,7 +251,7 @@ async function delW(id){
 
 function newOrder(){
   const crow=()=>`<div class="two nr"><input placeholder="اللون" class="c"><input placeholder="الكمية" class="q" type="number" min="1" inputmode="numeric"></div>`;
-  const blk=n=>`<div class="itemblk"><div class="ih"><b>الصنف ${n}</b><button type="button" class="rmi" style="display:${n>1?"block":"none"}">حذف الصنف ✕</button></div><input class="it" placeholder="اسم الصنف"><label>الألوان والكميات</label><div class="rows">${crow()}</div><button class="btn ghost sm addc" type="button">+ لون</button></div>`;
+  const blk=n=>`<div class="itemblk"><div class="ih"><b>الصنف ${n}</b><button type="button" class="rmi" style="display:${n>1?"block":"none"}">${ib("trash","حذف الصنف")}</button></div><input class="it" placeholder="اسم الصنف"><label>الألوان والكميات</label><div class="rows">${crow()}</div><button class="btn ghost sm addc" type="button">+ لون</button></div>`;
   openModal("طلبية جديدة",`<label>تاريخ الطلبية</label><input type="date" id="m-od" value="${today()}"><label>تاريخ التسليم (اختياري)</label><input type="date" id="m-due"><div id="m-items">${blk(1)}</div><button class="btn sm" id="m-addi" type="button" style="width:100%;margin-top:4px">+ إضافة صنف</button>`,async()=>{
     const blocks=[...document.querySelectorAll("#m-items .itemblk")].map(b=>({
       item:b.querySelector(".it").value.trim(),
