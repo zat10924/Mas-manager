@@ -12,6 +12,7 @@ function applyLook(){
   r.style.setProperty("--font",'"'+FONTS[k][0]+'"');
   r.style.setProperty("--fs",SET.get("size",100)+"%");
   r.classList.toggle("calm",!!SET.get("calm",false));
+  r.classList.toggle("bigbtn",!!SET.get("bigbtn",false));
 }
 applyLook();
 // الأرقام: "latn" = تواريخ بأرقام إنجليزية | "arab" = كله عربي | غير كده الوضع الافتراضي
@@ -1058,6 +1059,7 @@ function freeProduction(sec,done){
     if(ok&&done)await done();
     // اللي اتسجل اتشال من الشاشة؛ اللي فشل بس فاضل عشان تعيد المحاولة من غير تكرار
     if(bad.length){toast((ok?"اتسجل "+ok+" وفشل "+bad.length+" — ":"")+bad[0],"bad");renum();return false}
+    if(window._clearFreeDraft)window._clearFreeDraft();
     toast(off?"مفيش نت: اتحفظ "+ok+" صنف على الجهاز وهيتسجلوا لما النت يرجع":"تم تسجيل "+ok+" صنف",off?"warn":undefined);
   },"تسجيل الكل");
   const box=document.getElementById("mrows");
@@ -1077,7 +1079,17 @@ function freeProduction(sec,done){
     });
     if(focus){el.querySelector(".it").focus();el.scrollIntoView({block:"nearest",behavior:"smooth"})}
   };
-  add(true);
+  // مسودة: بتتحفظ أول بأول وبترجع لو الصفحة اتقفلت أو النت قطع (24 ساعة)
+  const DK="draft_free_"+sec,modal=document.getElementById("mrows").closest(".modal");
+  const snap=()=>[...box.querySelectorAll(".mrow")].map(el=>({i:el.querySelector(".it").value,s:el.querySelector(".sb").value,q:el.querySelector(".mq2").value,c:spr?el.querySelector(".msc").value:""}));
+  const saveDraft=()=>{try{const rows=snap().filter(r=>r.i||r.s||r.q||r.c);if(rows.length)localStorage.setItem(DK,JSON.stringify({at:Date.now(),rows}));else localStorage.removeItem(DK)}catch(e){}};
+  let draft=null;try{draft=JSON.parse(localStorage.getItem(DK))}catch(e){}
+  if(draft&&Date.now()-draft.at<864e5&&draft.rows&&draft.rows.length){
+    draft.rows.forEach((r,n)=>{if(n>0||!box.querySelector(".mrow"))add(false);const el=box.lastElementChild;el.querySelector(".it").value=r.i;el.querySelector(".sb").value=r.s;el.querySelector(".mq2").value=r.q;if(spr&&r.c)el.querySelector(".msc").value=r.c});
+    toast("رجّعنا آخر مسودة اتكتبت");
+  }else add(true);
+  modal.addEventListener("input",saveDraft);modal.addEventListener("click",e=>{if(e.target.closest(".rmi"))setTimeout(saveDraft,0)});
+  window._clearFreeDraft=()=>{try{localStorage.removeItem(DK)}catch(e){}};
   document.getElementById("madd").onclick=()=>add(true);
 }
 /* ===== مراجعة التسجيل قبل الحفظ (تأكيد) ===== */

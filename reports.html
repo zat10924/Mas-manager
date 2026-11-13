@@ -22,7 +22,7 @@
 <script>try{var n=performance.getEntriesByType("navigation")[0];if(sessionStorage.getItem("sp")&&!(n&&n.type==="reload"))document.getElementById("splash").remove()}catch(e){}</script>
 <div class="wrap">
   <h1>التقارير</h1>
-  <div class="card noprint" id="dayBar"><h3>التقرير اليومي</h3><label>اليوم</label><input type="date" id="dayD" style="margin-bottom:10px"><div class="actbar"><button class="btn ib" id="dayGo"></button><button class="btn ghost ib" id="dayEd"></button><button class="btn ghost ib" id="dayPr"></button></div></div>
+  <div class="card noprint" id="dayBar"><h3>التقرير اليومي</h3><label>اليوم</label><input type="date" id="dayD" style="margin-bottom:10px"><div class="actbar"><button class="btn ib" id="dayGo"></button><button class="btn ghost ib" id="dayEd"></button><button class="btn ghost ib" id="dayPr"></button><button class="btn ghost ib" id="daySh"></button></div></div>
   <div id="daily"></div>
   <div id="dash"></div>
 </div>
@@ -32,7 +32,7 @@
 <script src="reports.js"></script>
 <script>
 let ctl=null,lastDaily=null,ENT=[];
-[["dayGo","eye","عرض"],["dayEd","edit","تعديل"],["dayPr","print","طباعة"]].forEach(([i,k,t])=>{document.getElementById(i).innerHTML=ib(k,t)});
+[["dayGo","eye","عرض"],["dayEd","edit","تعديل"],["dayPr","print","طباعة"],["daySh","share","إرسال واتساب"]].forEach(([i,k,t])=>{document.getElementById(i).innerHTML=ib(k,t)});
 const WDN=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
 const isFri=d=>new Date(d+"T00:00:00Z").getUTCDay()===5;
 async function workerTargets(){
@@ -97,19 +97,42 @@ async function daily(){
    +(wRows.length?`<div class="card" data-ps="workers"><h3>العمال</h3><table><thead><tr><th>العامل</th><th>القسم</th><th>الكمية</th></tr></thead><tbody>${wRows.map(o=>`<tr><td><b>${esc(o.w)}</b></td><td>${o.s}</td><td><b>${nf(o.q)}</b></td></tr>`).join("")}</tbody></table>${tg.size&&wl.some(([n])=>tg.has(n))?`<table style="margin-top:8px"><thead><tr><th>العامل</th><th>إجمالي اليوم</th><th>المعدل</th><th>الإنجاز</th></tr></thead><tbody>${wl.filter(([n])=>tg.has(n)).map(([n,q])=>{const p=Math.round(q/tg.get(n)*100);return `<tr><td><b>${esc(n)}</b></td><td>${nf(q)}</td><td>${nf(tg.get(n))}</td><td><span class="tag ${p>=100?"ok":p<70?"late":""}">${p}%</span></td></tr>`}).join("")}</tbody></table>`:""}</div>`:"")
    +`<div class="card noprint" id="editCard"><div class="sec-head"><h3 class="hi">${ui("edit")}<span>تسجيلات اليوم — تعديل / حذف</span></h3></div>`+(!(can("edit")||can("delete"))?'<div class="empty">حسابك ملوش صلاحية تعديل أو حذف التسجيلات. اطلبها من المدير.</div>':!ENT.length?'<div class="empty">مفيش تسجيلات في اليوم ده. غيّر التاريخ من فوق.</div>':`<div class="hint" style="margin:0 0 6px">لو فيه تسجيل غلط عدّله أو احذفه من هنا، والأرقام والتقرير بيتحدّثوا.</div>${ENT.map(([k,x],i)=>`<div class="line fe"><span><span class="badge" style="--c:${S[k].color}">${S[k].name}</span> ${esc(Reports.entryTxt(x))}${k==="spray"&&x.oc?` <span class="nums">(لون الصنف: ${esc(x.oc)})</span>`:""}${x.w?` <span class="nums">· ${esc(x.w)}</span>`:""}</span><span style="display:flex;align-items:center;gap:6px;white-space:nowrap"><b>${nf(x.qty)}</b>${Reports.actBtns(i,x)}</span></div>`).join("")}`)+`</div>`
    +(NT.length?`<div class="card" data-ps="notes"><h3>ملاحظات اليوم</h3>${NT.map(x=>`<div class="line"><b>${x.s} · ${esc(x.t)}</b>${x.w?` <span class="tag">${esc(x.w)}</span>`:""}<div class="nums">${esc(x.n)}</div></div>`).join("")}</div>`:"");
-  lastDaily={keys,res,S,hasW:wRows.length>0,hasN:NT.length>0,hasI:I.length>0,secHas:Object.fromEntries(keys.map(k=>[k,!box.querySelector('[data-ps="sec_'+k+'"]')?.hasAttribute("data-empty")]))};
+  const strip=h=>String(h).replace(/<[^>]+>/g,"").replace(/&nbsp;/g," ");
+  const parts={head:`التقرير اليومي — ${WDN[new Date(day+"T00:00:00Z").getUTCDay()]} ${fmtD(day)}`,tot,secs:[],wq,wp,workers:wl.slice(0,3),notes:I.slice(0,4).map(x=>strip(x[1]))};
+  res.forEach((r,i)=>{if(r.status!=="fulfilled")return;const rs=r.value.prod.filter(x=>x.d===day);if(!rs.length)return;
+    const mm=new Map();rs.forEach(x=>{const kk=x.item+(x.sub?" — "+x.sub:"");mm.set(kk,(mm.get(kk)||0)+x.qty)});
+    parts.secs.push({name:S[keys[i]].name,sum:rs.reduce((a,x)=>a+x.qty,0),items:[...mm].sort((a,b)=>b[1]-a[1]).slice(0,5)})});
+  lastDaily={parts,keys,res,S,hasW:wRows.length>0,hasN:NT.length>0,hasI:I.length>0,secHas:Object.fromEntries(keys.map(k=>[k,!box.querySelector('[data-ps="sec_'+k+'"]')?.hasAttribute("data-empty")]))};
 }
 document.getElementById("daily").addEventListener("click",e=>{
   const b=e.target.closest("[data-act]");if(!b)return;
   const en=ENT[+b.dataset.i];if(!en)return;
   (b.dataset.act==="edit"?Reports.editEntry:Reports.deleteEntry)(en[1],en[0],daily);
 });
+function dailyText(o){
+  const P=lastDaily.parts,T=[P.head,`إجمالي الإنتاج: ${nf(P.tot)}`];
+  P.secs.forEach(c=>{T.push("",`• ${c.name}: ${nf(c.sum)}`);if(o.items)c.items.forEach(([k,v])=>T.push(`   - ${k}: ${nf(v)}`))});
+  if(o.waste&&P.wq)T.push("",`هالك الجليز: ${nf(P.wq)} (${P.wp.toFixed(1)}%)`);
+  if(o.workers&&P.workers.length)T.push("","أعلى العمال:",...P.workers.map(([n,q])=>`   - ${n}: ${nf(q)}`));
+  if(o.notes&&P.notes.length)T.push("","ملاحظات:",...P.notes.map(x=>"• "+x));
+  return T.join("\n");
+}
+function shareDaily(){
+  if(!lastDaily)return toast("استنى التقرير يحمّل");
+  const g=(k,d)=>SET.get("dsh_"+k,d),ck=(k,t,d)=>`<label class="sw" style="cursor:pointer"><span>${t}</span><input type="checkbox" id="dsh-${k}" ${g(k,d)?"checked":""}></label>`;
+  openModal("إرسال التقرير اليومي",`<div class="hint" style="margin:0 0 8px">الأرقام: إجمالي الإنتاج وإنتاج كل قسم بتتبعت دايمًا. اختار الباقي لو عاوزه.</div>
+    ${ck("items","أعلى الأصناف في كل قسم",false)}${ck("waste","هالك الجليز",false)}${ck("workers","أعلى العمال",false)}${ck("notes","الملاحظات والتنبيهات",false)}`,async()=>{
+    const o={};["items","waste","workers","notes"].forEach(k=>{o[k]=document.getElementById("dsh-"+k).checked;SET.set("dsh_"+k,o[k])});
+    Reports.shareText(dailyText(o));
+  },"إرسال");
+  const b=document.getElementById("mSave");if(b)b.innerHTML=ib("share","إرسال");
+}
 function printDaily(){
   const L=lastDaily;if(!L)return;
   Reports.printDialog(document.getElementById("daily"),"daily",[["kpi","الأرقام الرئيسية",true],["insights","الملاحظات الذكية",L.hasI],...L.keys.map(k=>["sec_"+k,"قسم "+L.S[k].name,L.secHas[k]]),["workers","العمال والمعدل",L.hasW],["notes","ملاحظات اليوم",L.hasN]]);
 }
 async function load(){if(ctl)await ctl.refresh()}
-(async()=>{if(await requireAuth("reports.html")){renderNav("reports.html");document.getElementById("dayD").value=today();document.getElementById("dayGo").onclick=daily;document.getElementById("dayPr").onclick=printDaily;document.getElementById("dayEd").onclick=()=>{const c=document.getElementById("editCard");if(c)c.scrollIntoView({behavior:"smooth",block:"start"});else toast("استنى التقرير يحمّل")};document.getElementById("dayD").onchange=daily;daily();ctl=Reports.dashboard("dash");settle()}})();
+(async()=>{if(await requireAuth("reports.html")){renderNav("reports.html");document.getElementById("dayD").value=today();document.getElementById("dayGo").onclick=daily;document.getElementById("dayPr").onclick=printDaily;document.getElementById("daySh").onclick=shareDaily;document.getElementById("dayEd").onclick=()=>{const c=document.getElementById("editCard");if(c)c.scrollIntoView({behavior:"smooth",block:"start"});else toast("استنى التقرير يحمّل")};document.getElementById("dayD").onchange=daily;daily();ctl=Reports.dashboard("dash");settle()}})();
 </script>
 <script src="install.js" defer></script>
 </body>

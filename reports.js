@@ -658,5 +658,5 @@ function dashboard(rootId){
   return{refresh:()=>refresh(true)};
 }
 
-return{mount,dashboard,sources:SRC,getData,backlog,ordN,editEntry,deleteEntry,actBtns,entryTxt,insHtml,printDialog,workerStats,groupSum,etaTxt};
+return{shareText,mount,dashboard,sources:SRC,getData,backlog,ordN,editEntry,deleteEntry,actBtns,entryTxt,insHtml,printDialog,workerStats,groupSum,etaTxt};
 })();

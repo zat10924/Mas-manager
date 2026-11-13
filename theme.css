@@ -985,3 +985,10 @@ html[dir=rtl] .side .sgrp.shut .chev{transform:rotate(90deg)}
 .rvr span{opacity:.75}
 .rvtot{display:flex;justify-content:space-between;padding:8px 12px;margin-bottom:8px;border-radius:14px;background:color-mix(in srgb,var(--pri) 10%,var(--card));font-weight:700}
 .rv .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+
+/* وضع الأزرار الكبيرة */
+html.bigbtn .btn{min-height:54px;font-size:1.08rem;padding-inline:18px}
+html.bigbtn .btn.sm{min-height:46px;font-size:1rem}
+html.bigbtn input,html.bigbtn select{min-height:52px;font-size:1.08rem}
+html.bigbtn .tabs button,html.bigbtn .seg button{min-height:48px}
+#bk_card[hidden]{display:none}
