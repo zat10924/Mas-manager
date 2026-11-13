@@ -1036,3 +1036,12 @@ html.bigbtn .tabs button,html.bigbtn .seg button{min-height:48px}
 /* منع اقتصاص الكلمات والشارات داخل الجداول */
 td .tag,th .tag,.scroll .tag{white-space:nowrap;display:inline-block;line-height:1.5}
 .scroll table td,.scroll table th{vertical-align:middle}
+
+/* أقسام قريبًا */
+.side .sh.soonitem{cursor:default;pointer-events:none;opacity:.72}
+.side .sh.soonitem span{display:flex;flex-direction:column;line-height:1.25}
+.side .sh.soonitem .soonn{font-size:.72rem;font-weight:600;color:var(--gold-l,#E8D49B);opacity:.9}
+.side .sh.soonitem svg{filter:grayscale(.35)}
+.tile.soon{cursor:default;opacity:.78;border-style:dashed}
+.tile.soon:hover,.tile.soon:active{transform:none;border-color:var(--line);box-shadow:var(--sh)}
+.tile.soon .sum{color:var(--ink2);font-size:.82rem;font-weight:600}
