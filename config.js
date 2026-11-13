@@ -57,7 +57,7 @@ window.masCacheClear=()=>{try{localStorage.removeItem("masc_uid")}catch(e){}retu
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {global:{fetch:MASC.fetch}});
 
 /* ===== إصدار البرنامج (غيّر الرقم هنا عند كل تحديث) ===== */
-const APP_VERSION = "2.8.5";
+const APP_VERSION = "2.8.6";
 // مفتاح الإشعارات العام (آمن إنه يبقى ظاهر)
 const VAPID_PUBLIC = "BMI1dksSzpLuotH8TRjMLlwd53SaAltxeJkdfGYnb0GNTjQLbqXy-HDXbWZUlA5jtahNrND9TZRV7afcjnDfLhs";
 /* مستودع GitHub: منه بتتجاب «ما الجديد» تلقائيًا من رسائل الـ commit العربي */
@@ -65,6 +65,7 @@ const GH_REPO = "zat10924/zat10924.github.io";
 const APP_BUILD = "2026-11-12";
 // آخر التحديثات (الأحدث أولاً) — بتظهر في الإعدادات > البرنامج > «ما الجديد»
 const APP_CHANGES = [
+  ["2.8.6", "2026-11-13", ["إصلاح: كتابة اسم أو وصف مش في القوائم في صفحة تسجيل الإنتاج كانت بتطلّع «البند ده مش متحمّل» بدل سؤال «تضيفه كاسم جديد؟»"]],
   ["2.8.5", "2026-11-13", ["إلغاء مسودة «الإنتاج بدون طلبية»: مبقتش بتتحفظ ولا بترجع"]],
   ["2.8.4", "2026-11-13", ["حماية شاشة تسجيل الإنتاج من فتح بند غير متحمّل صح (كان بيظهر «function sub()» و NaN)"]],
   ["2.8.3", "2026-11-13", ["إصلاح رفض الكمية الأكبر من المتبقي («خطأ: الكمية أكبر من المتبقي»): لازم تشغّل setup_allow_over.sql مرة واحدة. والتقارير بقت تعرض «زيادة في الكمية» لكل طلبية، وتعديل التسجيل في التقارير بيقبل الزيادة بتنبيه"]],

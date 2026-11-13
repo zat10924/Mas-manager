@@ -108,7 +108,7 @@ function draw(){
     const rem=Math.max(r.req-r.done,0),p=r.req>0?Math.min(100,Math.round(r.done/r.req*100)):0,late=r.due?today()>r.due:isLate("open",r.date);
     return `<div class="card pr ${multi&&sel.has(r.id)?"sel":""}" data-id="${r.id}" style="cursor:pointer"><div class="top"><span style="display:flex;gap:8px;align-items:center;min-width:0">${multi?`<span class="ck ${sel.has(r.id)?"on":""}"></span>`:""}${sec==="deco"?cthumb(r.code):""}<b>${esc(r.title)}</b></span><span>${late?'<span class="tag late">متأخرة</span> ':""}<span class="tag">${esc(r.sub)}</span></span></div>
       <div class="bar"><i style="width:${p}%"></i></div><div class="nums">تم <b>${nf(r.done)}</b> من <b>${nf(r.req)}</b> · متبقي <b>${nf(rem)}</b></div></div>`}).join(""):`<div class="empty">${q?"مفيش نتائج":"مفيش بنود مفتوحة"}</div>`;
-  document.querySelectorAll(".pr").forEach(e=>e.onclick=()=>pick(rows.find(r=>String(r.id)===e.dataset.id),e));
+  document.querySelectorAll(".pr").forEach(e=>e.onclick=()=>pickRow(rows.find(r=>String(r.id)===e.dataset.id),e));
   updBar();
   wasteBtn.hidden=sec!=="glaze";
   if(stale)document.getElementById("list").insertAdjacentHTML("afterbegin",`<div class="card" style="border-color:var(--warn)"><b class="ibt">${ui("wifioff")}لا يوجد اتصال</b><div class="nums">بيانات محفوظة من آخر اتصال (${new Date(stale).toLocaleTimeString("ar-EG",{hour:"2-digit",minute:"2-digit"})}). تسجيلاتك هتتحفظ وتتبعت لما النت يرجع.</div></div>`);
@@ -122,7 +122,7 @@ function updBar(){
   mbtn.innerHTML=multi?ib("x","إنهاء التحديد"):ib("checksq","تحديد متعدد");mall.hidden=!multi;
   mbar.hidden=!multi;mgo.textContent=sel.size?"تسجيل "+sel.size+" بند":"اختر البنود";mgo.disabled=!sel.size;
 }
-function pick(r,el){
+function pickRow(r,el){
   if(!r)return;
   if(!multi)return quick(r);
   if(r.req-r.done<=0){toast("البند ده مكتمل بالفعل","warn");return}
