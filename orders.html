@@ -33,14 +33,20 @@
 <script src="common.js"></script>
 <script>
 const SECK={glaze:{n:"جليز",page:"glaze.html",c:"#2E6F80",lbl:"اللون"},deco:{n:"زخرفة",page:"decoration.html",c:"#5E5A8C",lbl:"الكود"},spray:{n:"رش",page:"spray.html",c:"#B8862B",lbl:"اللون"}};
-let G=[],tab="open",Q="",broken=false,ext=false;
+let G=[],tab="open",Q="",broken=false,ext=false,CUS=[],cusOk=false;
 const sum=(a,f)=>a.reduce((x,y)=>x+f(y),0);
 function mkItem(item,status,date,due,lines,ids){
   const req=sum(lines,l=>l.req),done=sum(lines,l=>Math.min(l.done,l.req));
   return{item,status,date,due,lines,req,done,ids};
 }
+async function saveCus(n,p){
+  if(!cusOk||!n)return;
+  try{const c=CUS.find(x=>norm(x.name)===norm(n));
+    if(c){if(p&&p!==c.phone)await db.from("customers").update({phone:p}).eq("id",c.id)}
+    else await db.from("customers").insert({name:n,phone:p||null})}catch(e){}
+}
 async function load(){
-  const[g,go,gl,dO,dl,sp,so]=await Promise.all([
+  const[g,go,gl,dO,dl,sp,so,cu]=await Promise.all([
     (async()=>{const q=c=>db.from("order_groups").select(c).order("created_at",{ascending:false});
       const r=await q("id,title,created_at,order_no,customer_phone,notes");
       if(!r.error){ext=true;return r}
@@ -50,8 +56,10 @@ async function load(){
     db.from("deco_orders").select("id,item,status,order_date,due_date,group_id").not("group_id","is",null),
     db.from("deco_lines_status").select("id,order_id,code,total_required,produced"),
     db.from("spray_status").select("*"),
-    db.from("spray_orders").select("id,group_id,order_date,due_date").not("group_id","is",null)
+    db.from("spray_orders").select("id,group_id,order_date,due_date").not("group_id","is",null),
+    db.from("customers").select("id,name,phone").order("name")
   ]);
+  cusOk=!cu.error;CUS=cusOk?(cu.data||[]):[];
   if(g.error||go.error||dO.error||so.error){broken=true;draw();return}
   broken=false;
   const M=new Map(g.data.map(x=>[x.id,{id:x.id,title:(x.title||"").trim(),no:x.order_no||null,phone:(x.customer_phone||"").trim(),notes:(x.notes||"").trim(),created:String(x.created_at||"").slice(0,10),secs:{glaze:[],deco:[],spray:[]}}]));
@@ -100,7 +108,7 @@ function openForm(gid){
   const blk=n=>{const k=curK();return `<div class="itemblk" data-k="${k}"><div class="ih"><b>الصنف ${n}</b><button type="button" class="rmi" style="display:${n>1?"block":"none"}">${ib("trash","حذف الصنف")}</button></div><input class="it" placeholder="اسم الصنف"><label class="ll">${llt(k)}</label><div class="rows">${crow(k)}</div><button class="btn ghost sm addc" type="button">+ سطر</button></div>`};
   const XF=`<label>موبايل العميل (اختياري)</label><input id="m-ph" type="tel" inputmode="tel" maxlength="20" dir="ltr"><label>ملاحظات (اختياري)</label><input id="m-nt" maxlength="300">`;
   const SEC=`<label>يتوزع على قسم</label><select id="m-sec">${Object.keys(SECK).map(k=>`<option value="${k}">${SECK[k].n}</option>`).join("")}</select>`;
-  const top=g?`<div class="hint" style="margin:0 0 8px">التوزيع على الطلبية: <b>${esc(g.title||"بدون اسم")}</b></div>${SEC}`:`<label>اسم الطلبية / العميل</label><input id="m-gt" placeholder="مثال: طلبية أحمد" maxlength="80">${ext?XF:""}<label>تاريخ الطلبية</label><input type="date" id="m-od" value="${today()}"><label>تاريخ التسليم (اختياري)</label><input type="date" id="m-due">${SEC}`;
+  const top=g?`<div class="hint" style="margin:0 0 8px">التوزيع على الطلبية: <b>${esc(g.title||"بدون اسم")}</b></div>${SEC}`:`<label>اسم الطلبية / العميل</label><input id="m-gt" placeholder="مثال: طلبية أحمد" maxlength="80" list="m-cl" autocomplete="off"><datalist id="m-cl">${CUS.map(c=>`<option value="${esc(c.name)}">`).join("")}</datalist>${ext?XF:""}<label>تاريخ الطلبية</label><input type="date" id="m-od" value="${today()}"><label>تاريخ التسليم (اختياري)</label><input type="date" id="m-due">${SEC}`;
   openModal(g?"توزيع صنف على الأقسام":"طلبية جديدة",`${top}<div id="m-items">${blk(1)}</div><button class="btn sm" id="m-addi" type="button" style="width:100%;margin-top:4px">+ إضافة صنف</button>`,async()=>{
     const blocks=[...document.querySelectorAll("#m-items .itemblk")].map(b=>({k:document.getElementById("m-sec").value,item:b.querySelector(".it").value.trim(),rs:[...b.querySelectorAll(".nr")].map(r=>({v:r.querySelector(".c").value.trim(),q:parseInt(r.querySelector(".q").value)})).filter(r=>r.v||r.q)})).filter(b=>b.item||b.rs.length);
     if(!blocks.length){toast("اكتب الصنف");return false}
@@ -109,13 +117,13 @@ function openForm(gid){
       if(!b.rs.length||b.rs.some(r=>!r.v||!(r.q>0))){toast("كمّل "+SECK[b.k].lbl+" والكميات للصنف: "+b.item);return false}
     }
     const od=g?g.date:(document.getElementById("m-od").value||today()),due=g?g.due:(document.getElementById("m-due").value||null);
-    let id=gid,fresh=false;
+    let id=gid,fresh=false,cn="",cp="";
     if(!id){
-      const title=document.getElementById("m-gt").value.trim()||("طلبية "+fmtD(today()));
+      cn=document.getElementById("m-gt").value.trim();const title=cn||("طلبية "+fmtD(today()));
       const row={title};
       if(ext){const ph=document.getElementById("m-ph").value.trim(),nt=document.getElementById("m-nt").value.trim();
         if(ph&&!/^[\d+\s-]{6,20}$/.test(ph)){toast("رقم الموبايل غير صحيح");return false}
-        if(ph)row.customer_phone=ph;if(nt)row.notes=nt}
+        cp=ph;if(ph)row.customer_phone=ph;if(nt)row.notes=nt}
       const r=await db.from("order_groups").insert(row).select("id").single();
       if(r.error){toast("خطأ: "+r.error.message);return false}
       id=r.data.id;fresh=true;
@@ -139,8 +147,11 @@ function openForm(gid){
       if(fresh)await dropGroup(id);
       toast("خطأ: "+(e.message||e));return false;
     }
+    await saveCus(cn,cp);
     tab="open";setTab("open");await load();toast("تم توزيع "+blocks.length+" صنف على الأقسام");
   });
+  const gtI=document.getElementById("m-gt");
+  if(gtI)gtI.addEventListener("input",()=>{const c=CUS.find(x=>norm(x.name)===norm(gtI.value)),ph=document.getElementById("m-ph");if(c&&ph&&!ph.value)ph.value=c.phone||""});
   const box=document.getElementById("m-items");
   const renum=()=>[...box.querySelectorAll(".itemblk")].forEach((b,i)=>{b.querySelector(".ih b").textContent="الصنف "+(i+1);b.querySelector(".rmi").style.display=i>0?"block":"none"});
   document.getElementById("m-addi").onclick=()=>{box.insertAdjacentHTML("beforeend",blk(box.children.length+1));const nb=box.lastElementChild;nb.scrollIntoView({behavior:"smooth",block:"nearest"});nb.querySelector(".it").focus({preventScroll:true})};
@@ -156,6 +167,7 @@ function editG(id){
       row.customer_phone=ph||null;row.notes=nt||null}
     const{error}=await db.from("order_groups").update(row).eq("id",id);
     if(error){toast("خطأ: "+error.message);return false}
+    if(ext)await saveCus(row.title||"",row.customer_phone||"");
     await load();toast("تم الحفظ");
   });
 }
