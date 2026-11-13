@@ -56,7 +56,7 @@ function colorsHtml(p,o){
 
 
 async function load(){
-  const[o,p,d,ft,gq]=await Promise.all([db.from("spray_status").select("*").order("created_at",{ascending:false}),db.from("spray_production").select("*").order("prod_date",{ascending:false}).order("id",{ascending:false}),db.from("spray_orders").select("id,due_date,postponed_count"),freeTodayQty("spray"),db.from("spray_orders").select("id,group_id"),loadGroupTitles()]);
+  const[o,p,d,ft,gq]=await Promise.all([db.from("spray_status").select("*").order("created_at",{ascending:false}),db.from("spray_production").select("*").order("prod_date",{ascending:false}).order("id",{ascending:false}),(async()=>{let r=await db.from("spray_orders").select("id,due_date,postponed_count,spray_color");if(r.error)r=await db.from("spray_orders").select("id,due_date,postponed_count");return r})(),freeTodayQty("spray"),db.from("spray_orders").select("id,group_id"),loadGroupTitles()]);
   if(o.error){fail("orders",load);return}
   FREE_T=ft;const dm=new Map((d.data||[]).map(x=>[x.id,x])),gm=new Map(((gq&&gq.data)||[]).map(x=>[x.id,x.group_id||null]));orders=o.data.map(x=>({...x,...(dm.get(x.id)||{}),group_id:x.group_id||gm.get(x.id)||null}));prods=p.data||[];renderOrders();
 }
@@ -74,6 +74,7 @@ function renderOrders(){
     const rem=Math.max(o.qty_required-o.produced,0),pct=Math.min(100,Math.round(o.produced/o.qty_required*100)),done=o.status==="done";
     return `<div class="card ${done?"done":""}">
       <div class="top"><b>${esc(o.item)} · ${esc(o.color)}</b><span>${lateOrder(o)?'<span class="tag late">متأخرة</span> ':""}<span class="tag ${done?"ok":""}">${done?"مكتملة":"مفتوحة"}</span></span></div>
+      ${o.spray_color?`<div class="nums">لون الرش المطلوب: <b>${esc(o.spray_color)}</b></div>`:""}
       <div class="nums">${dueTag(o)}${o.postponed_count?` <span class="tag">اتأجلت ${o.postponed_count} مرة</span>`:""}</div>
       <div class="nums">تاريخ الطلبية: <b>${fmtD(o.order_date)}</b>${done?"":` · ${ageTxt(o.order_date)}`}</div>
       ${done?'<div class="banner ibt">'+ui("checkc")+'<span>اكتملت الطلبية</span></div>':""}
@@ -99,7 +100,7 @@ async function syncStatus(id){
 
 function produce(id){
   const o=orders.find(x=>x.id===id),rem=o.qty_required-o.produced;
-  openModal(`إنتاج ${esc(o.item)} · ${esc(o.color)}`,`<div class="nums">المتبقي: <b>${rem}</b></div><label>الكمية اللي رشيتها</label><input type="number" id="m-q" min="1" inputmode="numeric"><label>التاريخ</label><input type="date" id="m-d" value="${today()}">${XS("")}${XF()}`,async()=>{
+  openModal(`إنتاج ${esc(o.item)} · ${esc(o.color)}`,`<div class="nums">المتبقي: <b>${rem}</b></div><label>الكمية اللي رشيتها</label><input type="number" id="m-q" min="1" inputmode="numeric"><label>التاريخ</label><input type="date" id="m-d" value="${today()}">${XS(o.spray_color||"")}${XF()}`,async()=>{
     const q=parseInt(document.getElementById("m-q").value);
     if(!q||q<1){toast("اكتب كمية صحيحة");return false}
     const xr=xfRead();if(!xr.spray_color){toast("اكتب لون الرش");return false} // لون الرش مطلوب (مختلف عن لون الصنف)
@@ -126,7 +127,7 @@ async function edit(id){
   const o=orders.find(x=>x.id===id);
   const{data}=await db.from("spray_production").select("*").eq("order_id",id).order("prod_date",{ascending:false});
   const log=(data||[]).length?data.map(e=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0"><span><b>${e.qty}</b> <span class="nums">${fmtD(e.prod_date)}${e.spray_color?` · لون الرش: <b>${esc(e.spray_color)}</b>`:""}${e.worker?` · ${esc(e.worker)}`:""}</span></span><button class="btn ghost sm" onclick="delEntry(${e.id},${id})">حذف</button></div>`).join(""):'<div class="nums">لا يوجد</div>';
-  openModal("تعديل الطلبية",`<label>الصنف</label><input id="m-item" value="${esc(o.item)}"><label>اللون</label><input id="m-color" value="${esc(o.color)}"><label>الكمية المطلوبة</label><input type="number" id="m-req" min="1" inputmode="numeric" value="${o.qty_required}"><label>تاريخ الطلبية</label><input type="date" id="m-od" value="${o.order_date||today()}"><label>تاريخ التسليم (اختياري)</label><input type="date" id="m-due" value="${o.due_date||''}">
+  openModal("تعديل الطلبية",`<label>الصنف</label><input id="m-item" value="${esc(o.item)}"><label>لون الصنف</label><input id="m-color" value="${esc(o.color)}"><label>لون الرش المطلوب</label><input id="m-tsc" data-kind="color" maxlength="60" value="${esc(o.spray_color||"")}"><label>الكمية المطلوبة</label><input type="number" id="m-req" min="1" inputmode="numeric" value="${o.qty_required}"><label>تاريخ الطلبية</label><input type="date" id="m-od" value="${o.order_date||today()}"><label>تاريخ التسليم (اختياري)</label><input type="date" id="m-due" value="${o.due_date||''}">
     <div class="itemblk"><div class="ih"><b>+ إضافة لون جديد لنفس الصنف</b></div><div class="two"><div><label>اللون الجديد</label><input id="m-color2" placeholder="اتركه فاضي لو مش عايز"></div><div><label>الكمية</label><input type="number" id="m-req2" min="1" inputmode="numeric"></div></div><div class="hint">بيتعمل له طلبية مستقلة بنفس الصنف والتواريخ.</div></div>
     <h3>سجل الإنتاج</h3>${log}`,async()=>{
     const item=document.getElementById("m-item").value.trim(),color=document.getElementById("m-color").value.trim(),q=parseInt(document.getElementById("m-req").value);
@@ -134,7 +135,9 @@ async function edit(id){
     const c2=document.getElementById("m-color2").value.trim(),q2=parseInt(document.getElementById("m-req2").value);
     if((c2||q2)&&(!c2||!(q2>0))){toast("كمّل اللون الجديد وكميته، أو سيبهم فاضيين");return false}
     const od=document.getElementById("m-od").value||today(),due=document.getElementById("m-due").value||null;
-    let{error}=await db.from("spray_orders").update({item,color,qty_required:q,order_date:od,due_date:due}).eq("id",id);
+    const tsc=(document.getElementById("m-tsc").value||"").trim()||null,up={item,color,qty_required:q,order_date:od,due_date:due,spray_color:tsc};
+    let{error}=await db.from("spray_orders").update(up).eq("id",id);
+    if(error&&/spray_color/.test(error.message||"")){delete up.spray_color;({error}=await db.from("spray_orders").update(up).eq("id",id))}
     if(error){toast("خطأ: "+error.message);return false}
     if(c2){({error}=await db.from("spray_orders").insert({item,color:c2,qty_required:q2,order_date:od,due_date:due}));if(error){toast("خطأ: "+error.message);return false}}
     await syncStatus(id);await load();toast(c2?"تم التعديل وإضافة اللون الجديد":"تم التعديل");
@@ -155,23 +158,24 @@ async function delOrder(id){
 }
 
 function newOrder(){
-  const crow=()=>`<div class="two nr"><input placeholder="اللون" class="c"><input placeholder="الكمية" class="q" type="number" min="1" inputmode="numeric"></div>`;
+  const crow=()=>`<div class="nr"><div class="two"><input placeholder="لون الصنف" class="c" data-kind="color"><input placeholder="لون الرش المطلوب" class="msc" data-kind="color" maxlength="60"></div><input placeholder="الكمية" class="q" type="number" min="1" inputmode="numeric"></div>`;
   const blk=n=>`<div class="itemblk"><div class="ih"><b>الصنف ${n}</b><button type="button" class="rmi" style="display:${n>1?"block":"none"}">${ib("trash","حذف الصنف")}</button></div><input class="it" placeholder="اسم الصنف"><label>الألوان والكميات</label><div class="rows">${crow()}</div><button class="btn ghost sm addc" type="button">+ لون</button></div>`;
   openModal("طلبية جديدة",`${GTITLE_HTML}<label>تاريخ الطلبية</label><input type="date" id="m-od" value="${today()}"><label>تاريخ التسليم (اختياري)</label><input type="date" id="m-due"><div id="m-items">${blk(1)}</div><button class="btn sm" id="m-addi" type="button" style="width:100%;margin-top:4px">+ إضافة صنف</button>`,async()=>{
     const blocks=[...document.querySelectorAll("#m-items .itemblk")].map(b=>({
       item:b.querySelector(".it").value.trim(),
-      rs:[...b.querySelectorAll(".nr")].map(r=>({sub:r.querySelector(".c").value.trim(),qty:parseInt(r.querySelector(".q").value)})).filter(r=>r.sub||r.qty)
+      rs:[...b.querySelectorAll(".nr")].map(r=>({sub:r.querySelector(".c").value.trim(),sc:((r.querySelector(".msc")||{}).value||"").trim(),qty:parseInt(r.querySelector(".q").value)})).filter(r=>r.sub||r.qty||r.sc)
     })).filter(b=>b.item||b.rs.length);
     if(!blocks.length){toast("اكتب الصنف");return false}
     for(const [i,b] of blocks.entries()){
       if(!b.item){toast("اكتب اسم الصنف رقم "+(i+1));return false}
-      if(!b.rs.length||b.rs.some(r=>!r.sub||!(r.qty>0))){toast("كمّل بيانات الصنف: "+b.item);return false}
+      if(!b.rs.length||b.rs.some(r=>!r.sub||!r.sc||!(r.qty>0))){toast("كمّل بيانات الصنف (لون الصنف ولون الرش والكمية): "+b.item);return false}
     }
     const od=document.getElementById("m-od").value||today(),due=document.getElementById("m-due").value||null,made=[],gid=await makeGroup(document.getElementById("m-gt").value,blocks.length);
-    const rows=blocks.flatMap(b=>b.rs.map(r=>withGid({item:b.item,color:r.sub,qty_required:r.qty,order_date:od,due_date:due},gid)));
-    const{error}=await db.from("spray_orders").insert(rows);
+    const rows=blocks.flatMap(b=>b.rs.map(r=>withGid({item:b.item,color:r.sub,spray_color:r.sc,qty_required:r.qty,order_date:od,due_date:due},gid)));
+    let lost=false,{error}=await db.from("spray_orders").insert(rows);
+    if(error&&/spray_color/.test(error.message||"")){lost=true;({error}=await db.from("spray_orders").insert(rows.map(({spray_color,...x})=>x)))}
     if(error){await dropGroup(gid);toast("خطأ: "+error.message);return false}
-    tab="open";setTab();await load();toast(blocks.length>1?"تمت إضافة "+blocks.length+" أصناف في الطلبية":"تمت إضافة الطلبية");
+    tab="open";setTab();await load();toast(lost?"تمت الإضافة لكن لون الرش ما اتسجلش: شغّل setup_orders_v2.sql":blocks.length>1?"تمت إضافة "+blocks.length+" أصناف في الطلبية":"تمت إضافة الطلبية");
   });
   const box=document.getElementById("m-items");
   const renum=()=>[...box.querySelectorAll(".itemblk")].forEach((b,i)=>{b.querySelector(".ih b").textContent="الصنف "+(i+1);b.querySelector(".rmi").style.display=i>0?"block":"none"});

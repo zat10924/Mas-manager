@@ -81,12 +81,12 @@ const SRC={
   // التسجيلات القديمة اللي من غير لون رش بتتحسب «بدون لون رش».
   spray:{name:"رش",page:"spray.html",icon:"spray",color:"#B8862B",noun:"الإنتاج",sub:"لون الرش",
     async fetch(){
-      const[s,p,sg]=await Promise.all([all("spray_status","*"),all("spray_production","*"),all("spray_orders","id,group_id").catch(()=>[])]);
-      const GM=new Map(sg.map(x=>[x.id,x.group_id||null]));
+      const[s,p,sg]=await Promise.all([all("spray_status","*"),all("spray_production","*"),all("spray_orders","id,group_id,spray_color").catch(()=>all("spray_orders","id,group_id").catch(()=>[]))]);
+      const GM=new Map(sg.map(x=>[x.id,x.group_id||null])),SCM=new Map(sg.map(x=>[x.id,(x.spray_color||"").trim()]));
       const S=new Map(s.map(x=>[x.id,x])),fr=await freeRows("spray");
       return{
         prod:p.map(x=>{const o=S.get(x.order_id),oc=o?String(o.color??""):"";return{d:D(x.prod_date),item:o?.item||"—",sub:String(x.spray_color||""),oc,qty:+x.qty||0,w:x.worker||"",n:x.note||"",id:x.id,tb:"spray_production",raw:x,oid:x.order_id,max:o?(+o.qty_required||0)-(+o.produced||0)+(+x.qty||0):0}}).concat(fr),
-        ord:s.map(o=>({id:o.id,gid:o.group_id||GM.get(o.id)||null,item:o.item,sub:String(o.color??""),date:D(o.order_date),due:D(o.due_date),pc:+o.postponed_count||0,status:o.status,req:+o.qty_required||0,done:Math.min(+o.produced||0,+o.qty_required||0),over:Math.max((+o.produced||0)-(+o.qty_required||0),0)}))
+        ord:s.map(o=>({id:o.id,gid:o.group_id||GM.get(o.id)||null,item:o.item,sub:String(o.color??"")+(SCM.get(o.id)?" ← رش "+SCM.get(o.id):""),date:D(o.order_date),due:D(o.due_date),pc:+o.postponed_count||0,status:o.status,req:+o.qty_required||0,done:Math.min(+o.produced||0,+o.qty_required||0),over:Math.max((+o.produced||0)-(+o.qty_required||0),0)}))
       };
     }},
   repair:{name:"تصليح",page:"repair.html",icon:"repair",color:"#5D6B7A",noun:"التصليح",sub:"",
