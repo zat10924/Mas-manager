@@ -1041,6 +1041,9 @@ function freeProduction(sec,done){
     }
     if(!todo.length){toast("اكتب صنف واحد على الأقل");return false}
     const d=document.getElementById("m-d").value||today(),xf=xfRead();
+    if(!await reviewSave({title:"راجع الإنتاج قبل الحفظ",meta:[["القسم",SEC_AR[sec]],["التاريخ",fmtD(d)],...rvFields(xf)],
+      items:todo.map(t=>({title:t.item,rows:[...(t.sub?[[lab,t.sub]]:[]),["الكمية",nf(t.q)],...(t.sc?[["لون الرش",t.sc]]:[])]})),
+      total:todo.reduce((a,t)=>a+t.q,0)}))return false;
     let ok=0,off=0;const bad=[];
     for(const t of todo){
       const id=uuid(),row={section:sec,item:t.item,sub:t.sub||null,qty:t.q,prod_date:d,client_id:id,...xf,...(t.sc?{spray_color:t.sc}:{})};
@@ -1077,6 +1080,27 @@ function freeProduction(sec,done){
   add(true);
   document.getElementById("madd").onclick=()=>add(true);
 }
+/* ===== مراجعة التسجيل قبل الحفظ (تأكيد) ===== */
+const RVX={worker:"العامل",design:"الرسمة",note:"ملاحظة",spray_color:"لون الرش"};
+const rvFields=o=>Object.keys(RVX).filter(k=>o&&o[k]).map(k=>[RVX[k],o[k]]);
+function reviewSave({title="راجع التسجيل قبل الحفظ",meta=[],items=[],total=null,totalLabel="إجمالي الكمية"}){
+  return new Promise(res=>{
+    const d=document.createElement("div");d.className="ov";d.style.zIndex=70;
+    const row=r=>`<div class="rvr"><span>${esc(String(r[0]))}</span><b>${esc(String(r[1]))}</b></div>`;
+    d.innerHTML=`<div class="modal rv" role="dialog" aria-modal="true"><h3 class="ibt">${ui("eye")}<span>${esc(title)}</span></h3>
+      <div class="hint" style="margin:0 0 8px">اتأكد إن البيانات صح، وبعدها اضغط تأكيد عشان يتحفظ.</div>
+      ${meta.length?`<div class="rvm">${meta.map(row).join("")}</div>`:""}
+      ${items.map((it,i)=>`<div class="rvi">${it.title?`<div class="rvt">${items.length>1?(i+1)+". ":""}${esc(it.title)}</div>`:""}${it.rows.map(row).join("")}</div>`).join("")}
+      ${total!==null?`<div class="rvtot"><span>${esc(totalLabel)}</span><b>${nf(total)}</b></div>`:""}
+      <div class="row"><button class="btn" id="rv-ok" type="button">${ib("check","تأكيد وحفظ")}</button><button class="btn ghost" id="rv-no" type="button">${ib("edit","رجوع وتعديل")}</button></div></div>`;
+    document.body.appendChild(d);
+    const end=v=>{d.remove();document.removeEventListener("keydown",kd,true);res(v)};
+    const kd=e=>{if(e.key==="Escape"){e.stopPropagation();end(false)}};
+    document.addEventListener("keydown",kd,true);
+    d.onclick=e=>{if(e.target===d||e.target.closest("#rv-no"))end(false);else if(e.target.closest("#rv-ok"))end(true)};
+    try{d.querySelector("#rv-ok").focus({preventScroll:true})}catch(e){}
+  });
+}
 /* ===== تسجيل هالك سريع (جليز) — من غير طلبية ===== */
 function quickWaste(done){
   openModal("تسجيل هالك · جليز",
@@ -1088,7 +1112,9 @@ function quickWaste(done){
     const item=document.getElementById("m-item").value.trim(),g=parseInt(document.getElementById("m-g").value)||0,q=parseInt(document.getElementById("m-q").value)||0;
     if(!item){toast("اكتب الصنف");return false}
     if(g+q<=0){toast("اكتب الكمية السليمة والهالكة");return false}
-    const{error}=await db.from("glaze_waste").insert({item,waste_date:document.getElementById("m-d").value||today(),good_qty:g,qty:q,reason:document.getElementById("m-r").value.trim()||null});
+    const wd=document.getElementById("m-d").value||today(),wr=document.getElementById("m-r").value.trim();
+    if(!await reviewSave({title:"راجع الهالك قبل الحفظ",meta:[["التاريخ",fmtD(wd)]],items:[{title:item,rows:[["الكمية السليمة",nf(g)],["الكمية الهالكة",nf(q)],["نسبة الهالك",(q/(g+q)*100).toFixed(1)+"%"],...(wr?[["السبب",wr]]:[])]}]}))return false;
+    const{error}=await db.from("glaze_waste").insert({item,waste_date:wd,good_qty:g,qty:q,reason:wr||null});
     if(error){toast(isNet(error)?"مفيش نت: الهالك محتاج اتصال عشان يتسجل":"خطأ: "+error.message,"bad");return false}
     toast("تم تسجيل الهالك");if(done)await done();
   });

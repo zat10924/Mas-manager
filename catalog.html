@@ -38,6 +38,7 @@ let kind="item",all=[],Q="";
 let view=(()=>{try{return localStorage.getItem("catview")||"grid"}catch(e){return"grid"}})();const SEL=new Set();
 const NAMES={item:"الأصناف",color:"الألوان",code:"أكواد الزخرفة"};
 const HINT={item:"الأصناف (باسمها وكودها وصورتها) بتظهر في القوائم المنسدلة للطلبيات والهالك والتصليح.",color:"الألوان بتظهر في القوائم المنسدلة للجليز والرش.",code:"أكواد الرسمات بتظهر في القوائم المنسدلة للزخرفة (ممكن تضيف صورة الرسمة)."};
+const NEED2="لازم تشغّل ملف setup_designs.sql في Supabase الأول (SQL Editor ← Run)";
 const NEED="لازم تشغّل ملف setup_v2.sql في Supabase الأول (SQL Editor ← Run)";
 const NOPIC='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8 9"/></svg>';
 
@@ -47,6 +48,8 @@ async function load(){
   if(error){fail("list",load);return}
   data.sort((a,b)=>String(a.name).localeCompare(String(b.name),"ar",{numeric:true}));all=data;draw();
 }
+const dsOf=x=>{const set=new Set(all.filter(k=>k.kind==="code").map(k=>norm(k.name)));return(Array.isArray(x.designs)?x.designs:[]).filter(n=>set.has(norm(n)))};
+const dsBtn=x=>kind==="item"&&dsOf(x).length?`<button class="btn ghost sm" data-v="${x.id}" aria-label="رسمات الصنف">${ib("eye","رسمات ("+dsOf(x).length+")")}</button>`:"";
 function draw(){
   document.getElementById("hint").textContent=HINT[kind]+" ("+nf(all.filter(x=>x.kind===kind).length)+")";
   const rs=all.filter(x=>x.kind===kind&&hit(norm(Q),x.name,x.code||""));
@@ -56,14 +59,14 @@ function draw(){
       return `<div class="gc ${sl?"sel":""}"><label class="gk"><input type="checkbox" data-s="${x.id}" ${sl?"checked":""} aria-label="تحديد"></label>
       <div class="gi ${im?"has":""}" ${im?`data-z="${x.id}" style="background-image:url('${im}')" role="button" aria-label="تكبير الصورة"`:""}>${im?"":NOPIC}</div>
       <b>${esc(x.name)}</b>${x.code?`<small>${esc(x.code)}</small>`:""}
-      <span class="ga"><button class="btn ghost sm" data-e="${x.id}" aria-label="تعديل">${ib("edit","تعديل")}</button><button class="btn ghost sm dang" data-d="${x.id}" aria-label="حذف">${ib("trash","حذف")}</button></span></div>`}).join("")}</div>`;
+      <span class="ga">${dsBtn(x)}<button class="btn ghost sm" data-e="${x.id}" aria-label="تعديل">${ib("edit","تعديل")}</button><button class="btn ghost sm dang" data-d="${x.id}" aria-label="حذف">${ib("trash","حذف")}</button></span></div>`}).join("")}</div>`;
     return;
   }
   document.getElementById("list").innerHTML=rs.length?`<div class="card">${rs.map(x=>{
     const im=safeAv(x.image);
     return `<div class="cent"><span class="cthumb ${im?"has":""}" ${im?`data-z="${x.id}" style="background-image:url('${im}')" role="button" aria-label="تكبير الصورة"`:""}>${im?"":NOPIC}</span>
       <div class="ct"><b>${esc(x.name)}</b>${x.code?`<small>الكود: <span class="cnum">${esc(x.code)}</span></small>`:""}</div>
-      <span class="ca"><button class="btn ghost sm" data-e="${x.id}" aria-label="تعديل">${ib("edit","تعديل")}</button><button class="btn ghost sm dang" data-d="${x.id}" aria-label="حذف">${ib("trash","حذف")}</button></span></div>`}).join("")}</div>`:`<div class="empty">${Q?"مفيش نتائج":"القائمة فاضية. اضغط «إضافة»."}</div>`;
+      <span class="ca">${dsBtn(x)}<button class="btn ghost sm" data-e="${x.id}" aria-label="تعديل">${ib("edit","تعديل")}</button><button class="btn ghost sm dang" data-d="${x.id}" aria-label="حذف">${ib("trash","حذف")}</button></span></div>`}).join("")}</div>`:`<div class="empty">${Q?"مفيش نتائج":"القائمة فاضية. اضغط «إضافة»."}</div>`;
 }
 function addNames(){
   openModal("إضافة إلى "+NAMES[kind],`<label>اكتب اسم في كل سطر</label><textarea id="m-cn" rows="6" style="width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)"></textarea>`,async()=>{
@@ -86,9 +89,23 @@ function entryForm(x){
     <label>${kind==="code"?"صورة الرسمة":"الصورة"} (اختياري)</label>
     <div class="photoedit"><span class="cthumb ${im?"has":""}" id="c-prev" ${im?`style="background-image:url('${im}')"`:""}>${im?"":NOPIC}</span>
       <div class="pa"><button type="button" class="btn ghost sm" id="c-ph">اختيار صورة</button><button type="button" class="btn ghost sm" id="c-phx">حذف الصورة</button></div></div>
-    <input type="file" id="c-file" accept="image/*" hidden><div class="hint">الصورة بتتصغّر وتتقصّ مربع تلقائيًا.</div>`;
+    <input type="file" id="c-file" accept="image/*" hidden><div class="hint">الصورة بتتصغّر وتتقصّ مربع تلقائيًا.</div>${kind==="item"?designPicker(x):""}`;
+}
+function designPicker(x){
+  const codes=all.filter(k=>k.kind==="code"),have=new Set((x.designs||[]).map(norm));
+  if(!codes.length)return`<label>الرسمات على الصنف</label><div class="hint">ضيف أكواد من تبويب «أكواد الزخرفة» الأول.</div>`;
+  return`<label>الرسمات على الصنف (اختر أكتر من كود)</label><input id="c-dq" type="search" placeholder="بحث في الأكواد…" autocomplete="off">
+    <div id="c-dl" class="dpick">${codes.map(k=>{const im=safeAv(k.image);return`<label class="dp" data-n="${esc(norm(k.name))}"><input type="checkbox" value="${esc(k.name)}" ${have.has(norm(k.name))?"checked":""}><span class="cthumb ${im?"has":""}" ${im?`style="background-image:url('${im}')"`:""}>${im?"":NOPIC}</span><b>${esc(k.name)}</b></label>`}).join("")}</div><div class="hint" id="c-dn"></div>`;
+}
+const readDesigns=()=>[...document.querySelectorAll("#c-dl input:checked")].map(i=>i.value);
+function wireDesigns(){
+  const l=document.getElementById("c-dl");if(!l)return;
+  const n=()=>{document.getElementById("c-dn").textContent="المحدد: "+readDesigns().length};n();
+  l.onchange=n;
+  document.getElementById("c-dq").oninput=e=>{const q=norm(e.target.value);l.querySelectorAll(".dp").forEach(r=>r.style.display=!q||r.dataset.n.includes(q)?"":"none")};
 }
 function wireForm(){
+  wireDesigns();
   const f=document.getElementById("c-file"),pv=document.getElementById("c-prev");
   const show=u=>{const im=safeAv(u);pv.className="cthumb"+(im?" has":"");pv.style.backgroundImage=im?`url('${im}')`:"";pv.innerHTML=im?"":NOPIC};
   document.getElementById("c-ph").onclick=()=>f.click();
@@ -101,8 +118,10 @@ function addEntry(){
     if(!name){toast("اكتب الاسم");return false}
     if(all.some(x=>x.kind===kind&&norm(x.name)===norm(name))){toast("الاسم ده موجود بالفعل","warn");return false}
     const row={kind,name};if(code)row.code=code;if(newImg)row.image=newImg;
-    const{error}=await db.from("catalog").insert(row);
+    const ds=kind==="item"?readDesigns():[];
+    const{data:ins,error}=await db.from("catalog").insert(row).select("id").single();
     if(error){toast(/code|image|column/i.test(error.message||"")?NEED:"خطأ: "+error.message,"bad");return false}
+    if(ds.length){const r=await db.rpc("catalog_set_designs",{p_id:ins.id,p_designs:ds});if(r.error){await load();toast(NEED2,"bad");return false}}
     await load();toast("تمت الإضافة");
   });
   wireForm();
@@ -125,6 +144,18 @@ function rename(id){
       const r=await db.rpc("catalog_set_meta",{p_id:x.id,p_code:code,p_image:newImg===undefined?null:newImg,p_set_image:newImg!==undefined});
       if(r.error){toast(r.error.code==="PGRST202"||/code|image|column/i.test(r.error.message||"")?NEED:"خطأ: "+r.error.message,"bad");return false}
     }
+    if(!merged&&kind==="item"){
+      const nd=readDesigns(),od=(x.designs||[]);
+      if(nd.length!==od.length||nd.some(n=>!od.some(o=>norm(o)===norm(n)))){
+        const r=await db.rpc("catalog_set_designs",{p_id:x.id,p_designs:nd});
+        if(r.error){toast(r.error.code==="PGRST202"||/designs|column/i.test(r.error.message||"")?NEED2:"خطأ: "+r.error.message,"bad");return false}
+      }
+    }
+    if(!merged&&kind==="code"&&nn!==x.name){
+      for(const it of all.filter(i=>i.kind==="item"&&(i.designs||[]).some(n=>norm(n)===norm(x.name)))){
+        await db.rpc("catalog_set_designs",{p_id:it.id,p_designs:it.designs.map(n=>norm(n)===norm(x.name)?nn:n)});
+      }
+    }
     await load();toast(msg);
   });
   wireForm();
@@ -134,9 +165,34 @@ function zoom(x){
   d.innerHTML=`<div class="modal"><h3>${esc(x.name)}${x.code?` · <span class="cnum">${esc(x.code)}</span>`:""}</h3><img class="zoomimg" alt="" src="${safeAv(x.image)}"><div class="row"><button class="btn ghost" id="zx" type="button" style="flex:1">إغلاق</button></div></div>`;
   document.body.appendChild(d);d.onclick=e=>{if(e.target===d||e.target.id==="zx")d.remove()};
 }
+function showDesigns(x){
+  const list=dsOf(x).map(n=>all.find(k=>k.kind==="code"&&norm(k.name)===norm(n))).filter(Boolean);
+  const d=document.createElement("div");d.className="ov";d.style.zIndex=40;
+  d.innerHTML=`<div class="modal"><h3>رسمات ${esc(x.name)}</h3><div class="cgrid" style="max-height:55vh;overflow:auto">${list.map(k=>{const im=safeAv(k.image);return`<div class="gc"><div class="gi ${im?"has":""}" ${im?`data-z="${k.id}" style="background-image:url('${im}')"`:""}>${im?"":NOPIC}</div><b>كود ${esc(k.name)}</b></div>`}).join("")}</div>
+    <div class="row" style="margin-top:10px"><button class="btn" id="ds-sh" type="button" style="flex:1">${ib("share","مشاركة الصور")}</button><button class="btn ghost" id="ds-pdf" type="button" style="flex:1">${ib("download","PDF للعميل")}</button></div>
+    <div class="row"><button class="btn ghost" id="zx" type="button" style="flex:1">${ib("x","إغلاق")}</button></div></div>`;
+  document.body.appendChild(d);
+  d.onclick=e=>{
+    if(e.target===d||e.target.closest("#zx"))return d.remove();
+    const z=e.target.closest("[data-z]");if(z)return zoom(all.find(r=>r.id===+z.dataset.z));
+    if(e.target.closest("#ds-pdf")){d.remove();buildPdf(list,{title:"رسمات "+x.name,note:"",cols:3,asCode:true})}
+    if(e.target.closest("#ds-sh"))shareDesigns(x,list);
+  };
+}
+async function shareDesigns(x,list){
+  try{
+    const files=[];
+    for(const k of list){const im=safeAv(k.image);if(!im)continue;const b=await(await fetch(im)).blob();files.push(new File([b],"كود-"+k.name+".jpg",{type:b.type}))}
+    const text=x.name+" — الرسمات: "+list.map(k=>k.name).join("، ");
+    if(files.length&&navigator.canShare&&navigator.canShare({files}))await navigator.share({files,title:x.name,text});
+    else if(navigator.share)await navigator.share({title:x.name,text});
+    else toast("المشاركة مش مدعومة هنا، استخدم PDF","warn");
+  }catch(e){if(e&&e.name!=="AbortError")toast("تعذّرت المشاركة، جرّب PDF","warn")}
+}
 document.getElementById("list").onclick=async e=>{
   const z=e.target.closest("[data-z]");if(z)return zoom(all.find(r=>r.id===+z.dataset.z));
   const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.v)return showDesigns(all.find(r=>r.id===+b.dataset.v));
   if(b.dataset.e)return rename(+b.dataset.e);
   if(b.dataset.d){
     const x=all.find(r=>r.id===+b.dataset.d);
@@ -184,7 +240,7 @@ async function buildPdf(rs,o){
   const dt=new Date().toLocaleDateString("ar-EG",{year:"numeric",month:"long",day:"numeric"});
   d.innerHTML=`<div class="pdfph"><img src="logo-full.png" alt=""><div><h2>${esc(o.title)}</h2>${o.note?`<p>${esc(o.note)}</p>`:""}<small>${dt}</small></div></div>
   <div class="pdfpg c${o.cols}">${rs.map(x=>{const im=safeAv(x.image);
-    return `<div class="pdfpc"><div class="pdfpi">${im?`<img src="${im}" alt="">`:""}</div><b>${esc(kind==="code"?"كود "+x.name:x.name)}</b>${x.code?`<small>الكود: ${esc(x.code)}</small>`:""}</div>`}).join("")}</div>`;
+    return `<div class="pdfpc"><div class="pdfpi">${im?`<img src="${im}" alt="">`:""}</div><b>${esc(kind==="code"||o.asCode?"كود "+x.name:x.name)}</b>${x.code?`<small>الكود: ${esc(x.code)}</small>`:""}</div>`}).join("")}</div>`;
   document.body.appendChild(d);document.body.classList.add("pdfmode");
   try{await d.querySelector(".pdfph img").decode()}catch(e){}
   const done=()=>{document.body.classList.remove("pdfmode");d.remove();window.removeEventListener("afterprint",done)};

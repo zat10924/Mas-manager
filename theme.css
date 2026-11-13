@@ -967,3 +967,21 @@ html[dir=rtl] .side .sgrp.shut .chev{transform:rotate(90deg)}
 .side .sgrp{margin-top:6px;padding-top:6px}
 .side .sh{padding:4px 10px}
 .side .sh svg,.side .sg>.sh svg{width:32px!important;height:32px!important;padding:7px!important;border-radius:10px}
+
+/* منتقي رسمات الصنف */
+.dpick{max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:6px;margin-top:6px;background:var(--card)}
+.dp{display:flex;align-items:center;gap:10px;padding:6px;border-radius:10px;cursor:pointer;margin:0}
+.dp:hover{background:color-mix(in srgb,var(--pri) 8%,transparent)}
+.dp input{width:auto;margin:0;flex:none}
+.dp .cthumb{width:40px;height:40px;border-radius:10px;cursor:pointer}
+
+/* شاشة مراجعة التسجيل قبل الحفظ */
+.rv{max-height:88vh;overflow:auto}
+.rv h3{display:flex;align-items:center;gap:8px}
+.rvm,.rvi{border:1px solid var(--line);border-radius:14px;padding:8px 12px;margin-bottom:8px;background:var(--card)}
+.rvt{font-weight:700;margin-bottom:4px;color:var(--pri)}
+.rvr{display:flex;justify-content:space-between;gap:12px;padding:4px 0;border-bottom:1px dashed var(--line)}
+.rvr:last-child{border-bottom:0}
+.rvr span{opacity:.75}
+.rvtot{display:flex;justify-content:space-between;padding:8px 12px;margin-bottom:8px;border-radius:14px;background:color-mix(in srgb,var(--pri) 10%,var(--card));font-weight:700}
+.rv .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px}

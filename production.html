@@ -158,6 +158,9 @@ function multiModal(){
       todo.push([r,q,sc]);
     }
     if(!todo.length){toast("اكتب كمية لبند واحد على الأقل");return false}
+    if(!await reviewSave({title:"راجع الإنتاج قبل الحفظ",meta:[["التاريخ",fmtD(d)]],
+      items:todo.map(([r,q,sc])=>({title:r.title,rows:[[sec==="deco"?"كود الرسمة":"اللون",r.sub],["الكمية",nf(q)],["المتبقي بعد التسجيل",nf(r.req-r.done-q)],...(sc?[["لون الرش",sc]]:[])]})),
+      total:todo.reduce((a,t)=>a+t[1],0)}))return false;
     let ok=0,off=0,fin=0;const bad=[];
     for(const[r,q,sc]of todo){const x=await saveOne(r,q,d,sc);if(x.err)bad.push(r.title+" · "+r.sub+": "+x.err);else{ok++;if(x.off)off++;if(x.done)fin++}}
     multi=false;sel.clear();await load();
@@ -248,6 +251,8 @@ function quick(r){
     if(q>rem){toast("الكمية أكبر من المتبقي ("+rem+")");return false}
     const c=SEC[sec],d=document.getElementById("m-d").value||today(),id=uuid(),tb=c.p||"spray_production";
     const xr=xfRead();if(sec==="spray"&&!xr.spray_color){toast("اكتب لون الرش");return false}
+    if(!await reviewSave({title:"راجع الإنتاج قبل الحفظ",meta:[["التاريخ",fmtD(d)],...rvFields(xr)],
+      items:[{title:r.title,rows:[[sec==="deco"?"كود الرسمة":"اللون",r.sub],["الكمية",nf(q)],["المتبقي بعد التسجيل",nf(rem-q)]]}]}))return false;
     const row={...(c.p?{line_id:r.id,qty:q,prod_date:d,client_id:id}:{order_id:r.id,qty:q,prod_date:d,client_id:id}),...xr};
     const it={id,table:tb,row,sec,rid:r.id,qty:q,txt:r.title+" · "+r.sub,sync:c.o?{lv:c.l,o:c.o,oid:r.oid}:{sv:"spray_status",o:"spray_orders",oid:r.id}};
     let res;try{res=await insertRow(tb,row)}catch(e){res={error:{message:String(e)}}}

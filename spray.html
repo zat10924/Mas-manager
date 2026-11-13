@@ -103,7 +103,9 @@ function produce(id){
     if(!q||q<1){toast("اكتب كمية صحيحة");return false}
     if(q>rem){toast("الكمية أكبر من المتبقي ("+rem+")");return false}
     const xr=xfRead();if(!xr.spray_color){toast("اكتب لون الرش");return false} // لون الرش مطلوب (مختلف عن لون الصنف)
-    const{error}=await insertRow("spray_production",{order_id:id,qty:q,prod_date:document.getElementById("m-d").value||today(),...xr});
+    const pd=document.getElementById("m-d").value||today();
+    if(!await reviewSave({title:"راجع الإنتاج قبل الحفظ",meta:[["التاريخ",fmtD(pd)],...rvFields(xr)],items:[{title:o.item,rows:[["لون الصنف",o.color],["الكمية",nf(q)],["المتبقي بعد التسجيل",nf(rem-q)]]}]}))return false;
+    const{error}=await insertRow("spray_production",{order_id:id,qty:q,prod_date:pd,...xr});
     if(error){toast("خطأ: "+error.message);return false}
     const done=await syncStatus(id);await load();toast(done?"اكتملت الطلبية":"تم التسجيل");
   });

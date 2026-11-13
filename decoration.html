@@ -159,7 +159,9 @@ function produce(lineId){
     const q=parseInt(document.getElementById("m-q").value);
     if(!q||q<1){toast("اكتب كمية صحيحة");return false}
     if(q>rem){toast("الكمية أكبر من المتبقي ("+rem+")");return false}
-    const{error}=await insertRow("deco_production",{line_id:lineId,qty:q,prod_date:document.getElementById("m-d").value||today(),...xfRead()});
+    const pd=document.getElementById("m-d").value||today(),xr=xfRead(),po=orders.find(o=>o.id===x.order_id);
+    if(!await reviewSave({title:"راجع الإنتاج قبل الحفظ",meta:[["التاريخ",fmtD(pd)],...rvFields(xr)],items:[{title:po?po.item:"",rows:[["كود الرسمة",x.code],["الكمية",nf(q)],["المتبقي بعد التسجيل",nf(rem-q)]]}]}))return false;
+    const{error}=await insertRow("deco_production",{line_id:lineId,qty:q,prod_date:pd,...xr});
     if(error){toast("خطأ: "+error.message);return false}
     const done=await syncStatus(x.order_id);await load();
     toast(done?"اكتملت الطلبية":"تم التسجيل");
