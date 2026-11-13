@@ -38,10 +38,13 @@
 <script>
 let ctl=null,octl=null,lastDaily=null,ENT=[];
 const TABS=["daily","orders","general"];
+let tab="daily";
 function showTab(t,fresh){
   if(!TABS.includes(t))t="daily";
+  tab=t;
   TABS.forEach(k=>{document.getElementById("pane-"+k).hidden=k!==t});
   document.querySelectorAll("#rtabs button").forEach(b=>{const on=b.dataset.t===t;b.classList.toggle("on",on);b.classList.toggle("ghost",!on);b.setAttribute("aria-selected",on)});
+  try{window.markSub&&markSub()}catch(_){}
   if(fresh){if(t==="general"&&ctl)ctl.refresh(false);if(t==="orders"&&octl)octl.refresh(false)}
 }
 document.getElementById("rtabs").addEventListener("click",e=>{const b=e.target.closest("button[data-t]");if(!b)return;try{history.replaceState(null,"","#"+b.dataset.t)}catch(_){}showTab(b.dataset.t,true);scrollTo({top:0})});
