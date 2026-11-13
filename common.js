@@ -91,7 +91,7 @@ const ICONS={
   hat:'<path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5"/><path d="M14 6a6 6 0 0 1 6 6v3M4 15v-3a6 6 0 0 1 6-6"/><rect class="f" x="2" y="15" width="20" height="4" rx="1"/>',
   shield:'<path class="f" d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
   lock:'<rect class="f" width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
-  out:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/>'
+  out:'<path d="M15 3h3a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-3"/><g class="arw"><path d="M10 7l-5 5 5 5"/><path d="M5 12h11"/></g>'
 };
 const ico=k=>`<svg class="ic ic-${k}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[k]}</svg>`;
 /* أيقونات الأزرار والتقارير (خطية، بتاخد لون النص) */
@@ -1322,3 +1322,57 @@ async function delGroup(gid,table){
   if(typeof load==="function")await load();toast("تم حذف الطلبية كلها");
 }
 const GTITLE_HTML='<label>اسم الطلبية / العميل (اختياري)</label><input id="m-gt" placeholder="مثال: طلبية أحمد" maxlength="80">';
+
+/* ===== أيقونات التبويبات الفرعية (خطية وبسيطة، بتتضاف تلقائيًا لأي .tabs) ===== */
+const TIC={
+  open:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  done:'<circle cx="12" cy="12" r="9"/><path d="m8 12.2 2.8 2.8L16 9.5"/>',
+  waste:'<path d="M4 7h16"/><path d="M9 7V4.5h6V7"/><path d="m6 7 1 13h10l1-13"/><path d="M10 11v5M14 11v5"/>',
+  chart:'<path d="M4 20h16"/><path d="M7 16v-5M12 16V6M17 16v-8"/>',
+  users:'<path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20"/><circle cx="10" cy="8" r="3.5"/><path d="M20 20v-1.5a3.5 3.5 0 0 0-2.5-3.3M15.5 4.7a3.5 3.5 0 0 1 0 6.6"/>',
+  log:'<path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.5"/><path d="M3.5 3.5v5h5"/><path d="M12 8v4.2l2.8 1.8"/>',
+  db:'<ellipse cx="12" cy="5.5" rx="7.5" ry="2.8"/><path d="M4.5 5.5v13c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8v-13"/><path d="M4.5 12c0 1.5 3.4 2.8 7.5 2.8s7.5-1.3 7.5-2.8"/>',
+  cal:'<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10.5h17"/>',
+  orders:'<rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 4h6v3H9z"/><path d="M9 12h6M9 16h4"/>',
+  layers:'<path d="m12 3.5 8.5 4.7-8.5 4.8-8.5-4.8z"/><path d="m3.5 12.5 8.5 4.8 8.5-4.8"/>',
+  box:'<path d="M20.5 7.8v8.4l-8.5 4.8-8.5-4.8V7.8L12 3z"/><path d="m3.8 7.9 8.2 4.7 8.2-4.7M12 21v-8.4"/>',
+  drop:'<path d="M12 3.5s6 6 6 10.2a6 6 0 0 1-12 0C6 9.5 12 3.5 12 3.5z"/>',
+  hash:'<path d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16"/>',
+  grid:'<rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/>',
+  palette:'<path d="M12 3a9 9 0 1 0 0 18c1 0 1.6-.8 1.6-1.6 0-.5-.2-.9-.5-1.2a1.7 1.7 0 0 1 1.2-2.9H16a5 5 0 0 0 5-5c0-4-4-7.3-9-7.3z"/><circle cx="7.8" cy="11" r=".8"/><circle cx="10.5" cy="7.2" r=".8"/><circle cx="15" cy="7.8" r=".8"/>',
+  spray:'<rect x="7" y="10" width="10" height="11" rx="2.2"/><path d="M10 10V7h4v3M12 3.5V7"/><path d="M18 5h.01M20.5 8h.01M19.5 11.5h.01"/>',
+  wrench:'<path d="M14.5 6.5a4 4 0 0 0 5 5l-9 9a2.1 2.1 0 0 1-3-3l9-9a4 4 0 0 0-2-2z"/>'
+};
+function tabIconKey(b){
+  const t=b.textContent.trim(),k=[b.id,b.dataset.t,b.dataset.s,b.dataset.k].join(" ");
+  const has=(re)=>re.test(k)||re.test(t);
+  if(has(/repair|تصليح/))return"wrench";
+  if(has(/مفتوح|\bopen\b/))return"open";
+  if(has(/مكتمل|\bdone\b/))return"done";
+  if(has(/هالك|\brep\b/))return"waste";
+  if(has(/تقارير|\bprod\b/))return"chart";
+  if(has(/عمال|\bwk\b/))return"users";
+  if(has(/سجل|السجل|\blog\b/))return"log";
+  if(has(/نسخ|\bbk\b/))return"db";
+  if(has(/اليومي|\bdaily\b/))return"cal";
+  if(has(/الطلبيات|\borders\b/))return"orders";
+  if(has(/العام|\bgeneral\b/))return"layers";
+  if(has(/الأصناف|\bitem\b/))return"box";
+  if(has(/الألوان|\bcolor\b/))return"drop";
+  if(has(/أكواد|\bcode\b/))return"hash";
+  if(has(/جليز|\bglaze\b/))return"drop";
+  if(has(/زخرفة|\bdeco\b/))return"palette";
+  if(/\bspray\b/.test(k)||t==="رش")return"spray";
+  if(t==="الكل")return"grid";
+  return"";
+}
+function decorateTabs(){
+  document.querySelectorAll(".tabs button").forEach(b=>{
+    if(b.querySelector("svg"))return;
+    const k=tabIconKey(b);if(!k||!TIC[k])return;
+    b.insertAdjacentHTML("afterbegin",`<svg class="tic" viewBox="0 0 24 24" aria-hidden="true">${TIC[k]}</svg>`);
+    b.classList.add("has-tic");
+  });
+}
+(()=>{let q=0;const go=()=>{if(q)return;q=requestAnimationFrame(()=>{q=0;try{decorateTabs()}catch(e){}})};
+  document.addEventListener("DOMContentLoaded",()=>{go();new MutationObserver(go).observe(document.body,{childList:true,subtree:true})});})();

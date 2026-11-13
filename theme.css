@@ -1015,3 +1015,20 @@ html.bigbtn .tabs button,html.bigbtn .seg button{min-height:48px}
 .kpis{gap:8px;margin:0 0 8px}
 .kpis.mini .kpi{padding:7px 10px}
 .kpis.mini .kv{font-size:1.1rem}
+
+/* ===== أيقونات التبويبات الفرعية ===== */
+.tabs .btn.has-tic{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:54px;min-width:62px;padding:7px 6px;font-size:.78rem;line-height:1.15}
+.tabs .tic{width:21px;height:21px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;opacity:.8;transition:transform .25s var(--ease,ease),opacity .2s}
+.tabs .btn.on .tic{opacity:1;transform:translateY(-1px) scale(1.08)}
+.tabs .btn:active .tic{transform:scale(.9)}
+
+/* ===== زر تسجيل الخروج ===== */
+.side #out svg,.umenu #umout svg{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.side #out svg{background:rgba(229,83,75,.16)!important;color:#ff9a92!important;box-shadow:inset 0 0 0 1px rgba(255,138,130,.42)!important;animation:none!important}
+.side #out svg *{animation:none!important}
+.side #out:hover svg{background:linear-gradient(135deg,#e5534b,#b3261e)!important;color:#fff!important;box-shadow:0 4px 14px rgba(179,38,30,.5)!important;transform:none;animation:none!important}
+.side #out span{color:#ffc2bc}
+.ic-out .arw{transition:transform .25s var(--ease,ease)}
+.side #out:hover .arw,.umenu #umout:hover .arw{transform:translateX(-3px)}
+.umenu #umout{color:#c0392b}
+.umenu #umout svg{color:#c0392b}
