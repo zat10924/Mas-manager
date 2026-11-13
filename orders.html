@@ -25,7 +25,7 @@
   <div class="tabs noprint"><button class="btn on" id="t-open">مفتوحة</button><button class="btn ghost" id="t-done">مكتملة</button></div>
   <button class="btn" id="newG" style="width:100%;margin-bottom:12px">+ طلبية جديدة وتوزيعها على الأقسام</button>
   <div class="kpis mini three" id="stats"></div>
-  <input type="search" id="q" placeholder="بحث باسم الطلبية أو الصنف أو اللون" style="margin-bottom:10px">
+  <input type="search" id="q" placeholder="بحث باسم الطلبية أو رقمها أو الموبايل أو الصنف أو اللون" style="margin-bottom:10px">
   <div id="orders"></div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -33,7 +33,7 @@
 <script src="common.js"></script>
 <script>
 const SECK={glaze:{n:"جليز",page:"glaze.html",c:"#2E6F80",lbl:"اللون"},deco:{n:"زخرفة",page:"decoration.html",c:"#5E5A8C",lbl:"الكود"},spray:{n:"رش",page:"spray.html",c:"#B8862B",lbl:"اللون"}};
-let G=[],tab="open",Q="",broken=false;
+let G=[],tab="open",Q="",broken=false,ext=false;
 const sum=(a,f)=>a.reduce((x,y)=>x+f(y),0);
 function mkItem(item,status,date,due,lines,ids){
   const req=sum(lines,l=>l.req),done=sum(lines,l=>Math.min(l.done,l.req));
@@ -41,7 +41,10 @@ function mkItem(item,status,date,due,lines,ids){
 }
 async function load(){
   const[g,go,gl,dO,dl,sp,so]=await Promise.all([
-    db.from("order_groups").select("id,title,created_at").order("created_at",{ascending:false}),
+    (async()=>{const q=c=>db.from("order_groups").select(c).order("created_at",{ascending:false});
+      const r=await q("id,title,created_at,order_no,customer_phone,notes");
+      if(!r.error){ext=true;return r}
+      ext=false;return q("id,title,created_at")})(),
     db.from("glaze_orders").select("id,item,status,order_date,due_date,group_id").not("group_id","is",null),
     db.from("glaze_lines_status").select("id,order_id,color,total_required,produced"),
     db.from("deco_orders").select("id,item,status,order_date,due_date,group_id").not("group_id","is",null),
@@ -51,7 +54,7 @@ async function load(){
   ]);
   if(g.error||go.error||dO.error||so.error){broken=true;draw();return}
   broken=false;
-  const M=new Map(g.data.map(x=>[x.id,{id:x.id,title:(x.title||"").trim(),created:String(x.created_at||"").slice(0,10),secs:{glaze:[],deco:[],spray:[]}}]));
+  const M=new Map(g.data.map(x=>[x.id,{id:x.id,title:(x.title||"").trim(),no:x.order_no||null,phone:(x.customer_phone||"").trim(),notes:(x.notes||"").trim(),created:String(x.created_at||"").slice(0,10),secs:{glaze:[],deco:[],spray:[]}}]));
   const by=(a,k)=>{const m=new Map();(a||[]).forEach(x=>{if(!m.has(x[k]))m.set(x[k],[]);m.get(x[k]).push(x)});return m};
   const glL=by(gl.data,"order_id"),dlL=by(dl.data,"order_id");
   go.data.forEach(o=>{const m=M.get(o.group_id);if(!m)return;m.secs.glaze.push(mkItem(o.item,o.status,o.order_date,o.due_date,(glL.get(o.id)||[]).map(l=>({l:l.color,req:+l.total_required||0,done:+l.produced||0})),[o.id]))});
@@ -71,29 +74,35 @@ const itemHtml=i=>{const pct=i.req?Math.min(100,Math.round(i.done/i.req*100)):0;
   return `<div style="margin-top:8px"><div class="r"><b>${esc(i.item)}</b>${i.status==="open"?"":' <span class="tag ok">مكتمل</span>'} <span class="nums">تم <b>${nf(i.done)}</b> من <b>${nf(i.req)}</b></span></div><div class="bar"><i style="width:${pct}%"></i></div><div class="nums" style="font-size:.85rem">${i.lines.map(l=>esc(l.l)+": "+nf(Math.min(l.done,l.req))+"/"+nf(l.req)).join(" · ")}</div></div>`};
 function card(o){
   const ks=Object.keys(SECK).filter(k=>o.secs[k].length);
-  return `<div class="card ogrp"><div class="top"><b>${esc(o.title||"طلبية بدون اسم")}</b><span>${o.late?'<span class="tag late">متأخرة</span> ':""}<span class="tag ${o.open?"":"ok"}">${o.open?"مفتوحة":"مكتملة"}</span></span></div>
+  return `<div class="card ogrp"><div class="top"><b>${o.no?"#"+o.no+" · ":""}${esc(o.title||"طلبية بدون اسم")}</b><span>${o.late?'<span class="tag late">متأخرة</span> ':""}<span class="tag ${o.open?"":"ok"}">${o.open?"مفتوحة":"مكتملة"}</span></span></div>
+    ${o.phone?`<div class="nums">الموبايل: <a href="tel:${esc(o.phone.replace(/[^\d+]/g,""))}" dir="ltr">${esc(o.phone)}</a>${waNum(o.phone)?` · <a href="https://wa.me/${waNum(o.phone)}" target="_blank" rel="noopener">واتساب</a>`:""}</div>`:""}
+    ${o.notes?`<div class="hint" style="margin:2px 0 6px">${esc(o.notes)}</div>`:""}
     <div class="nums">${o.due?`التسليم: <b>${fmtD(o.due)}</b> · `:""}تاريخ الطلبية: <b>${fmtD(o.date)}</b></div>
     <div class="nums">الإجمالي: مطلوب <b>${nf(o.req)}</b> · تم <b>${nf(o.done)}</b> · متبقي <b>${nf(o.rem)}</b></div>
     <div class="bar"><i style="width:${o.pct}%"></i></div>
     ${ks.length?ks.map(k=>`<div class="line"><div class="r"><span class="badge" style="--c:${SECK[k].c}">${SECK[k].n}</span><a class="tag" href="${SECK[k].page}">فتح القسم</a></div>${o.secs[k].map(itemHtml).join("")}</div>`).join(""):'<div class="empty">لسه ما اتوزعتش على قسم</div>'}
-    <div class="row"><button class="btn sm" onclick="openForm('${o.id}')">+ توزيع صنف</button><button class="btn ghost sm" onclick="renameG('${o.id}')">تسمية</button><button class="btn ghost sm" onclick="delG('${o.id}')">حذف الطلبية كلها</button></div></div>`;
+    <div class="row"><button class="btn sm" onclick="openForm('${o.id}')">+ توزيع صنف</button><button class="btn ghost sm" onclick="editG('${o.id}')">تعديل البيانات</button><button class="btn ghost sm" onclick="delG('${o.id}')">حذف الطلبية كلها</button></div></div>`;
 }
 function draw(){
   const box=document.getElementById("orders");
   if(broken){document.getElementById("stats").innerHTML="";box.innerHTML='<div class="card empty">جدول الطلبيات مش جاهز.<br>شغّل ملف <b>setup_order_groups.sql</b> مرة واحدة في Supabase › SQL Editor وبعدين حدّث الصفحة.</div>';return}
   const open=G.filter(o=>o.open);
   kpis("stats",[["طلبيات مفتوحة",open.length],["متأخرة",open.filter(o=>o.late).length,open.some(o=>o.late)?"var(--late,#c0392b)":undefined],["المتبقي للإنجاز",nf(sum(open,o=>o.rem))]]);
-  const list=G.filter(o=>(tab==="open")===o.open&&(!Q||(o.title+" "+o.all.map(i=>i.item+" "+i.lines.map(l=>l.l).join(" ")).join(" ")).toLowerCase().includes(Q.toLowerCase())));
+  const list=G.filter(o=>(tab==="open")===o.open&&(!Q||((o.title+" "+(o.no||"")+" "+o.phone+" "+o.notes+" "+o.all.map(i=>i.item+" "+i.lines.map(l=>l.l).join(" ")).join(" ")).toLowerCase().includes(Q.toLowerCase()))));
   box.innerHTML=list.length?list.map(card).join(""):`<div class="empty">${Q?"مفيش نتائج للبحث":tab==="open"?"مفيش طلبيات مفتوحة. اضغط «طلبية جديدة».":"مفيش طلبيات مكتملة."}</div>`;
 }
 function setTab(t){t=t||tab;tab=t;document.getElementById("t-open").className="btn "+(t==="open"?"on":"ghost");document.getElementById("t-done").className="btn "+(t==="done"?"on":"ghost");draw()}
 function openForm(gid){
   const g=gid?G.find(x=>x.id===gid):null;
-  const crow=k=>`<div class="two nr"><input placeholder="${SECK[k].lbl}" class="c"><input placeholder="الكمية" class="q" type="number" min="1" inputmode="numeric"></div>`;
-  const blk=n=>`<div class="itemblk" data-k="glaze"><div class="ih"><b>الصنف ${n}</b><button type="button" class="rmi" style="display:${n>1?"block":"none"}">${ib("trash","حذف الصنف")}</button></div><label>يتوزع على قسم</label><select class="sc">${Object.keys(SECK).map(k=>`<option value="${k}">${SECK[k].n}</option>`).join("")}</select><input class="it" placeholder="اسم الصنف"><label class="ll">الألوان والكميات</label><div class="rows">${crow("glaze")}</div><button class="btn ghost sm addc" type="button">+ سطر</button></div>`;
-  const top=g?`<div class="hint" style="margin:0 0 8px">التوزيع على الطلبية: <b>${esc(g.title||"بدون اسم")}</b></div>`:`<label>اسم الطلبية / العميل</label><input id="m-gt" placeholder="مثال: طلبية أحمد" maxlength="80"><label>تاريخ الطلبية</label><input type="date" id="m-od" value="${today()}"><label>تاريخ التسليم (اختياري)</label><input type="date" id="m-due">`;
+  const crow=k=>`<div class="two nr"><input placeholder="${SECK[k].lbl}" class="c" data-kind="${k==="deco"?"code":"color"}"><input placeholder="الكمية" class="q" type="number" min="1" inputmode="numeric"></div>`;
+  const curK=()=>{const e=document.getElementById("m-sec");return e?e.value:"glaze"};
+  const llt=k=>(k==="deco"?"الأكواد":"الألوان")+" والكميات";
+  const blk=n=>{const k=curK();return `<div class="itemblk" data-k="${k}"><div class="ih"><b>الصنف ${n}</b><button type="button" class="rmi" style="display:${n>1?"block":"none"}">${ib("trash","حذف الصنف")}</button></div><input class="it" placeholder="اسم الصنف"><label class="ll">${llt(k)}</label><div class="rows">${crow(k)}</div><button class="btn ghost sm addc" type="button">+ سطر</button></div>`};
+  const XF=`<label>موبايل العميل (اختياري)</label><input id="m-ph" type="tel" inputmode="tel" maxlength="20" dir="ltr"><label>ملاحظات (اختياري)</label><input id="m-nt" maxlength="300">`;
+  const SEC=`<label>يتوزع على قسم</label><select id="m-sec">${Object.keys(SECK).map(k=>`<option value="${k}">${SECK[k].n}</option>`).join("")}</select>`;
+  const top=g?`<div class="hint" style="margin:0 0 8px">التوزيع على الطلبية: <b>${esc(g.title||"بدون اسم")}</b></div>${SEC}`:`<label>اسم الطلبية / العميل</label><input id="m-gt" placeholder="مثال: طلبية أحمد" maxlength="80">${ext?XF:""}<label>تاريخ الطلبية</label><input type="date" id="m-od" value="${today()}"><label>تاريخ التسليم (اختياري)</label><input type="date" id="m-due">${SEC}`;
   openModal(g?"توزيع صنف على الأقسام":"طلبية جديدة",`${top}<div id="m-items">${blk(1)}</div><button class="btn sm" id="m-addi" type="button" style="width:100%;margin-top:4px">+ إضافة صنف</button>`,async()=>{
-    const blocks=[...document.querySelectorAll("#m-items .itemblk")].map(b=>({k:b.querySelector(".sc").value,item:b.querySelector(".it").value.trim(),rs:[...b.querySelectorAll(".nr")].map(r=>({v:r.querySelector(".c").value.trim(),q:parseInt(r.querySelector(".q").value)})).filter(r=>r.v||r.q)})).filter(b=>b.item||b.rs.length);
+    const blocks=[...document.querySelectorAll("#m-items .itemblk")].map(b=>({k:document.getElementById("m-sec").value,item:b.querySelector(".it").value.trim(),rs:[...b.querySelectorAll(".nr")].map(r=>({v:r.querySelector(".c").value.trim(),q:parseInt(r.querySelector(".q").value)})).filter(r=>r.v||r.q)})).filter(b=>b.item||b.rs.length);
     if(!blocks.length){toast("اكتب الصنف");return false}
     for(const[i,b]of blocks.entries()){
       if(!b.item){toast("اكتب اسم الصنف رقم "+(i+1));return false}
@@ -103,7 +112,11 @@ function openForm(gid){
     let id=gid,fresh=false;
     if(!id){
       const title=document.getElementById("m-gt").value.trim()||("طلبية "+fmtD(today()));
-      const r=await db.from("order_groups").insert({title}).select("id").single();
+      const row={title};
+      if(ext){const ph=document.getElementById("m-ph").value.trim(),nt=document.getElementById("m-nt").value.trim();
+        if(ph&&!/^[\d+\s-]{6,20}$/.test(ph)){toast("رقم الموبايل غير صحيح");return false}
+        if(ph)row.customer_phone=ph;if(nt)row.notes=nt}
+      const r=await db.from("order_groups").insert(row).select("id").single();
       if(r.error){toast("خطأ: "+r.error.message);return false}
       id=r.data.id;fresh=true;
     }
@@ -131,14 +144,17 @@ function openForm(gid){
   const box=document.getElementById("m-items");
   const renum=()=>[...box.querySelectorAll(".itemblk")].forEach((b,i)=>{b.querySelector(".ih b").textContent="الصنف "+(i+1);b.querySelector(".rmi").style.display=i>0?"block":"none"});
   document.getElementById("m-addi").onclick=()=>{box.insertAdjacentHTML("beforeend",blk(box.children.length+1));const nb=box.lastElementChild;nb.scrollIntoView({behavior:"smooth",block:"nearest"});nb.querySelector(".it").focus({preventScroll:true})};
-  box.addEventListener("click",e=>{const t=e.target;if(t.classList.contains("addc")){const b=t.closest(".itemblk");b.querySelector(".rows").insertAdjacentHTML("beforeend",crow(b.querySelector(".sc").value))}else if(t.closest(".rmi")){t.closest(".itemblk").remove();renum()}});
-  box.addEventListener("change",e=>{if(!e.target.classList.contains("sc"))return;const b=e.target.closest(".itemblk"),k=e.target.value;b.dataset.k=k;b.querySelector(".ll").textContent=(k==="deco"?"الأكواد":"الألوان")+" والكميات";b.querySelectorAll(".c").forEach(i=>i.placeholder=SECK[k].lbl)});
+  box.addEventListener("click",e=>{const t=e.target;if(t.classList.contains("addc")){const b=t.closest(".itemblk");b.querySelector(".rows").insertAdjacentHTML("beforeend",crow(curK()))}else if(t.closest(".rmi")){t.closest(".itemblk").remove();renum()}});
+  document.getElementById("m-sec").addEventListener("change",e=>{const k=e.target.value;box.querySelectorAll(".itemblk").forEach(b=>{b.dataset.k=k;b.querySelector(".ll").textContent=llt(k);b.querySelector(".rows").innerHTML=crow(k)})});
 }
-function renameG(id){
+function editG(id){
   const g=G.find(x=>x.id===id);if(!g)return;
-  openModal("تسمية الطلبية",`<label>الاسم / العميل</label><input id="m-rn" maxlength="80" value="${esc(g.title)}">`,async()=>{
-    const t=document.getElementById("m-rn").value.trim();
-    const{error}=await db.from("order_groups").update({title:t||null}).eq("id",id);
+  openModal("تعديل بيانات الطلبية",`<label>الاسم / العميل</label><input id="m-rn" maxlength="80" value="${esc(g.title)}">${ext?`<label>موبايل العميل (اختياري)</label><input id="m-ph" type="tel" inputmode="tel" maxlength="20" dir="ltr" value="${esc(g.phone)}"><label>ملاحظات (اختياري)</label><input id="m-nt" maxlength="300" value="${esc(g.notes)}">`:""}`,async()=>{
+    const row={title:document.getElementById("m-rn").value.trim()||null};
+    if(ext){const ph=document.getElementById("m-ph").value.trim(),nt=document.getElementById("m-nt").value.trim();
+      if(ph&&!/^[\d+\s-]{6,20}$/.test(ph)){toast("رقم الموبايل غير صحيح");return false}
+      row.customer_phone=ph||null;row.notes=nt||null}
+    const{error}=await db.from("order_groups").update(row).eq("id",id);
     if(error){toast("خطأ: "+error.message);return false}
     await load();toast("تم الحفظ");
   });
