@@ -33,7 +33,7 @@
 <script src="common.js"></script>
 <script>
 const SECK={glaze:{n:"جليز",page:"glaze.html",c:"#2E6F80",lbl:"اللون"},deco:{n:"زخرفة",page:"decoration.html",c:"#5E5A8C",lbl:"الكود"},spray:{n:"رش",page:"spray.html",c:"#B8862B",lbl:"اللون"}};
-let G=[],tab="open",Q="",broken=false,ext=false,CUS=[],cusOk=false;
+let G=[],tab="open",Q="",broken=false,ext=false,dlv=false,CUS=[],cusOk=false;
 const sum=(a,f)=>a.reduce((x,y)=>x+f(y),0);
 function mkItem(item,status,date,due,lines,ids){
   const req=sum(lines,l=>l.req),done=sum(lines,l=>Math.min(l.done,l.req));
@@ -48,7 +48,9 @@ async function saveCus(n,p){
 async function load(){
   const[g,go,gl,dO,dl,sp,so,cu]=await Promise.all([
     (async()=>{const q=c=>db.from("order_groups").select(c).order("created_at",{ascending:false});
-      const r=await q("id,title,created_at,order_no,customer_phone,notes");
+      let r=await q("id,title,created_at,order_no,customer_phone,notes,delivered_at,delivery_note");
+      if(!r.error){ext=true;dlv=true;return r}
+      dlv=false;r=await q("id,title,created_at,order_no,customer_phone,notes");
       if(!r.error){ext=true;return r}
       ext=false;return q("id,title,created_at")})(),
     db.from("glaze_orders").select("id,item,status,order_date,due_date,group_id").not("group_id","is",null),
@@ -62,7 +64,7 @@ async function load(){
   cusOk=!cu.error;CUS=cusOk?(cu.data||[]):[];
   if(g.error||go.error||dO.error||so.error){broken=true;draw();return}
   broken=false;
-  const M=new Map(g.data.map(x=>[x.id,{id:x.id,title:(x.title||"").trim(),no:x.order_no||null,phone:(x.customer_phone||"").trim(),notes:(x.notes||"").trim(),created:String(x.created_at||"").slice(0,10),secs:{glaze:[],deco:[],spray:[]}}]));
+  const M=new Map(g.data.map(x=>[x.id,{id:x.id,title:(x.title||"").trim(),no:x.order_no||null,phone:(x.customer_phone||"").trim(),notes:(x.notes||"").trim(),deliv:x.delivered_at||null,dnote:(x.delivery_note||"").trim(),created:String(x.created_at||"").slice(0,10),secs:{glaze:[],deco:[],spray:[]}}]));
   const by=(a,k)=>{const m=new Map();(a||[]).forEach(x=>{if(!m.has(x[k]))m.set(x[k],[]);m.get(x[k]).push(x)});return m};
   const glL=by(gl.data,"order_id"),dlL=by(dl.data,"order_id");
   go.data.forEach(o=>{const m=M.get(o.group_id);if(!m)return;m.secs.glaze.push(mkItem(o.item,o.status,o.order_date,o.due_date,(glL.get(o.id)||[]).map(l=>({l:l.color,req:+l.total_required||0,done:+l.produced||0})),[o.id]))});
@@ -71,10 +73,11 @@ async function load(){
   (sp.data||[]).forEach(r=>{const x=sm.get(r.id);if(!x||!M.has(x.group_id))return;const k=x.group_id+"|"+r.item;let t=tmp.get(k);if(!t){t={g:x.group_id,item:r.item,st:"done",date:x.order_date,due:x.due_date,lines:[],ids:[]};tmp.set(k,t)}if(r.status==="open")t.st="open";t.lines.push({l:r.color,req:+r.qty_required||0,done:+r.produced||0});t.ids.push(r.id)});
   tmp.forEach(t=>M.get(t.g).secs.spray.push(mkItem(t.item,t.st,t.date,t.due,t.lines,t.ids)));
   G=[...M.values()].map(o=>{
-    const all=Object.values(o.secs).flat(),open=all.some(i=>i.status==="open"),dues=all.map(i=>i.due).filter(Boolean).sort(),dts=all.map(i=>i.date).filter(Boolean).sort();
+    const all=Object.values(o.secs).flat(),open=!o.deliv&&all.some(i=>i.status==="open"),dues=all.map(i=>i.due).filter(Boolean).sort(),dts=all.map(i=>i.date).filter(Boolean).sort();
     const req=sum(all,i=>i.req),done=sum(all,i=>i.done);
     return{...o,all,open,due:dues[0]||null,date:dts[0]||o.created,req,done,rem:Math.max(req-done,0),pct:req?Math.min(100,Math.round(done/req*100)):0,
-      late:all.some(i=>i.status==="open"&&lateOrder({status:"open",due_date:i.due,order_date:i.date}))};
+      short:Object.entries(o.secs).flatMap(([k,a])=>a.flatMap(i=>i.lines.filter(l=>l.req>l.done).map(l=>({k,item:i.item,l:l.l,n:l.req-l.done})))),
+      late:!o.deliv&&all.some(i=>i.status==="open"&&lateOrder({status:"open",due_date:i.due,order_date:i.date}))};
   });
   draw();
 }
@@ -82,14 +85,15 @@ const itemHtml=i=>{const pct=i.req?Math.min(100,Math.round(i.done/i.req*100)):0;
   return `<div style="margin-top:8px"><div class="r"><b>${esc(i.item)}</b>${i.status==="open"?"":' <span class="tag ok">مكتمل</span>'} <span class="nums">تم <b>${nf(i.done)}</b> من <b>${nf(i.req)}</b></span></div><div class="bar"><i style="width:${pct}%"></i></div><div class="nums" style="font-size:.85rem">${i.lines.map(l=>esc(l.l)+": "+nf(Math.min(l.done,l.req))+"/"+nf(l.req)).join(" · ")}</div></div>`};
 function card(o){
   const ks=Object.keys(SECK).filter(k=>o.secs[k].length);
-  return `<div class="card ogrp"><div class="top"><b>${o.no?"#"+o.no+" · ":""}${esc(o.title||"طلبية بدون اسم")}</b><span>${o.late?'<span class="tag late">متأخرة</span> ':""}<span class="tag ${o.open?"":"ok"}">${o.open?"مفتوحة":"مكتملة"}</span></span></div>
+  return `<div class="card ogrp"><div class="top"><b>${o.no?"#"+o.no+" · ":""}${esc(o.title||"طلبية بدون اسم")}</b><span>${o.late?'<span class="tag late">متأخرة</span> ':""}<span class="tag ${o.open?"":"ok"}">${o.deliv?"تم التسليم":o.open?"مفتوحة":"مكتملة"}</span></span></div>
     ${o.phone?`<div class="nums">الموبايل: <a href="tel:${esc(o.phone.replace(/[^\d+]/g,""))}" dir="ltr">${esc(o.phone)}</a>${waNum(o.phone)?` · <a href="https://wa.me/${waNum(o.phone)}" target="_blank" rel="noopener">واتساب</a>`:""}</div>`:""}
     ${o.notes?`<div class="hint" style="margin:2px 0 6px">${esc(o.notes)}</div>`:""}
     <div class="nums">${o.due?`التسليم: <b>${fmtD(o.due)}</b> · `:""}تاريخ الطلبية: <b>${fmtD(o.date)}</b></div>
     <div class="nums">الإجمالي: مطلوب <b>${nf(o.req)}</b> · تم <b>${nf(o.done)}</b> · متبقي <b>${nf(o.rem)}</b></div>
     <div class="bar"><i style="width:${o.pct}%"></i></div>
+    ${o.deliv?`<div class="line"><div class="r"><b>تم تسليم الطلبية</b><span class="nums">${fmtD(o.deliv)}</span></div>${o.all.some(i=>i.status==="open")?'<div class="nums">الأقسام لسه مفتوحة وتقدر تكمّل الإنتاج</div>':""}${o.short.length?`<div class="nums" style="color:var(--bad,#b3261e);font-weight:700">سُلّمت بعجز ${nf(o.rem)} قطعة:</div>${o.short.map(x=>`<div class="nums" style="font-size:.85rem">• ${SECK[x.k].n} · ${esc(x.item)} (${esc(x.l)}) — عجز <b>${nf(x.n)}</b></div>`).join("")}`:'<div class="nums">سُلّمت كاملة بدون عجز</div>'}${o.dnote?`<div class="hint" style="margin:4px 0 0">${esc(o.dnote)}</div>`:""}</div>`:""}
     ${ks.length?ks.map(k=>`<div class="line"><div class="r"><span class="badge" style="--c:${SECK[k].c}">${SECK[k].n}</span><a class="tag" href="${SECK[k].page}">فتح القسم</a></div>${o.secs[k].map(itemHtml).join("")}</div>`).join(""):'<div class="empty">لسه ما اتوزعتش على قسم</div>'}
-    <div class="row"><button class="btn sm" onclick="openForm('${o.id}')">+ توزيع صنف</button><button class="btn ghost sm" onclick="editG('${o.id}')">تعديل البيانات</button><button class="btn ghost sm" onclick="delG('${o.id}')">حذف الطلبية كلها</button></div></div>`;
+    <div class="row">${o.deliv?`${o.all.some(i=>i.status==="open")?`<button class="btn sm" onclick="closeSecs('${o.id}')">قفل في الأقسام</button>`:""}<button class="btn sm" onclick="undoDeliver('${o.id}')">إلغاء التسليم</button>`:`<button class="btn sm" onclick="openForm('${o.id}')">+ توزيع صنف</button>${dlv&&ks.length?`<button class="btn sm" onclick="deliverG('${o.id}')">تسليم الطلبية</button>`:""}`}<button class="btn ghost sm" onclick="editG('${o.id}')">تعديل البيانات</button><button class="btn ghost sm" onclick="delG('${o.id}')">حذف الطلبية كلها</button></div></div>`;
 }
 function draw(){
   const box=document.getElementById("orders");
@@ -157,6 +161,38 @@ function openForm(gid){
   document.getElementById("m-addi").onclick=()=>{box.insertAdjacentHTML("beforeend",blk(box.children.length+1));const nb=box.lastElementChild;nb.scrollIntoView({behavior:"smooth",block:"nearest"});nb.querySelector(".it").focus({preventScroll:true})};
   box.addEventListener("click",e=>{const t=e.target;if(t.classList.contains("addc")){const b=t.closest(".itemblk");b.querySelector(".rows").insertAdjacentHTML("beforeend",crow(curK()))}else if(t.closest(".rmi")){t.closest(".itemblk").remove();renum()}});
   document.getElementById("m-sec").addEventListener("change",e=>{const k=e.target.value;box.querySelectorAll(".itemblk").forEach(b=>{b.dataset.k=k;b.querySelector(".ll").textContent=llt(k);b.querySelector(".rows").innerHTML=crow(k)})});
+}
+const SECT={glaze:"glaze_orders",deco:"deco_orders",spray:"spray_orders"};
+async function syncSec(g,closeAll){
+  try{for(const k of Object.keys(g.secs))for(const it of g.secs[k])for(let n=0;n<it.ids.length;n++){
+    const done=closeAll||(k==="spray"?it.lines[n].done>=it.lines[n].req:it.done>=it.req);
+    await db.from(SECT[k]).update({status:done?"done":"open"}).eq("id",it.ids[n]);
+  }}catch(e){}
+}
+function deliverG(id){
+  const g=G.find(x=>x.id===id);if(!g)return;
+  const sh=g.short;
+  openModal("تسليم الطلبية",`<div class="nums"><b>${esc(g.title||"طلبية بدون اسم")}</b></div>${sh.length?`<div class="hint" style="margin:6px 0;color:var(--bad,#b3261e)">فيها عجز ${nf(g.rem)} قطعة، هتتسجّل مع التسليم وتظهر في التقارير:</div>${sh.map(x=>`<div class="nums" style="font-size:.85rem">• ${SECK[x.k].n} · ${esc(x.item)} (${esc(x.l)}) — عجز <b>${nf(x.n)}</b></div>`).join("")}`:'<div class="hint" style="margin:6px 0">الطلبية مكتملة بالكامل.</div>'}<label>تاريخ التسليم</label><input type="date" id="m-dd" value="${today()}"><label>ملاحظة التسليم (اختياري)</label><input id="m-dn" maxlength="300">${g.all.some(i=>i.status==="open")?`<label>الأصناف في الأقسام</label><select id="m-cl"><option value="1">قفل الطلبية في باقي الأقسام</option><option value="0">سيبها مفتوحة في الأقسام عشان أكمّل الإنتاج</option></select>`:""}`,async()=>{
+    const dd=document.getElementById("m-dd").value||today(),dn=document.getElementById("m-dn").value.trim();
+    const{error}=await db.from("order_groups").update({delivered_at:dd,delivery_note:dn||null}).eq("id",id);
+    if(error){toast("خطأ: "+error.message);return false}
+    const cl=document.getElementById("m-cl");
+    if(!cl||cl.value==="1")await syncSec(g,true);
+    await load();toast("تم تسليم الطلبية");
+  },"تأكيد التسليم");
+}
+async function closeSecs(id){
+  const g=G.find(x=>x.id===id);if(!g)return;
+  if(!await ask("قفل أصناف الطلبية في الأقسام؟ مش هتظهر للعمال بعد كده."))return;
+  await syncSec(g,true);await load();toast("تم القفل في الأقسام");
+}
+async function undoDeliver(id){
+  const g=G.find(x=>x.id===id);if(!g)return;
+  if(!await ask("إلغاء تسليم الطلبية؟ هترجع للطلبيات حسب حالة كل صنف."))return;
+  const{error}=await db.from("order_groups").update({delivered_at:null,delivery_note:null}).eq("id",id);
+  if(error){toast("خطأ: "+error.message);return}
+  await syncSec(g,false);
+  await load();toast("تم إلغاء التسليم");
 }
 function editG(id){
   const g=G.find(x=>x.id===id);if(!g)return;

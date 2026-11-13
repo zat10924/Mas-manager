@@ -1032,3 +1032,7 @@ html.bigbtn .tabs button,html.bigbtn .seg button{min-height:48px}
 .side #out:hover .arw,.umenu #umout:hover .arw{transform:translateX(-3px)}
 .umenu #umout{color:#c0392b}
 .umenu #umout svg{color:#c0392b}
+
+/* منع اقتصاص الكلمات والشارات داخل الجداول */
+td .tag,th .tag,.scroll .tag{white-space:nowrap;display:inline-block;line-height:1.5}
+.scroll table td,.scroll table th{vertical-align:middle}

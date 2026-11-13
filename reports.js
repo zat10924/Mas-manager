@@ -540,13 +540,18 @@ function mount(rootId,key){
 
 /* ---------- تقرير الطلبيات (كل الأقسام) ---------- */
 const ORD_SECS=["glaze","deco","spray"];
-const ORD_ST=[["open","مفتوحة"],["late","متأخرة"],["stalled","راكدة"],["pp","اتأجلت"],["done","مكتملة"],["all","الكل"]];
+const ORD_ST=[["open","مفتوحة"],["late","متأخرة"],["stalled","راكدة"],["pp","اتأجلت"],["done","مكتملة"],["dlv","تم التسليم"],["all","الكل"]];
 
 /* ---------- الطلبية كيان واحد: دمج أصناف نفس الطلبية في صف واحد ---------- */
-const GT={t:0,m:new Map()};
+const GT={t:0,m:new Map(),x:new Map()};
 async function groupTitles(force){
   if(!force&&Date.now()-GT.t<30000)return GT.m;
-  try{const r=await all("order_groups","id,title");GT.m=new Map(r.map(x=>[x.id,(x.title||"").trim()]));GT.t=Date.now()}catch(e){}
+  try{let r;
+    try{r=await all("order_groups","id,title,order_no,customer_phone,delivered_at,delivery_note")}
+    catch(e){try{r=await all("order_groups","id,title,order_no,customer_phone")}catch(e2){r=await all("order_groups","id,title")}}
+    GT.m=new Map(r.map(x=>[x.id,(x.title||"").trim()]));
+    GT.x=new Map(r.map(x=>[x.id,{no:x.order_no||"",ph:(x.customer_phone||"").trim(),dv:x.delivered_at||null,dn:(x.delivery_note||"").trim()}]));
+    GT.t=Date.now()}catch(e){}
   return GT.m;
 }
 function mergeGroups(rows,titles){
@@ -561,16 +566,16 @@ function mergeGroups(rows,titles){
     if(!x.list)return x;
     const L=x.list,r0=L[0],open=L.filter(r=>r.status==="open"),dues=L.map(r=>r.due).filter(Boolean).sort(),dds=L.map(r=>r.dd).filter(v=>v!=null);
     const req=L.reduce((a,r)=>a+r.req,0),done=L.reduce((a,r)=>a+r.done,0),rem=L.reduce((a,r)=>a+r.rem,0),title=titles&&titles.get(r0.gid)||"";
-    const names=[...new Set(L.map(r=>r.item))];
-    return{k:r0.k,sec:r0.sec,color:r0.color,gid:r0.gid,id:"g"+r0.gid,
+    const names=[...new Set(L.map(r=>r.item))],X=GT.x.get(r0.gid)||{},dv=!!X.dv;
+    return{k:r0.k,delivered:dv,dvDate:X.dv||null,dvNote:X.dn||"",sec:r0.sec,color:r0.color,gid:r0.gid,id:"g"+r0.gid,
       item:title||names.join("، "),sub:title?names.join("، "):"",
       date:L.map(r=>r.date).filter(Boolean).sort()[0]||"",due:dues[0]||null,pc:Math.max(...L.map(r=>r.pc||0)),
-      status:open.length?"open":r0.status,req,done,over:L.reduce((a,r)=>a+(r.over||0),0),rem,
+      status:dv?"done":open.length?"open":r0.status,req,done,over:L.reduce((a,r)=>a+(r.over||0),0),rem,
       pct:req?Math.min(100,Math.round(Math.min(done,req)/req*100)):0,
-      late:open.some(r=>r.late),dd:open.length&&dds.length?Math.min(...dds):r0.dd,stalled:open.some(r=>r.stalled),
-      eta:open.reduce((m,r)=>r.eta==null?m:Math.max(m??0,r.eta),null),
+      secOpen:open.length>0,late:!dv&&open.some(r=>r.late),dd:!dv&&open.length&&dds.length?Math.min(...dds):r0.dd,stalled:!dv&&open.some(r=>r.stalled),
+      eta:dv?null:open.reduce((m,r)=>r.eta==null?m:Math.max(m??0,r.eta),null),
       items:L.map(r=>({item:r.item,sub:r.sub,req:r.req,done:Math.min(r.done,r.req),rem:r.rem,st:r.status})),n:L.length,
-      q:(title+" "+L.map(r=>r.item+" "+r.sub).join(" "))};
+      q:(title+" "+(X.no||"")+" "+(X.ph||"")+" "+L.map(r=>r.item+" "+r.sub).join(" "))};
   });
 }
 function ordersReport(rootId){
@@ -583,11 +588,11 @@ function ordersReport(rootId){
     <div class="two"><div><label>القسم</label><select class="of-s"><option value="">كل الأقسام</option>${ORD_SECS.map(k=>`<option value="${k}">${SRC[k].name}</option>`).join("")}</select></div>
     <div><label>الحالة</label><select class="of-t">${ORD_ST.map(([v,l])=>`<option value="${v}" ${v===st.stt?"selected":""}>${l}</option>`).join("")}</select></div></div>
     <div class="two"><div><label>تاريخ الطلبية من</label><input type="date" class="of-f"></div><div><label>إلى</label><input type="date" class="of-e"></div></div>
-    <label>بحث بالصنف أو اللون</label><input type="search" class="of-q" placeholder="اكتب جزء من الاسم">
+    <label>بحث باسم الطلبية أو العميل أو الصنف أو اللون</label><input type="search" class="of-q" placeholder="اكتب جزء من الاسم">
   </div>
   <div class="kpis ok-k" data-ps="kpi">${skelKpis(4)}</div>
   <div class="card" data-ps="secs"><div class="sec-head"><h3>ملخص الأقسام</h3></div><div class="scroll ok-secs"></div></div>
-  <div class="card" data-ps="list"><div class="sec-head"><h3>تفاصيل الطلبيات</h3></div><div class="scroll ok-list"></div></div>
+  <div class="card" data-ps="list"><div class="sec-head"><h3>تفاصيل الطلبيات</h3></div><div class="ok-list"></div></div>
   <div class="actbar noprint"><button class="btn ib ok-x">${ib("download","تصدير Excel")}</button><button class="btn ghost ib ok-p">${ib("print","طباعة")}</button><button class="btn ghost ib ok-sh">${ib("share","مشاركة")}</button></div>`;
   const $=s=>root.querySelector(s);
 
@@ -617,6 +622,7 @@ function ordersReport(rootId){
       case"stalled":return r.status==="open"&&r.stalled;
       case"pp":return r.pc>0;
       case"done":return r.status!=="open";
+      case"dlv":return !!r.delivered;
     }
     return true;
   }
@@ -626,7 +632,7 @@ function ordersReport(rootId){
     const d=r.dd;
     return `${fmtD(r.due)}<div>${d<0?`<span class="tag late">متأخرة ${-d} يوم</span>`:d===0?'<span class="tag late">النهارده</span>':`<span class="tag">باقي ${d} يوم</span>`}</div>`;
   };
-  const stateTag=r=>r.status!=="open"?'<span class="tag ok">مكتملة</span>':(r.late?'<span class="tag late">متأخرة</span> ':"")+(r.stalled?'<span class="tag late">راكدة</span> ':"")+(r.pc?`<span class="tag">اتأجلت ${r.pc}</span>`:"")||'<span class="nums">شغّالة</span>';
+  const stateTag=r=>r.delivered?`<span class="tag ok">تم تسليم الطلبية</span>${r.secOpen?`<div><span class="tag">لسه مفتوحة في الأقسام</span></div>`:""}${r.dvDate?`<div class="nums" style="font-size:.78rem">${fmtD(r.dvDate)}</div>`:""}${r.rem>0?`<div><span class="tag late">بعجز ${nf(r.rem)}</span></div>`:""}${r.dvNote?`<div class="nums" style="font-size:.78rem">${esc(r.dvNote)}</div>`:""}`:r.status!=="open"?'<span class="tag ok">مكتملة</span>':(r.late?'<span class="tag late">متأخرة</span> ':"")+(r.stalled?'<span class="tag late">راكدة</span> ':"")+(r.pc?`<span class="tag">اتأجلت ${r.pc}</span>`:"")||'<span class="nums">شغّالة</span>';
   const etaCell=r=>r.status!=="open"||!r.rem?"—":r.stalled?'<span class="tag late">راكدة</span>':r.eta!=null?"~ "+etaTxt(r.eta):'<span class="nums">لا إنتاج حديث</span>';
 
   function draw(){
@@ -646,7 +652,7 @@ function ordersReport(rootId){
     $(".ok-secs").innerHTML=sm.length?`<table><thead><tr><th>القسم</th><th>الكل</th><th>مفتوحة</th><th>متأخرة</th><th>مكتملة</th><th>المتبقي</th><th>الإنجاز</th></tr></thead><tbody>${sm.map(x=>{const p=x.req?Math.round(x.dn/x.req*100):0;return `<tr><td><span class="badge" style="--c:${SRC[x.k].color}">${SRC[x.k].name}</span>${st.err[x.k]?' <span class="tag late">تعذر التحميل</span>':""}</td><td>${nf(x.n)}</td><td>${nf(x.o)}</td><td>${x.l?`<b style="color:var(--bad,#b3261e)">${nf(x.l)}</b>`:"0"}</td><td>${nf(x.d)}</td><td><b>${nf(x.rem)}</b></td><td><div class="share"><div class="bar"><i style="width:${p}%;background:${SRC[x.k].color}"></i></div><span>${p}%</span></div></td></tr>`}).join("")}</tbody></table>`:'<div class="empty">مفيش طلبيات بالفلاتر دي</div>';
     // التفاصيل
     const CAP=400,lv=st.printing?list.slice(0,CAP):(st.more?list:list.slice(0,15));
-    $(".ok-list").innerHTML=list.length?`<table><thead><tr><th>الطلبية</th><th>القسم</th><th>تاريخ الطلبية</th><th>التسليم</th><th>الإنجاز</th><th>المتبقي</th><th>الحالة</th><th>التقدير</th></tr></thead><tbody>${lv.map(r=>`<tr><td><b>${esc(r.item)}</b>${r.items?` <span class="tag">${r.n} أصناف</span>`:""}${r.items?r.items.map(i=>`<div class="nums" style="font-size:.8rem">• ${esc(i.item)}${i.sub?" ("+esc(i.sub)+")":""} — ${nf(i.done)}/${nf(i.req)}${i.st!=="open"?" ✓":""}</div>`).join(""):r.sub?`<div class="nums" style="font-size:.8rem">${esc(r.sub)}</div>`:""}</td><td><span class="badge" style="--c:${r.color}">${r.sec}</span></td><td>${r.date?fmtD(r.date):"—"}</td><td>${dueCell(r)}</td><td><div class="share"><div class="bar"><i style="width:${r.pct}%;background:${r.pct>=100?"var(--ok)":r.color}"></i></div><span>${r.pct}%</span></div><div class="nums" style="font-size:.78rem">${nf(Math.min(r.done,r.req))} من ${nf(r.req)}</div>${r.over>0?`<span class="tag late">زيادة +${nf(r.over)}</span>`:""}</td><td><b>${nf(r.rem)}</b></td><td>${stateTag(r)}</td><td>${etaCell(r)}</td></tr>`).join("")}</tbody></table>${st.printing?(list.length>CAP?`<div class="hint">اتعرض أول ${CAP} طلبية من ${nf(list.length)} — الباقي في ملف Excel.</div>`:""):(list.length>15?`<button class="btn ghost sm more noprint">${st.more?"عرض أقل":`عرض الكل (${list.length})`}</button>`:"")}<div class="hint" style="margin-top:4px">التقدير = المتبقي ÷ معدل إنتاج الصنف في آخر 14 يوم (بأيام الشغل). الطلبية «متأخرة» لو عدّى تاريخ تسليمها، ولو ملهاش تاريخ تسليم فلو عدّى عليها أكتر من ${LATE_DAYS} يوم.</div>`:'<div class="empty">مفيش طلبيات بالفلاتر دي</div>';
+    $(".ok-list").innerHTML=list.length?`<div class="scroll"><table><thead><tr><th>الطلبية</th><th>القسم</th><th>تاريخ الطلبية</th><th>التسليم</th><th>الإنجاز</th><th>المتبقي</th><th>الحالة</th><th>التقدير</th></tr></thead><tbody>${lv.map(r=>`<tr><td><b>${esc(r.item)}</b>${r.items?` <span class="tag">${r.n} أصناف</span>`:""}${r.items?r.items.map(i=>`<div class="nums" style="font-size:.8rem">• ${esc(i.item)}${i.sub?" ("+esc(i.sub)+")":""} — ${nf(i.done)}/${nf(i.req)}${i.st!=="open"?" ✓":""}${r.delivered&&i.rem>0?` <b style="color:var(--bad,#b3261e)">— عجز ${nf(i.rem)}</b>`:""}</div>`).join(""):r.sub?`<div class="nums" style="font-size:.8rem">${esc(r.sub)}</div>`:""}</td><td><span class="badge" style="--c:${r.color}">${r.sec}</span></td><td>${r.date?fmtD(r.date):"—"}</td><td>${dueCell(r)}</td><td><div class="share"><div class="bar"><i style="width:${r.pct}%;background:${r.pct>=100?"var(--ok)":r.color}"></i></div><span>${r.pct}%</span></div><div class="nums" style="font-size:.78rem">${nf(Math.min(r.done,r.req))} من ${nf(r.req)}</div>${r.over>0?`<span class="tag late">زيادة +${nf(r.over)}</span>`:""}</td><td><b>${nf(r.rem)}</b></td><td>${stateTag(r)}</td><td>${etaCell(r)}</td></tr>`).join("")}</tbody></table></div>${st.printing?(list.length>CAP?`<div class="hint">اتعرض أول ${CAP} طلبية من ${nf(list.length)} — الباقي في ملف Excel.</div>`:""):(list.length>15?`<button class="btn ghost sm more noprint">${st.more?"عرض أقل":`عرض الكل (${list.length})`}</button>`:"")}<div class="hint" style="margin-top:4px">التقدير = المتبقي ÷ معدل إنتاج الصنف في آخر 14 يوم (بأيام الشغل). الطلبية «متأخرة» لو عدّى تاريخ تسليمها، ولو ملهاش تاريخ تسليم فلو عدّى عليها أكتر من ${LATE_DAYS} يوم.</div>`:'<div class="empty">مفيش طلبيات بالفلاتر دي</div>';
     const lb=ORD_ST.find(x=>x[0]===st.stt)[1];
     $(".rpd").textContent=(st.sec?SRC[st.sec].name:"كل الأقسام")+" · "+lb+(st.f||st.t?" · "+fmtP(st.f,st.t):"")+(st.q?" · بحث: "+st.q:"")+" · طُبع في "+fmtD(today());
     root.querySelector('[data-ps="secs"]').toggleAttribute("data-empty",!sm.length);
@@ -669,7 +675,7 @@ function ordersReport(rootId){
   $(".ok-x").onclick=()=>{
     if(!st.last)return;
     csvDownload(`تقرير-الطلبيات-${today()}.csv`,["القسم","الطلبية","الصنف","اللون/الكود","تاريخ الطلبية","تاريخ التسليم","المطلوب","المنتج","المتبقي","الإنجاز %","الحالة","مرات التأجيل"],
-      st.last.list.flatMap(r=>r.items?r.items.map(i=>[r.sec,r.item,i.item,i.sub,r.date,r.due||"",i.req,i.done,i.rem,i.req?Math.min(100,Math.round(i.done/i.req*100)):0,i.st!=="open"?"مكتملة":r.late?"متأخرة":r.stalled?"راكدة":"شغّالة",r.pc]):[[r.sec,"",r.item,r.sub,r.date,r.due||"",r.req,Math.min(r.done,r.req),r.rem,r.pct,r.status!=="open"?"مكتملة":r.late?"متأخرة":r.stalled?"راكدة":"شغّالة",r.pc]]));
+      st.last.list.flatMap(r=>r.items?r.items.map(i=>[r.sec,r.item,i.item,i.sub,r.date,r.due||"",i.req,i.done,i.rem,i.req?Math.min(100,Math.round(i.done/i.req*100)):0,r.delivered?(i.rem>0?"تم التسليم بعجز "+i.rem:"تم التسليم"):i.st!=="open"?"مكتملة":r.late?"متأخرة":r.stalled?"راكدة":"شغّالة",r.pc]):[[r.sec,"",r.item,r.sub,r.date,r.due||"",r.req,Math.min(r.done,r.req),r.rem,r.pct,r.status!=="open"?"مكتملة":r.late?"متأخرة":r.stalled?"راكدة":"شغّالة",r.pc]]));
   };
   $(".ok-p").onclick=()=>{
     if(!st.last)return;const L=st.last;
