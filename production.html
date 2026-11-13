@@ -39,10 +39,27 @@ const SEC={
  glaze:{name:"جليز",color:"#2E6F80",o:"glaze_orders",l:"glaze_lines_status",p:"glaze_production",lab:x=>x.color},
  deco:{name:"زخرفة",color:"#5E5A8C",o:"deco_orders",l:"deco_lines_status",p:"deco_production",lab:x=>"كود "+x.code},
  spray:{name:"رش",color:"#B8862B"}};
+/* صور أكواد الرسمات (زخرفة) */
+let CIMG=new Map(),cimgAt=0;
+async function loadCodeImgs(){
+  if(CIMG.size&&Date.now()-cimgAt<120000)return;
+  try{const r=await db.from("catalog").select("name,image").eq("kind","code").not("image","is",null);
+    if(!r.error&&r.data){CIMG=new Map(r.data.map(x=>[norm(x.name),safeAv(x.image)]).filter(x=>x[1]));cimgAt=Date.now()}}catch(e){}
+}
+const cimg=c=>CIMG.get(norm(c))||"";
+const cthumb=c=>{const u=cimg(c);return u?`<span class="dthumb" data-zc="${esc(c)}" style="background-image:url('${u}')" role="button" aria-label="تكبير صورة الرسمة"></span>`:""};
+function zoomCode(c){
+  const u=cimg(c);if(!u)return;
+  const d=document.createElement("div");d.className="ov";d.style.zIndex=60;
+  d.innerHTML=`<div class="modal"><h3>كود ${esc(c)}</h3><img class="zoomimg" alt="" src="${u}" style="max-height:70vh"><div class="row"><button class="btn ghost" id="zx" type="button" style="flex:1">إغلاق</button></div></div>`;
+  document.body.appendChild(d);d.onclick=e=>{if(e.target===d||e.target.id==="zx")d.remove()};
+}
+document.addEventListener("click",e=>{const z=e.target.closest("[data-zc]");if(z){e.stopPropagation();zoomCode(z.dataset.zc)}},true);
 let multi=false,sel=new Set(),selSec="",sec="",allowed=[],rows=[],tod=[],Q="",stale=0,D="";
 
 async function load(){
   if(!D)D=today();
+  if(sec==="deco")await loadCodeImgs();
   const c=SEC[sec],t=D;
   try{
     if(c.o){
@@ -50,7 +67,7 @@ async function load(){
         db.from(c.p).select("*").eq("prod_date",t).order("id",{ascending:false})]);
       if(o.error||l.error)throw new Error("load");
       const om=new Map(o.data.map(x=>[x.id,x])),lm=new Map(l.data.map(x=>[x.id,x]));
-      rows=l.data.filter(x=>om.get(x.order_id)?.status==="open").map(x=>({id:x.id,oid:x.order_id,title:om.get(x.order_id).item,sub:c.lab(x),req:x.total_required,done:x.produced,date:om.get(x.order_id).order_date,due:om.get(x.order_id).due_date}));
+      rows=l.data.filter(x=>om.get(x.order_id)?.status==="open").map(x=>({id:x.id,oid:x.order_id,title:om.get(x.order_id).item,sub:c.lab(x),code:x.code,req:x.total_required,done:x.produced,date:om.get(x.order_id).order_date,due:om.get(x.order_id).due_date}));
       tod=(p.data||[]).map(e=>{const x=lm.get(e.line_id),o2=x&&om.get(x.order_id);return{k:"line",tb:c.p,id:e.id,qty:e.qty,date:e.prod_date,worker:e.worker||"",note:e.note||"",design:e.design||"",txt:o2?o2.item+" · "+c.lab(x):"—",max:x?x.total_required-x.produced+e.qty:0,sync:x?{lv:c.l,o:c.o,oid:x.order_id}:null}});
     }else{
       const[o,p]=await Promise.all([db.from("spray_status").select("*"),db.from("spray_production").select("*").eq("prod_date",t).order("id",{ascending:false})]);
@@ -64,6 +81,13 @@ async function load(){
       const f=await db.from("free_production").select("*").eq("section",sec).eq("prod_date",t).order("id",{ascending:false});
       if(!f.error)tod.unshift(...(f.data||[]).map(e=>({k:"free",tb:"free_production",id:e.id,qty:e.qty,date:e.prod_date,item:e.item,sub:e.sub||"",sc:e.spray_color||"",worker:e.worker||"",note:e.note||"",design:e.design||"",txt:e.item+(e.sub?" · "+e.sub:"")+(e.spray_color?" · لون الرش: "+e.spray_color:"")+" · بدون طلبية"})));
     }catch(e){}
+    // سجل الهالك (جليز)
+    if(sec==="glaze"){
+      try{
+        const w=await db.from("glaze_waste").select("*").gte("waste_date",t).lte("waste_date",t+"T23:59:59").order("id",{ascending:false});
+        if(!w.error)tod.push(...(w.data||[]).map(e=>({k:"waste",tb:"glaze_waste",id:e.id,qty:+e.qty||0,good:+e.good_qty||0,date:String(e.waste_date||"").slice(0,10),item:e.item||"",reason:e.reason||"",worker:"",txt:"هالك · "+(e.item||"—")+" · سليم "+(+e.good_qty||0)+(e.reason?" · "+e.reason:"")})));
+      }catch(x){}
+    }
     try{localStorage.setItem("pc_"+sec,JSON.stringify({rows,tod,at:Date.now()}))}catch(e){}
     stale=0;
   }catch(e){
@@ -79,10 +103,10 @@ function draw(){
   const c=SEC[sec],q=Q.trim().toLowerCase();
   if(selSec!==sec){sel.clear();selSec=sec}
   const list=rows.filter(r=>!q||(r.title+" "+r.sub).toLowerCase().includes(q)).sort((a,b)=>String(a.due||a.date).localeCompare(String(b.due||b.date)));
-  kpis("stats",[["بنود مفتوحة",rows.length],["المتبقي",rows.reduce((a,r)=>a+Math.max(r.req-r.done,0),0)],[D===today()?"إنتاج النهارده":"إنتاج اليوم",tod.reduce((a,e)=>a+e.qty,0),"var(--ok)"]]);
+  kpis("stats",[["بنود مفتوحة",rows.length],["المتبقي",rows.reduce((a,r)=>a+Math.max(r.req-r.done,0),0)],[D===today()?"إنتاج النهارده":"إنتاج اليوم",tod.filter(e=>e.k!=="waste").reduce((a,e)=>a+e.qty,0),"var(--ok)"]]);
   document.getElementById("list").innerHTML=list.length?list.map(r=>{
     const rem=Math.max(r.req-r.done,0),p=r.req>0?Math.min(100,Math.round(r.done/r.req*100)):0,late=r.due?today()>r.due:isLate("open",r.date);
-    return `<div class="card pr ${multi&&sel.has(r.id)?"sel":""}" data-id="${r.id}" style="cursor:pointer"><div class="top"><span style="display:flex;gap:8px;align-items:center;min-width:0">${multi?`<span class="ck ${sel.has(r.id)?"on":""}"></span>`:""}<b>${esc(r.title)}</b></span><span>${late?'<span class="tag late">متأخرة</span> ':""}<span class="tag">${esc(r.sub)}</span></span></div>
+    return `<div class="card pr ${multi&&sel.has(r.id)?"sel":""}" data-id="${r.id}" style="cursor:pointer"><div class="top"><span style="display:flex;gap:8px;align-items:center;min-width:0">${multi?`<span class="ck ${sel.has(r.id)?"on":""}"></span>`:""}${sec==="deco"?cthumb(r.code):""}<b>${esc(r.title)}</b></span><span>${late?'<span class="tag late">متأخرة</span> ':""}<span class="tag">${esc(r.sub)}</span></span></div>
       <div class="bar"><i style="width:${p}%"></i></div><div class="nums">تم <b>${nf(r.done)}</b> من <b>${nf(r.req)}</b> · متبقي <b>${nf(rem)}</b></div></div>`}).join(""):`<div class="empty">${q?"مفيش نتائج":"مفيش بنود مفتوحة"}</div>`;
   document.querySelectorAll(".pr").forEach(e=>e.onclick=()=>pick(rows.find(r=>String(r.id)===e.dataset.id),e));
   updBar();
@@ -91,7 +115,7 @@ function draw(){
   const ce=can("edit")&&!stale,cd=can("delete")&&!stale;
   document.getElementById("logh").textContent=D===today()?"تسجيلات النهارده":"تسجيلات يوم "+fmtD(D);
   document.getElementById("logd").value=D;
-  document.getElementById("today").innerHTML=tod.length?`<div class="card">${tod.map((e,i)=>`<div class="line fe"><span>${esc(e.txt)}${e.worker?` <span class="nums">· ${esc(e.worker)}</span>`:""}</span><span style="display:flex;align-items:center;gap:6px"><b>${nf(e.qty)}</b>${e.k&&!e.pend&&ce?`<button class="btn ghost sm" type="button" onclick="editEnt(${i})">تعديل</button>`:""}${e.k&&!e.pend&&cd?`<button class="btn ghost sm" type="button" onclick="delEntry(${i})">حذف</button>`:""}</span></div>`).join("")}</div>`:`<div class="empty">${D===today()?"لسه مفيش تسجيل النهارده":"مفيش تسجيل في اليوم ده"}</div>`;
+  document.getElementById("today").innerHTML=tod.length?`<div class="card">${tod.map((e,i)=>`<div class="line fe"><span>${esc(e.txt)}${e.worker?` <span class="nums">· ${esc(e.worker)}</span>`:""}</span><span style="display:flex;align-items:center;gap:6px"><b${e.k==="waste"?' style="color:var(--bad,#c0392b)"':""}>${nf(e.qty)}</b>${e.k&&!e.pend&&ce?`<button class="btn ghost sm" type="button" onclick="editEnt(${i})">تعديل</button>`:""}${e.k&&!e.pend&&cd?`<button class="btn ghost sm" type="button" onclick="delEntry(${i})">حذف</button>`:""}</span></div>`).join("")}</div>`:`<div class="empty">${D===today()?"لسه مفيش تسجيل النهارده":"مفيش تسجيل في اليوم ده"}</div>`;
 }
 // ===== تحديد متعدد: تسجيل إنتاج أكتر من بند في مرة واحدة =====
 function updBar(){
@@ -120,7 +144,7 @@ function multiModal(){
   if(!items.length)return;
   openModal("تسجيل "+items.length+" بند",`<label>التاريخ</label><input type="date" id="m-d" value="${today()}">`+items.map(r=>{
     const rem=r.req-r.done;
-    return `<div class="line"><div class="r"><b>${esc(r.title)}</b><span class="tag">${esc(r.sub)}</span></div>
+    return `<div class="line"><div class="r"><span style="display:flex;gap:8px;align-items:center">${sec==="deco"?cthumb(r.code):""}<b>${esc(r.title)}</b></span><span class="tag">${esc(r.sub)}</span></div>
       <div class="nums">تم <b>${nf(r.done)}</b> من <b>${nf(r.req)}</b> · المتبقي <b>${nf(rem)}</b></div>
       <div class="row" style="flex-wrap:nowrap;margin-top:6px"><input type="number" class="mq" data-id="${r.id}" min="1" max="${rem}" inputmode="numeric" placeholder="الكمية" style="margin:0"><button type="button" class="btn ghost sm" onclick="this.previousElementSibling.value=${rem}">الكل (${rem})</button></div>${sec==="spray"?`<label style="margin-top:6px">لون الرش</label><input class="msc" data-id="${r.id}" data-kind="color" value="" placeholder="لون الرش" autocomplete="off" maxlength="60" style="margin:0">`:""}</div>`}).join(""),async()=>{
     const d=document.getElementById("m-d").value||today(),todo=[];
@@ -155,13 +179,28 @@ async function resync(e){
 }
 async function delEntry(i){
   const e=tod[i];if(!e||!e.k||e.pend)return;
-  if(!await ask("حذف تسجيل الإنتاج ده؟ ("+esc(e.txt)+")"))return;
+  if(!await ask((e.k==="waste"?"حذف تسجيل الهالك ده؟ (":"حذف تسجيل الإنتاج ده؟ (")+esc(e.txt)+")"))return;
   const{data:dd,error}=await db.from(e.tb).delete().eq("id",e.id).select();
   if(error||!dd.length){toast(error?(isNet(error)?"الحذف محتاج اتصال بالإنترنت":"خطأ: "+error.message):"لم يتم الحذف، راجع الصلاحيات","bad");return}
   await resync(e);await load();toast("تم الحذف");
 }
+function editWaste(e){
+  openModal("تعديل هالك",`<label>الصنف</label><input id="m-item" value="${esc(e.item)}" autocomplete="off">
+    <div class="two"><div><label>الكمية السليمة</label><input type="number" id="m-g" min="0" inputmode="numeric" value="${e.good}"></div><div><label>الكمية الهالكة</label><input type="number" id="m-q" min="0" inputmode="numeric" value="${e.qty}"></div></div>
+    <label>التاريخ</label><input type="date" id="m-d" value="${e.date||today()}">
+    <label>السبب (اختياري)</label><input id="m-r" value="${esc(e.reason)}" autocomplete="off">`,async()=>{
+    const item=document.getElementById("m-item").value.trim(),g=parseInt(document.getElementById("m-g").value)||0,q=parseInt(document.getElementById("m-q").value)||0;
+    if(!item){toast("اكتب الصنف");return false}
+    if(g+q<=0){toast("اكتب الكمية السليمة والهالكة");return false}
+    const r=await db.from("glaze_waste").update({item,waste_date:document.getElementById("m-d").value||today(),good_qty:g,qty:q,reason:document.getElementById("m-r").value.trim()||null}).eq("id",e.id).select();
+    if(r.error){toast(isNet(r.error)?"التعديل محتاج اتصال بالإنترنت":"خطأ: "+r.error.message,"bad");return false}
+    if(!r.data||!r.data.length){toast("لم يتم التعديل، راجع الصلاحيات","bad");return false}
+    await load();toast("تم التعديل");
+  },"حفظ التعديل");
+}
 function editEnt(i){
   const e=tod[i];if(!e||!e.k||e.pend)return;
+  if(e.k==="waste")return editWaste(e);
   const deco=sec==="deco",free=e.k==="free",lab=deco?"كود الرسمة":sec==="spray"?"لون الصنف":"اللون",sid=deco?"m-code":"m-color",sprayLine=sec==="spray";
   openModal("تعديل تسجيل الإنتاج",
     (free?`<label>الصنف</label><input id="m-item" autocomplete="off"><label>${lab} (اختياري)</label><input id="${sid}" autocomplete="off">`
@@ -201,7 +240,7 @@ function quick(r){
   const lk="lq_"+sec+"_"+r.id;let last=0;try{last=+localStorage.getItem(lk)||0}catch(e){}
   const chips=[10,25,50,100].filter(n=>n<rem).map(n=>[n,"+"+n]).concat([[rem,"الكل ("+rem+")"]]);
   if(last&&last<=rem&&!chips.some(c=>c[0]===last))chips.unshift([last,"آخر مرة ("+last+")"]);
-  openModal(`${esc(r.title)} · ${esc(r.sub)}`,`<div class="nums">المتبقي: <b>${nf(rem)}</b></div>
+  openModal(`${esc(r.title)} · ${esc(r.sub)}`,`${sec==="deco"&&cimg(r.code)?`<img class="dzoom" alt="" src="${cimg(r.code)}" data-zc="${esc(r.code)}">`:""}<div class="nums">المتبقي: <b>${nf(rem)}</b></div>
     <div class="row" style="flex-wrap:wrap;gap:6px;margin:8px 0">${chips.map(c=>`<button type="button" class="btn ghost sm" onclick="document.getElementById('m-q').value=${c[0]}">${c[1]}</button>`).join("")}</div>
     <label>الكمية</label><input type="number" id="m-q" min="1" max="${rem}" inputmode="numeric"><label>التاريخ</label><input type="date" id="m-d" value="${today()}">${sec==="spray"?XS(""):""}${XF(sec==="deco")}`,async()=>{
     const q=parseInt(document.getElementById("m-q").value);
