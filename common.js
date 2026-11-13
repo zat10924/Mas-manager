@@ -1020,6 +1020,24 @@ async function freeTodayQty(sec){
   }catch(e){return 0}
 }
 const NEED_V2=m=>/free_production|relation|does not exist|schema cache|could not find/i.test(m||"");
+/* الزخرفة: لو الصنف + كود الرسمة في «إنتاج بدون طلبية» موجودين في طلبية مفتوحة، بيتسجّل عليها تلقائيًا (الأقدم الأول، والناقصة قبل المكتملة) */
+const _dn=v=>String(v||"").replace(/^\s*كود\s*/,"").trim().toLowerCase();
+async function decoLoadOpen(){
+  try{
+    if(!navigator.onLine)return null;
+    const[o,l]=await Promise.all([db.from("deco_orders").select("id,item,order_date,status").eq("status","open"),db.from("deco_lines_status").select("id,order_id,code,total_required,produced")]);
+    if(o.error||l.error)return null;
+    const om=new Map(o.data.map(x=>[x.id,x]));
+    return l.data.filter(x=>om.has(x.order_id)).map(x=>({id:x.id,oid:x.order_id,code:_dn(x.code),item:_dn(om.get(x.order_id).item),itemTxt:om.get(x.order_id).item,date:om.get(x.order_id).order_date||"",req:+x.total_required||0,done:+x.produced||0}));
+  }catch(e){return null}
+}
+function decoFind(lines,item,code){
+  if(!lines||!_dn(code))return null;
+  const m=lines.filter(x=>x.code===_dn(code)&&x.item===_dn(item));
+  if(!m.length)return null;
+  m.sort((a,b)=>((a.done>=a.req)-(b.done>=b.req))||String(a.date).localeCompare(String(b.date)));
+  return m[0];
+}
 function freeProduction(sec,done){
   if(!SEC_AR[sec]||sec==="repair"||sec==="casting")return;
   const deco=sec==="deco",spr=sec==="spray",lab=deco?"كود الرسمة":"اللون",kind=deco?"code":"color";
@@ -1046,12 +1064,23 @@ function freeProduction(sec,done){
     }
     if(!todo.length){toast("اكتب صنف واحد على الأقل");return false}
     const d=document.getElementById("m-d").value||today(),xf=xfRead();
+    const dl=deco?await decoLoadOpen():null;
+    todo.forEach(t=>{const m=deco?decoFind(dl,t.item,t.sub):null;if(m){t.link=m;t.over=Math.max(t.q-Math.max(m.req-m.done,0),0);m.done+=t.q}});
     if(!await reviewSave({title:"راجع الإنتاج قبل الحفظ",meta:[["القسم",SEC_AR[sec]],["التاريخ",fmtD(d)],...rvFields(xf)],
-      items:todo.map(t=>({title:t.item,rows:[...(t.sub?[[lab,t.sub]]:[]),["الكمية",nf(t.q)],...(t.sc?[["لون الرش",t.sc]]:[])]})),
+      items:todo.map(t=>({title:t.item,rows:[...(t.sub?[[lab,t.sub]]:[]),["الكمية",nf(t.q)],...(t.link?[["هيتسجل على طلبية","مربوط تلقائيًا بطلبية "+t.item+" (كود "+_dn(t.sub)+")"]]:[...(deco&&t.sub?[["ملحوظة","مفيش طلبية مفتوحة بنفس الصنف والكود، هيتسجل بدون طلبية"]]:[])])],warn:t.over?"الكمية أكبر من المتبقي في الطلبية بـ "+nf(t.over)+" — هتتسجل زي ما هي":""})),
       total:todo.reduce((a,t)=>a+t.q,0)}))return false;
-    let ok=0,off=0;const bad=[];
+    let ok=0,off=0,linked=0,over=0;const bad=[];
     for(const t of todo){
-      const id=uuid(),row={section:sec,item:t.item,sub:t.sub||null,qty:t.q,prod_date:d,client_id:id,...xf,...(t.sc?{spray_color:t.sc}:{})};
+      const id=uuid();
+      if(t.link){ // مربوط تلقائيًا بطلبية زخرفة
+        const lrow={line_id:t.link.id,qty:t.q,prod_date:d,client_id:id,...xf},sync={lv:"deco_lines_status",o:"deco_orders",oid:t.link.oid};
+        let lr;try{lr=await insertRow("deco_production",lrow)}catch(e){lr={error:{message:String(e)}}}
+        if(lr.error&&isNet(lr.error)){Q_.add({id,table:"deco_production",row:lrow,sec:"deco",rid:t.link.id,qty:t.q,txt:t.item+" · كود "+t.sub,sync});updateBadge();off++;ok++;t.el.remove();continue}
+        if(lr.error){bad.push(t.item+": "+lr.error.message);continue}
+        try{await syncAfter({sync})}catch(e){}
+        linked++;if(t.over)over++;ok++;t.el.remove();continue;
+      }
+      const row={section:sec,item:t.item,sub:t.sub||null,qty:t.q,prod_date:d,client_id:id,...xf,...(t.sc?{spray_color:t.sc}:{})};
       let res;try{res=await insertRow("free_production",row)}catch(e){res={error:{message:String(e)}}}
       if(res.error&&isNet(res.error)){
         Q_.add({id,table:"free_production",row,sec,rid:"free",qty:t.q,txt:t.item+(t.sub?" · "+t.sub:"")+" (بدون طلبية)"});updateBadge();
@@ -1064,7 +1093,7 @@ function freeProduction(sec,done){
     // اللي اتسجل اتشال من الشاشة؛ اللي فشل بس فاضل عشان تعيد المحاولة من غير تكرار
     if(bad.length){if(window._saveFreeDraft)window._saveFreeDraft();toast((ok?"اتسجل "+ok+" وفشل "+bad.length+" — ":"")+bad[0],"bad");renum();return false}
     if(window._clearFreeDraft)window._clearFreeDraft();
-    toast(off?"مفيش نت: اتحفظ "+ok+" صنف على الجهاز وهيتسجلوا لما النت يرجع":"تم تسجيل "+ok+" صنف",off?"warn":undefined);
+    toast(off?"مفيش نت: اتحفظ "+ok+" صنف على الجهاز وهيتسجلوا لما النت يرجع":"تم تسجيل "+ok+" صنف"+(linked?" — "+linked+" منهم اتربط بطلبية تلقائيًا":"")+(over?" — تنبيه: "+over+" أعلى من المتبقي":""),off||over?"warn":undefined);
   },"تسجيل الكل");
   const box=document.getElementById("mrows");
   const renum=()=>{const r=[...box.querySelectorAll(".mrow")];r.forEach((e,i)=>{e.querySelector(".mn").textContent="صنف "+(i+1);e.querySelector(".rmi").hidden=r.length<2})};

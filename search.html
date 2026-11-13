@@ -45,15 +45,20 @@ function range(){
 }
 const tbl=(cols,rows)=>`<div style="overflow-x:auto"><table class="tbl" style="width:100%;border-collapse:collapse;font-size:.92rem"><thead><tr>${cols.map(c=>`<th style="text-align:right;padding:5px 6px;border-bottom:1px solid var(--line)">${c}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td style="padding:5px 6px;border-bottom:1px solid var(--line)">${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 function group(rows,keyf){const m=new Map();rows.forEach(r=>{const k=keyf(r);m.set(k,(m.get(k)||0)+r.qty)});return[...m].sort((a,b)=>b[1]-a[1])}
+let PART=false; // true = عرض كل الأصناف اللي فيها الكلمة (مش المطابق تمامًا بس)
 async function run(){
   const q=norm($("q").value),[f,t]=range(),box=$("res");
   box.innerHTML='<i class="sk" style="height:140px;border-radius:14px"></i>';
   const ok=d=>(!f||d>=f)&&(!t||d<=t);
   const S=Reports.sources,res=await Promise.allSettled(SECS.map(k=>Reports.getData(k,true)));
   let html="",any=false;const head=[];
+  // لو اللي اتكتب هو اسم صنف كامل بالظبط (مثلًا «شي إن») بنعرض الصنف ده بس، ومش كل صنف الكلمة جواه (زي «قهوة شي إن»)
+  const names=new Set();res.forEach(r=>{if(r.status==='fulfilled'){r.value.prod.forEach(x=>names.add(norm(x.item)));(r.value.waste||[]).forEach(x=>names.add(norm(x.item)))}});
+  const exact=!!q&&!PART&&names.has(q),m=x=>exact?norm(x)===q:hit(q,x);
+  const others=q?[...names].filter(n=>n!==q&&n.includes(q)).length:0;
   res.forEach((r,i)=>{
     const k=SECS[i];if(r.status!=="fulfilled")return;
-    const d=r.value,prod=d.prod.filter(x=>ok(x.d)&&hit(q,x.item)),waste=(d.waste||[]).filter(x=>ok(x.d)&&hit(q,x.item));
+    const d=r.value,prod=d.prod.filter(x=>ok(x.d)&&m(x.item)),waste=(d.waste||[]).filter(x=>ok(x.d)&&m(x.item));
     if(!prod.length&&!waste.length)return;any=true;
     const tot=prod.reduce((a,x)=>a+x.qty,0),wq=waste.reduce((a,x)=>a+x.qty,0);
     head.push([S[k].name,tot,wq]);
@@ -72,11 +77,15 @@ async function run(){
   });
   if(!any){box.innerHTML='<div class="empty">مفيش نتائج للصنف ده في الفترة دي</div>';return}
   box.innerHTML=`<div class="card"><h3 style="margin-top:0">النتيجة${$("q").value.trim()?" — «"+esc($("q").value.trim())+"»":""}</h3><div class="nums">${Reports.sources&&(f||t?(f?"من "+fmtD(f):"")+(t?" إلى "+fmtD(t):""):"كل الفترات")}</div>${head.map(h=>`<div class="r" style="display:flex;justify-content:space-between;padding:4px 0"><span>${h[0]}</span><span><b>${nf(h[1])}</b>${h[2]?` <span class="nums">· هالك ${nf(h[2])}</span>`:""}</span></div>`).join("")}</div>`+html;
+  if(q&&(exact&&others||PART&&names.has(q))){
+    box.insertAdjacentHTML("afterbegin",`<div class="hint" style="margin:0 0 8px">${exact?"معروض الصنف المطابق «"+esc($("q").value.trim())+"» بس. فيه "+others+" صنف تاني اسمه فيه نفس الكلمة. ":"معروض كل الأصناف اللي اسمها فيه «"+esc($("q").value.trim())+"». "}<button type="button" class="btn ghost sm" id="partT">${exact?"عرض كل الأصناف اللي فيها الكلمة":"عرض المطابق بس"}</button></div>`);
+    $("partT").onclick=()=>{PART=!PART;run()};
+  }
 }
 async function loadNames(){
   try{const{data}=await db.from("catalog").select("name").eq("kind","item").order("name");$("itl").innerHTML=(data||[]).map(x=>`<option value="${esc(x.name)}">`).join("")}catch(e){}
 }
-$("go").onclick=run;$("q").onkeydown=e=>{if(e.key==="Enter")run()};
+$("go").onclick=()=>{PART=false;run()};$("q").onkeydown=e=>{if(e.key==="Enter"){PART=false;run()}};
 document.querySelectorAll("#rg button").forEach(b=>b.onclick=()=>{$("f").value="";$("t").value="";document.querySelectorAll("#rg button").forEach(x=>x.classList.toggle("on",x===b))});
 ["f","t"].forEach(i=>$(i).onchange=()=>document.querySelectorAll("#rg button").forEach(x=>x.classList.remove("on")));
 (async()=>{if(await requireAuth("search.html")){renderNav("search.html");loadNames();settle()}})();
