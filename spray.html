@@ -56,22 +56,21 @@ function colorsHtml(p,o){
 
 
 async function load(){
-  const[o,p,d,ft]=await Promise.all([db.from("spray_status").select("*").order("created_at",{ascending:false}),db.from("spray_production").select("*").order("prod_date",{ascending:false}).order("id",{ascending:false}),db.from("spray_orders").select("id,due_date,postponed_count"),freeTodayQty("spray")]);
+  const[o,p,d,ft,gq]=await Promise.all([db.from("spray_status").select("*").order("created_at",{ascending:false}),db.from("spray_production").select("*").order("prod_date",{ascending:false}).order("id",{ascending:false}),db.from("spray_orders").select("id,due_date,postponed_count"),freeTodayQty("spray"),db.from("spray_orders").select("id,group_id"),loadGroupTitles()]);
   if(o.error){fail("orders",load);return}
-  FREE_T=ft;const dm=new Map((d.data||[]).map(x=>[x.id,x]));orders=o.data.map(x=>({...x,...(dm.get(x.id)||{})}));prods=p.data||[];renderOrders();
+  FREE_T=ft;const dm=new Map((d.data||[]).map(x=>[x.id,x])),gm=new Map(((gq&&gq.data)||[]).map(x=>[x.id,x.group_id||null]));orders=o.data.map(x=>({...x,...(dm.get(x.id)||{}),group_id:x.group_id||gm.get(x.id)||null}));prods=p.data||[];renderOrders();
 }
 
 function postpone(id){postponeOrder("spray","spray_orders",orders.find(x=>x.id===id),load)}
 function drawStats(){
   const open=orders.filter(o=>o.status==="open"),t=today();
-  kpis("stats",[["طلبيات مفتوحة",open.length],["المتبقي للإنجاز",open.reduce((a,o)=>a+Math.max(o.qty_required-o.produced,0),0)],["إنتاج النهارده",prods.filter(p=>p.prod_date===t).reduce((a,p)=>a+p.qty,0)+FREE_T,"var(--ok)"]]);
+  kpis("stats",[["طلبيات مفتوحة",ordCount(open)],["المتبقي للإنجاز",open.reduce((a,o)=>a+Math.max(o.qty_required-o.produced,0),0)],["إنتاج النهارده",prods.filter(p=>p.prod_date===t).reduce((a,p)=>a+p.qty,0)+FREE_T,"var(--ok)"]]);
 }
 function renderOrders(){
-  try{tabCount("open",orders.filter(o=>o.status==="open").length);tabCount("done",orders.filter(o=>o.status==="done").length)}catch(e){}
   drawStats();
   const list=orders.filter(o=>o.status===tab&&hit(Q,o.item,o.color)),box=document.getElementById("orders");
   if(!list.length){box.innerHTML=`<div class="empty">${Q?"مفيش نتائج للبحث":tab==="open"?"مفيش طلبيات مفتوحة. اضغط «طلبية جديدة».":"مفيش طلبيات مكتملة."}</div>`;return}
-  box.innerHTML=list.map(o=>{
+  const cardOf=o=>{
     const rem=Math.max(o.qty_required-o.produced,0),pct=Math.min(100,Math.round(o.produced/o.qty_required*100)),done=o.status==="done";
     return `<div class="card ${done?"done":""}">
       <div class="top"><b>${esc(o.item)} · ${esc(o.color)}</b><span>${lateOrder(o)?'<span class="tag late">متأخرة</span> ':""}<span class="tag ${done?"ok":""}">${done?"مكتملة":"مفتوحة"}</span></span></div>
@@ -87,7 +86,8 @@ function renderOrders(){
         <button class="btn ghost sm" onclick="edit(${o.id})">تعديل / سجل</button>
         ${done?"":`<button class="btn ghost sm" onclick="postpone(${o.id})">تأجيل</button>`}<button class="btn ghost sm" onclick="delOrder(${o.id})">حذف الطلبية</button>
       </div></div>`;
-  }).join("");
+  };
+  box.innerHTML=groupHtml(list,cardOf,o=>({status:o.status,item:o.item,due_date:o.due_date,req:+o.qty_required||0,done:Math.min(+o.produced||0,+o.qty_required||0)}),"spray_orders");
 }
 
 async function syncStatus(id){
@@ -157,7 +157,7 @@ async function delOrder(id){
 function newOrder(){
   const crow=()=>`<div class="two nr"><input placeholder="اللون" class="c"><input placeholder="الكمية" class="q" type="number" min="1" inputmode="numeric"></div>`;
   const blk=n=>`<div class="itemblk"><div class="ih"><b>الصنف ${n}</b><button type="button" class="rmi" style="display:${n>1?"block":"none"}">${ib("trash","حذف الصنف")}</button></div><input class="it" placeholder="اسم الصنف"><label>الألوان والكميات</label><div class="rows">${crow()}</div><button class="btn ghost sm addc" type="button">+ لون</button></div>`;
-  openModal("طلبية جديدة",`<label>تاريخ الطلبية</label><input type="date" id="m-od" value="${today()}"><label>تاريخ التسليم (اختياري)</label><input type="date" id="m-due"><div id="m-items">${blk(1)}</div><button class="btn sm" id="m-addi" type="button" style="width:100%;margin-top:4px">+ إضافة صنف</button>`,async()=>{
+  openModal("طلبية جديدة",`${GTITLE_HTML}<label>تاريخ الطلبية</label><input type="date" id="m-od" value="${today()}"><label>تاريخ التسليم (اختياري)</label><input type="date" id="m-due"><div id="m-items">${blk(1)}</div><button class="btn sm" id="m-addi" type="button" style="width:100%;margin-top:4px">+ إضافة صنف</button>`,async()=>{
     const blocks=[...document.querySelectorAll("#m-items .itemblk")].map(b=>({
       item:b.querySelector(".it").value.trim(),
       rs:[...b.querySelectorAll(".nr")].map(r=>({sub:r.querySelector(".c").value.trim(),qty:parseInt(r.querySelector(".q").value)})).filter(r=>r.sub||r.qty)
@@ -167,10 +167,10 @@ function newOrder(){
       if(!b.item){toast("اكتب اسم الصنف رقم "+(i+1));return false}
       if(!b.rs.length||b.rs.some(r=>!r.sub||!(r.qty>0))){toast("كمّل بيانات الصنف: "+b.item);return false}
     }
-    const od=document.getElementById("m-od").value||today(),due=document.getElementById("m-due").value||null,made=[];
-    const rows=blocks.flatMap(b=>b.rs.map(r=>({item:b.item,color:r.sub,qty_required:r.qty,order_date:od,due_date:due})));
+    const od=document.getElementById("m-od").value||today(),due=document.getElementById("m-due").value||null,made=[],gid=await makeGroup(document.getElementById("m-gt").value,blocks.length);
+    const rows=blocks.flatMap(b=>b.rs.map(r=>withGid({item:b.item,color:r.sub,qty_required:r.qty,order_date:od,due_date:due},gid)));
     const{error}=await db.from("spray_orders").insert(rows);
-    if(error){toast("خطأ: "+error.message);return false}
+    if(error){await dropGroup(gid);toast("خطأ: "+error.message);return false}
     tab="open";setTab();await load();toast(blocks.length>1?"تمت إضافة "+blocks.length+" أصناف في الطلبية":"تمت إضافة الطلبية");
   });
   const box=document.getElementById("m-items");

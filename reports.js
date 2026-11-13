@@ -41,7 +41,7 @@ function fromLines(orders,lines,prods,subKey,waste,tb){
   const prod=prods.map(p=>{const l=L.get(p.line_id),o=l&&O.get(l.order_id);return{d:D(p.prod_date),item:o?.item||"—",sub:l?String(l[subKey]??""):"",qty:+p.qty||0,w:p.worker||"",n:[p.design,p.note].filter(Boolean).join(" · "),id:p.id,tb,raw:p,oid:l&&l.order_id,max:l?(+l.total_required||0)-(+l.produced||0)+(+p.qty||0):0}});
   const ord=orders.map(o=>{
     const ls=byO.get(o.id)||[];
-    return{id:o.id,item:o.item,sub:ls.map(l=>l[subKey]).join("، "),date:D(o.order_date),due:D(o.due_date),pc:+o.postponed_count||0,status:o.status,
+    return{id:o.id,gid:o.group_id||null,item:o.item,sub:ls.map(l=>l[subKey]).join("، "),date:D(o.order_date),due:D(o.due_date),pc:+o.postponed_count||0,status:o.status,
       req:ls.reduce((a,l)=>a+(+l.total_required||0),0),done:ls.reduce((a,l)=>a+Math.min(+l.produced||0,+l.total_required||0),0),
       over:ls.reduce((a,l)=>a+Math.max((+l.produced||0)-(+l.total_required||0),0),0)};
   });
@@ -81,11 +81,12 @@ const SRC={
   // التسجيلات القديمة اللي من غير لون رش بتتحسب «بدون لون رش».
   spray:{name:"رش",page:"spray.html",icon:"spray",color:"#B8862B",noun:"الإنتاج",sub:"لون الرش",
     async fetch(){
-      const[s,p]=await Promise.all([all("spray_status","*"),all("spray_production","*")]);
+      const[s,p,sg]=await Promise.all([all("spray_status","*"),all("spray_production","*"),all("spray_orders","id,group_id").catch(()=>[])]);
+      const GM=new Map(sg.map(x=>[x.id,x.group_id||null]));
       const S=new Map(s.map(x=>[x.id,x])),fr=await freeRows("spray");
       return{
         prod:p.map(x=>{const o=S.get(x.order_id),oc=o?String(o.color??""):"";return{d:D(x.prod_date),item:o?.item||"—",sub:String(x.spray_color||""),oc,qty:+x.qty||0,w:x.worker||"",n:x.note||"",id:x.id,tb:"spray_production",raw:x,oid:x.order_id,max:o?(+o.qty_required||0)-(+o.produced||0)+(+x.qty||0):0}}).concat(fr),
-        ord:s.map(o=>({id:o.id,item:o.item,sub:String(o.color??""),date:D(o.order_date),due:D(o.due_date),pc:+o.postponed_count||0,status:o.status,req:+o.qty_required||0,done:Math.min(+o.produced||0,+o.qty_required||0),over:Math.max((+o.produced||0)-(+o.qty_required||0),0)}))
+        ord:s.map(o=>({id:o.id,gid:o.group_id||GM.get(o.id)||null,item:o.item,sub:String(o.color??""),date:D(o.order_date),due:D(o.due_date),pc:+o.postponed_count||0,status:o.status,req:+o.qty_required||0,done:Math.min(+o.produced||0,+o.qty_required||0),over:Math.max((+o.produced||0)-(+o.qty_required||0),0)}))
       };
     }},
   repair:{name:"تصليح",page:"repair.html",icon:"repair",color:"#5D6B7A",noun:"التصليح",sub:"",
@@ -540,9 +541,41 @@ function mount(rootId,key){
 /* ---------- تقرير الطلبيات (كل الأقسام) ---------- */
 const ORD_SECS=["glaze","deco","spray"];
 const ORD_ST=[["open","مفتوحة"],["late","متأخرة"],["stalled","راكدة"],["pp","اتأجلت"],["done","مكتملة"],["all","الكل"]];
+
+/* ---------- الطلبية كيان واحد: دمج أصناف نفس الطلبية في صف واحد ---------- */
+const GT={t:0,m:new Map()};
+async function groupTitles(force){
+  if(!force&&Date.now()-GT.t<30000)return GT.m;
+  try{const r=await all("order_groups","id,title");GT.m=new Map(r.map(x=>[x.id,(x.title||"").trim()]));GT.t=Date.now()}catch(e){}
+  return GT.m;
+}
+function mergeGroups(rows,titles){
+  const out=[],G=new Map();
+  rows.forEach(r=>{
+    if(!r.gid){out.push({...r,items:null,n:1,q:(r.item+" "+r.sub)});return}
+    const key=r.k+"|"+r.gid;let g=G.get(key);
+    if(!g){g={r,list:[]};G.set(key,g);out.push(g)}
+    g.list.push(r);
+  });
+  return out.map(x=>{
+    if(!x.list)return x;
+    const L=x.list,r0=L[0],open=L.filter(r=>r.status==="open"),dues=L.map(r=>r.due).filter(Boolean).sort(),dds=L.map(r=>r.dd).filter(v=>v!=null);
+    const req=L.reduce((a,r)=>a+r.req,0),done=L.reduce((a,r)=>a+r.done,0),rem=L.reduce((a,r)=>a+r.rem,0),title=titles&&titles.get(r0.gid)||"";
+    const names=[...new Set(L.map(r=>r.item))];
+    return{k:r0.k,sec:r0.sec,color:r0.color,gid:r0.gid,id:"g"+r0.gid,
+      item:title||names.join("، "),sub:title?names.join("، "):"",
+      date:L.map(r=>r.date).filter(Boolean).sort()[0]||"",due:dues[0]||null,pc:Math.max(...L.map(r=>r.pc||0)),
+      status:open.length?"open":r0.status,req,done,over:L.reduce((a,r)=>a+(r.over||0),0),rem,
+      pct:req?Math.min(100,Math.round(Math.min(done,req)/req*100)):0,
+      late:open.some(r=>r.late),dd:open.length&&dds.length?Math.min(...dds):r0.dd,stalled:open.some(r=>r.stalled),
+      eta:open.reduce((m,r)=>r.eta==null?m:Math.max(m??0,r.eta),null),
+      items:L.map(r=>({item:r.item,sub:r.sub,req:r.req,done:Math.min(r.done,r.req),rem:r.rem,st:r.status})),n:L.length,
+      q:(title+" "+L.map(r=>r.item+" "+r.sub).join(" "))};
+  });
+}
 function ordersReport(rootId){
   const root=document.getElementById(rootId);
-  const st={sec:"",stt:"open",q:"",f:"",t:"",data:{},err:{},rows:[],more:false,printing:false,last:null};
+  const st={sec:"",stt:"open",q:"",f:"",t:"",gt:new Map(),data:{},err:{},rows:[],more:false,printing:false,last:null};
   root.innerHTML=`
   <div class="print-head"><h2>${APP} — تقرير الطلبيات</h2><div class="nums rpd"></div></div>
   <div class="card noprint">
@@ -567,17 +600,17 @@ function ordersReport(rootId){
         const rem=Math.max(o.req-o.done,0),b=bk&&bk.by.get(o.id);
         const late=o.status==="open"&&(o.due?today()>o.due:isLate(o.status,o.date));
         const dd=o.due?daysBetween(today(),o.due):null; // موجب = باقي، سالب = متأخر
-        rows.push({k,sec:SRC[k].name,color:SRC[k].color,id:o.id,item:o.item||"—",sub:o.sub||"",date:o.date,due:o.due,pc:o.pc||0,status:o.status,req:o.req,done:o.done,over:o.over||0,rem,
+        rows.push({k,sec:SRC[k].name,color:SRC[k].color,id:o.id,gid:o.gid||null,item:o.item||"—",sub:o.sub||"",date:o.date,due:o.due,pc:o.pc||0,status:o.status,req:o.req,done:o.done,over:o.over||0,rem,
           pct:o.req?Math.min(100,Math.round(o.done/o.req*100)):0,late,dd,stalled:!!(b&&b.stalled),eta:b?b.eta:null});
       });
     });
-    return rows;
+    return mergeGroups(rows,st.gt);
   }
   function pass(r){
     if(st.sec&&r.k!==st.sec)return false;
     if(st.f&&(!r.date||r.date<st.f))return false;
     if(st.t&&(!r.date||r.date>st.t))return false;
-    if(st.q&&!(r.item+" "+r.sub).toLowerCase().includes(st.q.toLowerCase()))return false;
+    if(st.q&&!(r.q||r.item+" "+r.sub).toLowerCase().includes(st.q.toLowerCase()))return false;
     switch(st.stt){
       case"open":return r.status==="open";
       case"late":return r.late;
@@ -613,7 +646,7 @@ function ordersReport(rootId){
     $(".ok-secs").innerHTML=sm.length?`<table><thead><tr><th>القسم</th><th>الكل</th><th>مفتوحة</th><th>متأخرة</th><th>مكتملة</th><th>المتبقي</th><th>الإنجاز</th></tr></thead><tbody>${sm.map(x=>{const p=x.req?Math.round(x.dn/x.req*100):0;return `<tr><td><span class="badge" style="--c:${SRC[x.k].color}">${SRC[x.k].name}</span>${st.err[x.k]?' <span class="tag late">تعذر التحميل</span>':""}</td><td>${nf(x.n)}</td><td>${nf(x.o)}</td><td>${x.l?`<b style="color:var(--bad,#b3261e)">${nf(x.l)}</b>`:"0"}</td><td>${nf(x.d)}</td><td><b>${nf(x.rem)}</b></td><td><div class="share"><div class="bar"><i style="width:${p}%;background:${SRC[x.k].color}"></i></div><span>${p}%</span></div></td></tr>`}).join("")}</tbody></table>`:'<div class="empty">مفيش طلبيات بالفلاتر دي</div>';
     // التفاصيل
     const CAP=400,lv=st.printing?list.slice(0,CAP):(st.more?list:list.slice(0,15));
-    $(".ok-list").innerHTML=list.length?`<table><thead><tr><th>الطلبية</th><th>القسم</th><th>تاريخ الطلبية</th><th>التسليم</th><th>الإنجاز</th><th>المتبقي</th><th>الحالة</th><th>التقدير</th></tr></thead><tbody>${lv.map(r=>`<tr><td><b>${esc(r.item)}</b>${r.sub?`<div class="nums" style="font-size:.8rem">${esc(r.sub)}</div>`:""}</td><td><span class="badge" style="--c:${r.color}">${r.sec}</span></td><td>${r.date?fmtD(r.date):"—"}</td><td>${dueCell(r)}</td><td><div class="share"><div class="bar"><i style="width:${r.pct}%;background:${r.pct>=100?"var(--ok)":r.color}"></i></div><span>${r.pct}%</span></div><div class="nums" style="font-size:.78rem">${nf(Math.min(r.done,r.req))} من ${nf(r.req)}</div>${r.over>0?`<span class="tag late">زيادة +${nf(r.over)}</span>`:""}</td><td><b>${nf(r.rem)}</b></td><td>${stateTag(r)}</td><td>${etaCell(r)}</td></tr>`).join("")}</tbody></table>${st.printing?(list.length>CAP?`<div class="hint">اتعرض أول ${CAP} طلبية من ${nf(list.length)} — الباقي في ملف Excel.</div>`:""):(list.length>15?`<button class="btn ghost sm more noprint">${st.more?"عرض أقل":`عرض الكل (${list.length})`}</button>`:"")}<div class="hint" style="margin-top:4px">التقدير = المتبقي ÷ معدل إنتاج الصنف في آخر 14 يوم (بأيام الشغل). الطلبية «متأخرة» لو عدّى تاريخ تسليمها، ولو ملهاش تاريخ تسليم فلو عدّى عليها أكتر من ${LATE_DAYS} يوم.</div>`:'<div class="empty">مفيش طلبيات بالفلاتر دي</div>';
+    $(".ok-list").innerHTML=list.length?`<table><thead><tr><th>الطلبية</th><th>القسم</th><th>تاريخ الطلبية</th><th>التسليم</th><th>الإنجاز</th><th>المتبقي</th><th>الحالة</th><th>التقدير</th></tr></thead><tbody>${lv.map(r=>`<tr><td><b>${esc(r.item)}</b>${r.items?` <span class="tag">${r.n} أصناف</span>`:""}${r.items?r.items.map(i=>`<div class="nums" style="font-size:.8rem">• ${esc(i.item)}${i.sub?" ("+esc(i.sub)+")":""} — ${nf(i.done)}/${nf(i.req)}${i.st!=="open"?" ✓":""}</div>`).join(""):r.sub?`<div class="nums" style="font-size:.8rem">${esc(r.sub)}</div>`:""}</td><td><span class="badge" style="--c:${r.color}">${r.sec}</span></td><td>${r.date?fmtD(r.date):"—"}</td><td>${dueCell(r)}</td><td><div class="share"><div class="bar"><i style="width:${r.pct}%;background:${r.pct>=100?"var(--ok)":r.color}"></i></div><span>${r.pct}%</span></div><div class="nums" style="font-size:.78rem">${nf(Math.min(r.done,r.req))} من ${nf(r.req)}</div>${r.over>0?`<span class="tag late">زيادة +${nf(r.over)}</span>`:""}</td><td><b>${nf(r.rem)}</b></td><td>${stateTag(r)}</td><td>${etaCell(r)}</td></tr>`).join("")}</tbody></table>${st.printing?(list.length>CAP?`<div class="hint">اتعرض أول ${CAP} طلبية من ${nf(list.length)} — الباقي في ملف Excel.</div>`:""):(list.length>15?`<button class="btn ghost sm more noprint">${st.more?"عرض أقل":`عرض الكل (${list.length})`}</button>`:"")}<div class="hint" style="margin-top:4px">التقدير = المتبقي ÷ معدل إنتاج الصنف في آخر 14 يوم (بأيام الشغل). الطلبية «متأخرة» لو عدّى تاريخ تسليمها، ولو ملهاش تاريخ تسليم فلو عدّى عليها أكتر من ${LATE_DAYS} يوم.</div>`:'<div class="empty">مفيش طلبيات بالفلاتر دي</div>';
     const lb=ORD_ST.find(x=>x[0]===st.stt)[1];
     $(".rpd").textContent=(st.sec?SRC[st.sec].name:"كل الأقسام")+" · "+lb+(st.f||st.t?" · "+fmtP(st.f,st.t):"")+(st.q?" · بحث: "+st.q:"")+" · طُبع في "+fmtD(today());
     root.querySelector('[data-ps="secs"]').toggleAttribute("data-empty",!sm.length);
@@ -622,6 +655,7 @@ function ordersReport(rootId){
   }
   async function refresh(force){
     $(".ok-k").innerHTML=skelKpis(4);
+    st.gt=await groupTitles(force);
     const res=await Promise.allSettled(ORD_SECS.map(k=>getData(k,force)));
     res.forEach((r,i)=>{const k=ORD_SECS[i];if(r.status==="fulfilled"){st.data[k]=r.value;delete st.err[k]}else{st.err[k]=true}});
     st.rows=build();draw();
@@ -634,8 +668,8 @@ function ordersReport(rootId){
   root.addEventListener("click",e=>{if(e.target.closest(".more")){st.more=!st.more;draw()}});
   $(".ok-x").onclick=()=>{
     if(!st.last)return;
-    csvDownload(`تقرير-الطلبيات-${today()}.csv`,["القسم","الصنف","اللون/الكود","تاريخ الطلبية","تاريخ التسليم","المطلوب","المنتج","المتبقي","الإنجاز %","الحالة","مرات التأجيل"],
-      st.last.list.map(r=>[r.sec,r.item,r.sub,r.date,r.due||"",r.req,Math.min(r.done,r.req),r.rem,r.pct,r.status!=="open"?"مكتملة":r.late?"متأخرة":r.stalled?"راكدة":"شغّالة",r.pc]));
+    csvDownload(`تقرير-الطلبيات-${today()}.csv`,["القسم","الطلبية","الصنف","اللون/الكود","تاريخ الطلبية","تاريخ التسليم","المطلوب","المنتج","المتبقي","الإنجاز %","الحالة","مرات التأجيل"],
+      st.last.list.flatMap(r=>r.items?r.items.map(i=>[r.sec,r.item,i.item,i.sub,r.date,r.due||"",i.req,i.done,i.rem,i.req?Math.min(100,Math.round(i.done/i.req*100)):0,i.st!=="open"?"مكتملة":r.late?"متأخرة":r.stalled?"راكدة":"شغّالة",r.pc]):[[r.sec,"",r.item,r.sub,r.date,r.due||"",r.req,Math.min(r.done,r.req),r.rem,r.pct,r.status!=="open"?"مكتملة":r.late?"متأخرة":r.stalled?"راكدة":"شغّالة",r.pc]]));
   };
   $(".ok-p").onclick=()=>{
     if(!st.last)return;const L=st.last;

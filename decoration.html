@@ -65,11 +65,12 @@ function zoomCode(c){
 document.addEventListener("click",e=>{const z=e.target.closest("[data-zc]");if(z)zoomCode(z.dataset.zc)});
 async function load(){
   await loadCodeImgs();
-  const[o,l,pr,ft]=await Promise.all([
+  const[o,l,pr,ft,_gt]=await Promise.all([
     db.from("deco_orders").select("*").order("created_at",{ascending:false}),
     db.from("deco_lines_status").select("*").order("id"),
     db.from("deco_production").select("id,line_id,qty,prod_date").order("prod_date",{ascending:false}).order("id",{ascending:false}),
-    freeTodayQty("deco")
+    freeTodayQty("deco"),
+    loadGroupTitles()
   ]);
   if(o.error||l.error){fail("orders",load);return}
   FREE_T=ft;orders=o.data;lines=l.data;prods=pr.data||[];renderOrders();
@@ -117,15 +118,14 @@ async function editOrder(id){
 function postpone(id){postponeOrder("deco","deco_orders",orders.find(x=>x.id===id),load)}
 function drawStats(){
   const open=orders.filter(o=>o.status==="open"),ids=new Set(open.map(o=>o.id)),t=today();
-  kpis("stats",[["طلبيات مفتوحة",open.length],["المتبقي للإنجاز",lines.filter(l=>ids.has(l.order_id)).reduce((a,l)=>a+Math.max(l.total_required-l.produced,0),0)],["إنتاج النهارده",prods.filter(p=>p.prod_date===t).reduce((a,p)=>a+p.qty,0)+FREE_T,"var(--ok)"]]);
+  kpis("stats",[["طلبيات مفتوحة",ordCount(open)],["المتبقي للإنجاز",lines.filter(l=>ids.has(l.order_id)).reduce((a,l)=>a+Math.max(l.total_required-l.produced,0),0)],["إنتاج النهارده",prods.filter(p=>p.prod_date===t).reduce((a,p)=>a+p.qty,0)+FREE_T,"var(--ok)"]]);
 }
 function renderOrders(){
-  try{tabCount("open",orders.filter(o=>o.status==="open").length);tabCount("done",orders.filter(o=>o.status==="done").length)}catch(e){}
   drawStats();
   const list=orders.filter(o=>o.status===tab&&hit(Q,o.item,...lines.filter(x=>x.order_id===o.id).map(x=>x.code)));
   const box=document.getElementById("orders");
   if(!list.length){box.innerHTML=`<div class="empty">${Q?"مفيش نتائج للبحث":tab==="open"?"مفيش طلبيات مفتوحة. اضغط «طلبية جديدة».":"مفيش طلبيات مكتملة."}</div>`;return}
-  box.innerHTML=list.map(o=>{
+  const cardOf=o=>{
     const ls=lines.filter(x=>x.order_id===o.id),done=o.status==="done";
     return `<div class="card ${done?"done":""}">
       <div class="top"><b>${esc(o.item)}</b><span>${lateOrder(o)?'<span class="tag late">متأخرة</span> ':""}<span class="tag ${done?"ok":""}">${done?"مكتملة":"مفتوحة"}</span></span></div>
@@ -143,7 +143,8 @@ function renderOrders(){
         </div>`}).join("")}
       <div class="row"><button class="btn ghost sm" onclick="increase(${o.id})">زيادة الطلبية</button><button class="btn ghost sm" onclick="delOrder(${o.id})">حذف الطلبية</button><button class="btn ghost sm" onclick="editOrder(${o.id})">تعديل الطلبية</button>${done?"":`<button class="btn ghost sm" onclick="postpone(${o.id})">تأجيل</button>`}</div>
     </div>`;
-  }).join("");
+  };
+  box.innerHTML=groupHtml(list,cardOf,o=>{const ls=lines.filter(x=>x.order_id===o.id);return{status:o.status,item:o.item,due_date:o.due_date,req:ls.reduce((a,x)=>a+(+x.total_required||0),0),done:ls.reduce((a,x)=>a+Math.min(+x.produced||0,+x.total_required||0),0)}},"deco_orders");
 }
 
 async function syncStatus(orderId){
@@ -231,7 +232,7 @@ function increase(orderId){
 function newOrder(){
   const crow=()=>`<div class="two nr"><input placeholder="كود الرسمة" class="c"><input placeholder="الكمية" class="q" type="number" min="1" inputmode="numeric"></div>`;
   const blk=n=>`<div class="itemblk"><div class="ih"><b>الصنف ${n}</b><button type="button" class="rmi" style="display:${n>1?"block":"none"}">${ib("trash","حذف الصنف")}</button></div><input class="it" placeholder="اسم الصنف"><label>الأكواد والكميات</label><div class="rows">${crow()}</div><button class="btn ghost sm addc" type="button">+ كود</button></div>`;
-  openModal("طلبية جديدة",`<label>تاريخ الطلبية</label><input type="date" id="m-od" value="${today()}"><label>تاريخ التسليم (اختياري)</label><input type="date" id="m-due"><div id="m-items">${blk(1)}</div><button class="btn sm" id="m-addi" type="button" style="width:100%;margin-top:4px">+ إضافة صنف</button>`,async()=>{
+  openModal("طلبية جديدة",`${GTITLE_HTML}<label>تاريخ الطلبية</label><input type="date" id="m-od" value="${today()}"><label>تاريخ التسليم (اختياري)</label><input type="date" id="m-due"><div id="m-items">${blk(1)}</div><button class="btn sm" id="m-addi" type="button" style="width:100%;margin-top:4px">+ إضافة صنف</button>`,async()=>{
     const blocks=[...document.querySelectorAll("#m-items .itemblk")].map(b=>({
       item:b.querySelector(".it").value.trim(),
       rs:[...b.querySelectorAll(".nr")].map(r=>({sub:r.querySelector(".c").value.trim(),qty:parseInt(r.querySelector(".q").value)})).filter(r=>r.sub||r.qty)
@@ -241,10 +242,10 @@ function newOrder(){
       if(!b.item){toast("اكتب اسم الصنف رقم "+(i+1));return false}
       if(!b.rs.length||b.rs.some(r=>!r.sub||!(r.qty>0))){toast("كمّل بيانات الصنف: "+b.item);return false}
     }
-    const od=document.getElementById("m-od").value||today(),due=document.getElementById("m-due").value||null,made=[];
-    const rollback=async()=>{for(const id of made){try{await db.from("deco_orders").delete().eq("id",id)}catch(e){}}};
+    const od=document.getElementById("m-od").value||today(),due=document.getElementById("m-due").value||null,made=[],gid=await makeGroup(document.getElementById("m-gt").value,blocks.length);
+    const rollback=async()=>{for(const id of made){try{await db.from("deco_orders").delete().eq("id",id)}catch(e){}}await dropGroup(gid)};
     for(const b of blocks){
-      const{data,error}=await db.from("deco_orders").insert({item:b.item,order_date:od,due_date:due}).select().single();
+      const{data,error}=await db.from("deco_orders").insert(withGid({item:b.item,order_date:od,due_date:due},gid)).select().single();
       if(error){await rollback();toast("خطأ: "+error.message);return false}
       made.push(data.id);
       const e2=(await db.from("deco_lines").insert(b.rs.map(r=>({order_id:data.id,code:r.sub,qty_required:r.qty})))).error;
