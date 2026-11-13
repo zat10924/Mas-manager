@@ -33,7 +33,7 @@
 <script src="common.js"></script>
 <script>
 const SECK={glaze:{n:"جليز",page:"glaze.html",c:"#2E6F80",lbl:"اللون"},deco:{n:"زخرفة",page:"decoration.html",c:"#5E5A8C",lbl:"الكود"},spray:{n:"رش",page:"spray.html",c:"#B8862B",lbl:"اللون"}};
-let G=[],tab="open",Q="",broken=false,ext=false,dlv=false,CUS=[],cusOk=false;
+let G=[],tab="open",Q="",broken=false,ext=false,dlv=false,dtab=false,CUS=[],cusOk=false;
 const sum=(a,f)=>a.reduce((x,y)=>x+f(y),0);
 function mkItem(item,status,date,due,lines,ids){
   const req=sum(lines,l=>l.req),done=sum(lines,l=>Math.min(l.done,l.req));
@@ -46,7 +46,8 @@ async function saveCus(n,p){
     else await db.from("customers").insert({name:n,phone:p||null})}catch(e){}
 }
 async function load(){
-  const[g,go,gl,dO,dl,sp,so,cu]=await Promise.all([
+  const[g,go,gl,dO,dl,sp,so,cu,dr]=await Promise.all([
+
     (async()=>{const q=c=>db.from("order_groups").select(c).order("created_at",{ascending:false});
       let r=await q("id,title,created_at,order_no,customer_phone,notes,delivered_at,delivery_note");
       if(!r.error){ext=true;dlv=true;return r}
@@ -58,55 +59,72 @@ async function load(){
     db.from("deco_orders").select("id,item,status,order_date,due_date,group_id").not("group_id","is",null),
     db.from("deco_lines_status").select("id,order_id,code,total_required,produced"),
     db.from("spray_status").select("*"),
-    db.from("spray_orders").select("id,group_id,order_date,due_date").not("group_id","is",null),
-    db.from("customers").select("id,name,phone").order("name")
+    (async()=>{let r=await db.from("spray_orders").select("id,group_id,order_date,due_date,spray_color").not("group_id","is",null);if(r.error)r=await db.from("spray_orders").select("id,group_id,order_date,due_date").not("group_id","is",null);return r})(),
+    db.from("customers").select("id,name,phone").order("name"),
+    db.from("order_deliveries").select("id,group_id,delivered_on,qty_done,qty_short,is_final,note,created_at").order("delivered_on").order("created_at")
   ]);
+  dtab=!dr.error;
   cusOk=!cu.error;CUS=cusOk?(cu.data||[]):[];
   if(g.error||go.error||dO.error||so.error){broken=true;draw();return}
   broken=false;
-  const M=new Map(g.data.map(x=>[x.id,{id:x.id,title:(x.title||"").trim(),no:x.order_no||null,phone:(x.customer_phone||"").trim(),notes:(x.notes||"").trim(),deliv:x.delivered_at||null,dnote:(x.delivery_note||"").trim(),created:String(x.created_at||"").slice(0,10),secs:{glaze:[],deco:[],spray:[]}}]));
+  const M=new Map(g.data.map(x=>[x.id,{id:x.id,title:(x.title||"").trim(),no:x.order_no||null,phone:(x.customer_phone||"").trim(),dvs:[],notes:(x.notes||"").trim(),deliv:x.delivered_at||null,dnote:(x.delivery_note||"").trim(),created:String(x.created_at||"").slice(0,10),secs:{glaze:[],deco:[],spray:[]}}]));
+  if(dtab)(dr.data||[]).forEach(d=>{const m=M.get(d.group_id);if(m)m.dvs.push({id:d.id,d:d.delivered_on,q:d.qty_done,s:d.qty_short,f:!!d.is_final,n:(d.note||"").trim()})});
   const by=(a,k)=>{const m=new Map();(a||[]).forEach(x=>{if(!m.has(x[k]))m.set(x[k],[]);m.get(x[k]).push(x)});return m};
   const glL=by(gl.data,"order_id"),dlL=by(dl.data,"order_id");
   go.data.forEach(o=>{const m=M.get(o.group_id);if(!m)return;m.secs.glaze.push(mkItem(o.item,o.status,o.order_date,o.due_date,(glL.get(o.id)||[]).map(l=>({l:l.color,req:+l.total_required||0,done:+l.produced||0})),[o.id]))});
   dO.data.forEach(o=>{const m=M.get(o.group_id);if(!m)return;m.secs.deco.push(mkItem(o.item,o.status,o.order_date,o.due_date,(dlL.get(o.id)||[]).map(l=>({l:l.code,req:+l.total_required||0,done:+l.produced||0})),[o.id]))});
   const sm=new Map(so.data.map(x=>[x.id,x])),tmp=new Map();
-  (sp.data||[]).forEach(r=>{const x=sm.get(r.id);if(!x||!M.has(x.group_id))return;const k=x.group_id+"|"+r.item;let t=tmp.get(k);if(!t){t={g:x.group_id,item:r.item,st:"done",date:x.order_date,due:x.due_date,lines:[],ids:[]};tmp.set(k,t)}if(r.status==="open")t.st="open";t.lines.push({l:r.color,req:+r.qty_required||0,done:+r.produced||0});t.ids.push(r.id)});
+  (sp.data||[]).forEach(r=>{const x=sm.get(r.id);if(!x||!M.has(x.group_id))return;const k=x.group_id+"|"+r.item;let t=tmp.get(k);if(!t){t={g:x.group_id,item:r.item,st:"done",date:x.order_date,due:x.due_date,lines:[],ids:[]};tmp.set(k,t)}if(r.status==="open")t.st="open";t.lines.push({l:r.color,sc:(x.spray_color||"").trim(),req:+r.qty_required||0,done:+r.produced||0});t.ids.push(r.id)});
   tmp.forEach(t=>M.get(t.g).secs.spray.push(mkItem(t.item,t.st,t.date,t.due,t.lines,t.ids)));
   G=[...M.values()].map(o=>{
     const all=Object.values(o.secs).flat(),open=!o.deliv&&all.some(i=>i.status==="open"),dues=all.map(i=>i.due).filter(Boolean).sort(),dts=all.map(i=>i.date).filter(Boolean).sort();
     const req=sum(all,i=>i.req),done=sum(all,i=>i.done);
-    return{...o,all,open,due:dues[0]||null,date:dts[0]||o.created,req,done,rem:Math.max(req-done,0),pct:req?Math.min(100,Math.round(done/req*100)):0,
-      short:Object.entries(o.secs).flatMap(([k,a])=>a.flatMap(i=>i.lines.filter(l=>l.req>l.done).map(l=>({k,item:i.item,l:l.l,n:l.req-l.done})))),
+    return{...o,all,open:open||(!o.deliv&&o.dvs.length>0&&req>done),due:dues[0]||null,date:dts[0]||o.created,req,done,rem:Math.max(req-done,0),pct:req?Math.min(100,Math.round(done/req*100)):0,
+      short:Object.entries(o.secs).flatMap(([k,a])=>a.flatMap(i=>i.lines.filter(l=>l.req>l.done).map(l=>({k,item:i.item,l:l.l+(l.sc?" ← رش "+l.sc:""),n:l.req-l.done})))),
       late:!o.deliv&&all.some(i=>i.status==="open"&&lateOrder({status:"open",due_date:i.due,order_date:i.date}))};
   });
   draw();
 }
 const itemHtml=i=>{const pct=i.req?Math.min(100,Math.round(i.done/i.req*100)):0;
-  return `<div style="margin-top:8px"><div class="r"><b>${esc(i.item)}</b>${i.status==="open"?"":' <span class="tag ok">مكتمل</span>'} <span class="nums">تم <b>${nf(i.done)}</b> من <b>${nf(i.req)}</b></span></div><div class="bar"><i style="width:${pct}%"></i></div><div class="nums" style="font-size:.85rem">${i.lines.map(l=>esc(l.l)+": "+nf(Math.min(l.done,l.req))+"/"+nf(l.req)).join(" · ")}</div></div>`};
+  return `<div style="margin-top:8px"><div class="r"><b>${esc(i.item)}</b>${i.status==="open"?"":' <span class="tag ok">مكتمل</span>'} <span class="nums">تم <b>${nf(i.done)}</b> من <b>${nf(i.req)}</b></span></div><div class="bar"><i style="width:${pct}%"></i></div><div class="nums" style="font-size:.85rem">${i.lines.map(l=>esc(l.l)+(l.sc?" ← رش "+esc(l.sc):"")+": "+nf(Math.min(l.done,l.req))+"/"+nf(l.req)).join(" · ")}</div></div>`};
+const dvTimes=n=>n===1?"مرة واحدة":n===2?"مرتين":n<=10?n+" مرات":n+" مرة";
+function dvHtml(o){
+  let L=o.dvs.slice();
+  if(!L.length&&o.deliv)L=[{d:o.deliv,q:null,s:null,f:true,n:o.dnote}];
+  if(!L.length)return"";
+  let prev=0;
+  const rows=L.map((x,i)=>{
+    const dq=x.q==null?null:Math.max(x.q-prev,0);if(x.q!=null)prev=x.q;
+    return `<div class="nums" style="font-size:.85rem">• تسليم ${i+1}: <b>${fmtD(x.d)}</b>${dq!=null?` — سُلّم <b>${nf(dq)}</b>`:""}${x.s!=null&&x.s>0?` · عجز وقتها ${nf(x.s)}`:""}${x.f?" · نهائي":""}${x.n?`<div class="hint" style="margin:0">${esc(x.n)}</div>`:""}</div>`;
+  }).join("");
+  const head=o.deliv?`تم تسليم الطلبية على ${dvTimes(L.length)}`:`اتسلّمت ${dvTimes(L.length)} (تسليم جزئي)`;
+  const miss=o.short.length?`<div class="nums" style="color:var(--bad,#b3261e);font-weight:700">${o.deliv?"سُلّمت بعجز":"العجز الحالي"} ${nf(o.rem)} قطعة:</div>${o.short.map(x=>`<div class="nums" style="font-size:.85rem">• ${SECK[x.k].n} · ${esc(x.item)} (${esc(x.l)}) — عجز <b>${nf(x.n)}</b></div>`).join("")}`:`<div class="nums">${o.deliv?"سُلّمت كاملة بدون عجز":"مفيش عجز حاليًا"}</div>`;
+  return `<div class="line"><div class="r"><b>${head}</b></div>${rows}${o.deliv&&o.all.some(i=>i.status==="open")?'<div class="nums">الأقسام لسه مفتوحة وتقدر تكمّل الإنتاج</div>':""}${miss}</div>`;
+}
 function card(o){
   const ks=Object.keys(SECK).filter(k=>o.secs[k].length);
-  return `<div class="card ogrp"><div class="top"><b>${o.no?"#"+o.no+" · ":""}${esc(o.title||"طلبية بدون اسم")}</b><span>${o.late?'<span class="tag late">متأخرة</span> ':""}<span class="tag ${o.open?"":"ok"}">${o.deliv?"تم التسليم":o.open?"مفتوحة":"مكتملة"}</span></span></div>
+  return `<div class="card ogrp"><div class="top"><b>${o.no?"#"+o.no+" · ":""}${esc(o.title||"طلبية بدون اسم")}</b><span>${o.late?'<span class="tag late">متأخرة</span> ':""}<span class="tag ${o.open?"":"ok"}">${o.deliv?"تم التسليم":o.dvs.length&&o.open?"تسليم جزئي":o.open?"مفتوحة":"مكتملة"}</span></span></div>
     ${o.phone?`<div class="nums">الموبايل: <a href="tel:${esc(o.phone.replace(/[^\d+]/g,""))}" dir="ltr">${esc(o.phone)}</a>${waNum(o.phone)?` · <a href="https://wa.me/${waNum(o.phone)}" target="_blank" rel="noopener">واتساب</a>`:""}</div>`:""}
     ${o.notes?`<div class="hint" style="margin:2px 0 6px">${esc(o.notes)}</div>`:""}
     <div class="nums">${o.due?`التسليم: <b>${fmtD(o.due)}</b> · `:""}تاريخ الطلبية: <b>${fmtD(o.date)}</b></div>
     <div class="nums">الإجمالي: مطلوب <b>${nf(o.req)}</b> · تم <b>${nf(o.done)}</b> · متبقي <b>${nf(o.rem)}</b></div>
     <div class="bar"><i style="width:${o.pct}%"></i></div>
-    ${o.deliv?`<div class="line"><div class="r"><b>تم تسليم الطلبية</b><span class="nums">${fmtD(o.deliv)}</span></div>${o.all.some(i=>i.status==="open")?'<div class="nums">الأقسام لسه مفتوحة وتقدر تكمّل الإنتاج</div>':""}${o.short.length?`<div class="nums" style="color:var(--bad,#b3261e);font-weight:700">سُلّمت بعجز ${nf(o.rem)} قطعة:</div>${o.short.map(x=>`<div class="nums" style="font-size:.85rem">• ${SECK[x.k].n} · ${esc(x.item)} (${esc(x.l)}) — عجز <b>${nf(x.n)}</b></div>`).join("")}`:'<div class="nums">سُلّمت كاملة بدون عجز</div>'}${o.dnote?`<div class="hint" style="margin:4px 0 0">${esc(o.dnote)}</div>`:""}</div>`:""}
+    ${dvHtml(o)}
     ${ks.length?ks.map(k=>`<div class="line"><div class="r"><span class="badge" style="--c:${SECK[k].c}">${SECK[k].n}</span><a class="tag" href="${SECK[k].page}">فتح القسم</a></div>${o.secs[k].map(itemHtml).join("")}</div>`).join(""):'<div class="empty">لسه ما اتوزعتش على قسم</div>'}
-    <div class="row">${o.deliv?`${o.all.some(i=>i.status==="open")?`<button class="btn sm" onclick="closeSecs('${o.id}')">قفل في الأقسام</button>`:""}<button class="btn sm" onclick="undoDeliver('${o.id}')">إلغاء التسليم</button>`:`<button class="btn sm" onclick="openForm('${o.id}')">+ توزيع صنف</button>${dlv&&ks.length?`<button class="btn sm" onclick="deliverG('${o.id}')">تسليم الطلبية</button>`:""}`}<button class="btn ghost sm" onclick="editG('${o.id}')">تعديل البيانات</button><button class="btn ghost sm" onclick="delG('${o.id}')">حذف الطلبية كلها</button></div></div>`;
+    <div class="row">${o.deliv?`${o.all.some(i=>i.status==="open")?`<button class="btn sm" onclick="closeSecs('${o.id}')">قفل في الأقسام</button>`:""}<button class="btn sm" onclick="undoDeliver('${o.id}')">${o.dvs.length?"إلغاء آخر تسليم":"إلغاء التسليم"}</button>`:`<button class="btn sm" onclick="openForm('${o.id}')">+ توزيع صنف</button>${dlv&&ks.length?`<button class="btn sm" onclick="deliverG('${o.id}')">${o.dvs.length?"تسليم جديد":"تسليم الطلبية"}</button>`:""}${o.dvs.length?`<button class="btn ghost sm" onclick="undoDeliver('${o.id}')">إلغاء آخر تسليم</button>`:""}`}<button class="btn ghost sm" onclick="editG('${o.id}')">تعديل البيانات</button><button class="btn ghost sm" onclick="delG('${o.id}')">حذف الطلبية كلها</button></div></div>`;
 }
 function draw(){
   const box=document.getElementById("orders");
   if(broken){document.getElementById("stats").innerHTML="";box.innerHTML='<div class="card empty">جدول الطلبيات مش جاهز.<br>شغّل ملف <b>setup_order_groups.sql</b> مرة واحدة في Supabase › SQL Editor وبعدين حدّث الصفحة.</div>';return}
   const open=G.filter(o=>o.open);
   kpis("stats",[["طلبيات مفتوحة",open.length],["متأخرة",open.filter(o=>o.late).length,open.some(o=>o.late)?"var(--late,#c0392b)":undefined],["المتبقي للإنجاز",nf(sum(open,o=>o.rem))]]);
-  const list=G.filter(o=>(tab==="open")===o.open&&(!Q||((o.title+" "+(o.no||"")+" "+o.phone+" "+o.notes+" "+o.all.map(i=>i.item+" "+i.lines.map(l=>l.l).join(" ")).join(" ")).toLowerCase().includes(Q.toLowerCase()))));
+  const list=G.filter(o=>(tab==="open")===o.open&&(!Q||((o.title+" "+(o.no||"")+" "+o.phone+" "+o.notes+" "+o.all.map(i=>i.item+" "+i.lines.map(l=>l.l+" "+(l.sc||"")).join(" ")).join(" ")).toLowerCase().includes(Q.toLowerCase()))));
   box.innerHTML=list.length?list.map(card).join(""):`<div class="empty">${Q?"مفيش نتائج للبحث":tab==="open"?"مفيش طلبيات مفتوحة. اضغط «طلبية جديدة».":"مفيش طلبيات مكتملة."}</div>`;
 }
 function setTab(t){t=t||tab;tab=t;document.getElementById("t-open").className="btn "+(t==="open"?"on":"ghost");document.getElementById("t-done").className="btn "+(t==="done"?"on":"ghost");draw()}
 function openForm(gid){
   const g=gid?G.find(x=>x.id===gid):null;
-  const crow=k=>`<div class="two nr"><input placeholder="${SECK[k].lbl}" class="c" data-kind="${k==="deco"?"code":"color"}"><input placeholder="الكمية" class="q" type="number" min="1" inputmode="numeric"></div>`;
+  const crow=k=>k==="spray"?`<div class="nr"><div class="two"><input placeholder="لون الصنف" class="c" data-kind="color"><input placeholder="لون الرش المطلوب" class="msc" data-kind="color" maxlength="60"></div><input placeholder="الكمية" class="q" type="number" min="1" inputmode="numeric"></div>`:`<div class="two nr"><input placeholder="${SECK[k].lbl}" class="c" data-kind="${k==="deco"?"code":"color"}"><input placeholder="الكمية" class="q" type="number" min="1" inputmode="numeric"></div>`;
   const curK=()=>{const e=document.getElementById("m-sec");return e?e.value:"glaze"};
   const llt=k=>(k==="deco"?"الأكواد":"الألوان")+" والكميات";
   const blk=n=>{const k=curK();return `<div class="itemblk" data-k="${k}"><div class="ih"><b>الصنف ${n}</b><button type="button" class="rmi" style="display:${n>1?"block":"none"}">${ib("trash","حذف الصنف")}</button></div><input class="it" placeholder="اسم الصنف"><label class="ll">${llt(k)}</label><div class="rows">${crow(k)}</div><button class="btn ghost sm addc" type="button">+ سطر</button></div>`};
@@ -114,14 +132,15 @@ function openForm(gid){
   const SEC=`<label>يتوزع على قسم</label><select id="m-sec">${Object.keys(SECK).map(k=>`<option value="${k}">${SECK[k].n}</option>`).join("")}</select>`;
   const top=g?`<div class="hint" style="margin:0 0 8px">التوزيع على الطلبية: <b>${esc(g.title||"بدون اسم")}</b></div>${SEC}`:`<label>اسم الطلبية / العميل</label><input id="m-gt" placeholder="مثال: طلبية أحمد" maxlength="80" list="m-cl" autocomplete="off"><datalist id="m-cl">${CUS.map(c=>`<option value="${esc(c.name)}">`).join("")}</datalist>${ext?XF:""}<label>تاريخ الطلبية</label><input type="date" id="m-od" value="${today()}"><label>تاريخ التسليم (اختياري)</label><input type="date" id="m-due">${SEC}`;
   openModal(g?"توزيع صنف على الأقسام":"طلبية جديدة",`${top}<div id="m-items">${blk(1)}</div><button class="btn sm" id="m-addi" type="button" style="width:100%;margin-top:4px">+ إضافة صنف</button>`,async()=>{
-    const blocks=[...document.querySelectorAll("#m-items .itemblk")].map(b=>({k:document.getElementById("m-sec").value,item:b.querySelector(".it").value.trim(),rs:[...b.querySelectorAll(".nr")].map(r=>({v:r.querySelector(".c").value.trim(),q:parseInt(r.querySelector(".q").value)})).filter(r=>r.v||r.q)})).filter(b=>b.item||b.rs.length);
+    const blocks=[...document.querySelectorAll("#m-items .itemblk")].map(b=>({k:document.getElementById("m-sec").value,item:b.querySelector(".it").value.trim(),rs:[...b.querySelectorAll(".nr")].map(r=>({v:r.querySelector(".c").value.trim(),sc:((r.querySelector(".msc")||{}).value||"").trim(),q:parseInt(r.querySelector(".q").value)})).filter(r=>r.v||r.q||r.sc)})).filter(b=>b.item||b.rs.length);
     if(!blocks.length){toast("اكتب الصنف");return false}
     for(const[i,b]of blocks.entries()){
       if(!b.item){toast("اكتب اسم الصنف رقم "+(i+1));return false}
-      if(!b.rs.length||b.rs.some(r=>!r.v||!(r.q>0))){toast("كمّل "+SECK[b.k].lbl+" والكميات للصنف: "+b.item);return false}
+      if(!b.rs.length||b.rs.some(r=>!r.v||!(r.q>0))){toast("كمّل "+(b.k==="spray"?"لون الصنف":SECK[b.k].lbl)+" والكميات للصنف: "+b.item);return false}
+      if(b.k==="spray"&&b.rs.some(r=>!r.sc)){toast("اكتب لون الرش المطلوب للصنف: "+b.item);return false}
     }
     const od=g?g.date:(document.getElementById("m-od").value||today()),due=g?g.due:(document.getElementById("m-due").value||null);
-    let id=gid,fresh=false,cn="",cp="";
+    let id=gid,fresh=false,cn="",cp="",sprMiss=false;
     if(!id){
       cn=document.getElementById("m-gt").value.trim();const title=cn||("طلبية "+fmtD(today()));
       const row={title};
@@ -136,7 +155,9 @@ function openForm(gid){
     try{
       for(const b of blocks){
         if(b.k==="spray"){
-          const r=await db.from("spray_orders").insert(b.rs.map(x=>({item:b.item,color:x.v,qty_required:x.q,order_date:od,due_date:due,group_id:id}))).select("id");
+          const rows=b.rs.map(x=>({item:b.item,color:x.v,qty_required:x.q,order_date:od,due_date:due,group_id:id}));
+          let r=await db.from("spray_orders").insert(rows.map((x,n)=>({...x,spray_color:b.rs[n].sc}))).select("id");
+          if(r.error&&/spray_color/.test(r.error.message||"")){sprMiss=true;r=await db.from("spray_orders").insert(rows).select("id")}
           if(r.error)throw r.error;r.data.forEach(x=>made.spray.push(x.id));
         }else{
           const r=await db.from(T[b.k]).insert({item:b.item,order_date:od,due_date:due,group_id:id}).select().single();
@@ -152,7 +173,7 @@ function openForm(gid){
       toast("خطأ: "+(e.message||e));return false;
     }
     await saveCus(cn,cp);
-    tab="open";setTab("open");await load();toast("تم توزيع "+blocks.length+" صنف على الأقسام");
+    tab="open";setTab("open");await load();toast(sprMiss?"تم التوزيع لكن لون الرش ما اتسجلش: شغّل setup_orders_v2.sql":"تم توزيع "+blocks.length+" صنف على الأقسام");
   });
   const gtI=document.getElementById("m-gt");
   if(gtI)gtI.addEventListener("input",()=>{const c=CUS.find(x=>norm(x.name)===norm(gtI.value)),ph=document.getElementById("m-ph");if(c&&ph&&!ph.value)ph.value=c.phone||""});
@@ -171,15 +192,29 @@ async function syncSec(g,closeAll){
 }
 function deliverG(id){
   const g=G.find(x=>x.id===id);if(!g)return;
-  const sh=g.short;
-  openModal("تسليم الطلبية",`<div class="nums"><b>${esc(g.title||"طلبية بدون اسم")}</b></div>${sh.length?`<div class="hint" style="margin:6px 0;color:var(--bad,#b3261e)">فيها عجز ${nf(g.rem)} قطعة، هتتسجّل مع التسليم وتظهر في التقارير:</div>${sh.map(x=>`<div class="nums" style="font-size:.85rem">• ${SECK[x.k].n} · ${esc(x.item)} (${esc(x.l)}) — عجز <b>${nf(x.n)}</b></div>`).join("")}`:'<div class="hint" style="margin:6px 0">الطلبية مكتملة بالكامل.</div>'}<label>تاريخ التسليم</label><input type="date" id="m-dd" value="${today()}"><label>ملاحظة التسليم (اختياري)</label><input id="m-dn" maxlength="300">${g.all.some(i=>i.status==="open")?`<label>الأصناف في الأقسام</label><select id="m-cl"><option value="1">قفل الطلبية في باقي الأقسام</option><option value="0">سيبها مفتوحة في الأقسام عشان أكمّل الإنتاج</option></select>`:""}`,async()=>{
+  const sh=g.short,secOpen=g.all.some(i=>i.status==="open"),n=g.dvs.length;
+  const shHtml=sh.length?`<div class="hint" style="margin:6px 0;color:var(--bad,#b3261e)">فيها عجز ${nf(g.rem)} قطعة، هيتسجّل مع التسليم وبيظهر في التقارير:</div>${sh.map(x=>`<div class="nums" style="font-size:.85rem">• ${SECK[x.k].n} · ${esc(x.item)} (${esc(x.l)}) — عجز <b>${nf(x.n)}</b></div>`).join("")}`:'<div class="hint" style="margin:6px 0">الطلبية مكتملة بالكامل.</div>';
+  const choice=dtab?`<label>بعد التسليم</label><select id="m-af"><option value="open">تفضل مفتوحة في الطلبيات المفتوحة عشان أكمّل العجز</option><option value="final">قفل الطلبية نهائيًا</option></select>`:"";
+  const cl=secOpen?`<div id="m-clw"><label>الأصناف في الأقسام</label><select id="m-cl"><option value="1">قفل الطلبية في باقي الأقسام</option><option value="0">سيبها مفتوحة في الأقسام عشان أكمّل الإنتاج</option></select></div>`:"";
+  openModal(n?"تسليم جديد (رقم "+(n+1)+")":"تسليم الطلبية",`<div class="nums"><b>${esc(g.title||"طلبية بدون اسم")}</b></div>${n?`<div class="hint" style="margin:4px 0">اتسلّمت قبل كده ${dvTimes(n)}.</div>`:""}${shHtml}<label>تاريخ التسليم</label><input type="date" id="m-dd" value="${today()}"><label>ملاحظة التسليم (اختياري)</label><input id="m-dn" maxlength="300">${choice}${cl}`,async()=>{
     const dd=document.getElementById("m-dd").value||today(),dn=document.getElementById("m-dn").value.trim();
-    const{error}=await db.from("order_groups").update({delivered_at:dd,delivery_note:dn||null}).eq("id",id);
-    if(error){toast("خطأ: "+error.message);return false}
-    const cl=document.getElementById("m-cl");
-    if(!cl||cl.value==="1")await syncSec(g,true);
-    await load();toast("تم تسليم الطلبية");
+    const af=document.getElementById("m-af"),fin=!af||af.value==="final";
+    let logId=null;
+    if(dtab){
+      const r=await db.from("order_deliveries").insert({group_id:id,delivered_on:dd,qty_done:g.done,qty_short:g.rem,is_final:fin,note:dn||null}).select("id").single();
+      if(r.error){toast("خطأ: "+r.error.message);return false}
+      logId=r.data.id;
+    }
+    if(fin){
+      const{error}=await db.from("order_groups").update({delivered_at:dd,delivery_note:dn||null}).eq("id",id);
+      if(error){if(logId)await db.from("order_deliveries").delete().eq("id",logId);toast("خطأ: "+error.message);return false}
+      const c=document.getElementById("m-cl");
+      if(!c||c.value==="1")await syncSec(g,true);
+    }
+    await load();toast(fin?"تم تسليم الطلبية":"اتسجّل التسليم والطلبية فاضلة مفتوحة");
   },"تأكيد التسليم");
+  const af=document.getElementById("m-af"),w=document.getElementById("m-clw");
+  if(af){if(!sh.length)af.value="final";const sync=()=>{if(w)w.style.display=af.value==="final"?"":"none"};af.onchange=sync;sync()}
 }
 async function closeSecs(id){
   const g=G.find(x=>x.id===id);if(!g)return;
@@ -188,11 +223,15 @@ async function closeSecs(id){
 }
 async function undoDeliver(id){
   const g=G.find(x=>x.id===id);if(!g)return;
-  if(!await ask("إلغاء تسليم الطلبية؟ هترجع للطلبيات حسب حالة كل صنف."))return;
-  const{error}=await db.from("order_groups").update({delivered_at:null,delivery_note:null}).eq("id",id);
-  if(error){toast("خطأ: "+error.message);return}
-  await syncSec(g,false);
-  await load();toast("تم إلغاء التسليم");
+  const last=g.dvs[g.dvs.length-1];
+  if(!await ask(last?"إلغاء آخر تسليم ("+fmtD(last.d)+")؟":"إلغاء تسليم الطلبية؟ هترجع للطلبيات حسب حالة كل صنف."))return;
+  if(last){const r=await db.from("order_deliveries").delete().eq("id",last.id);if(r.error){toast("خطأ: "+r.error.message);return}}
+  if(g.deliv&&(!last||last.f)){
+    const{error}=await db.from("order_groups").update({delivered_at:null,delivery_note:null}).eq("id",id);
+    if(error){toast("خطأ: "+error.message);return}
+    await syncSec(g,false);
+  }
+  await load();toast("تم الإلغاء");
 }
 function editG(id){
   const g=G.find(x=>x.id===id);if(!g)return;
