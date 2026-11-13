@@ -24,6 +24,7 @@
   <h1>التقارير</h1>
   <div class="card noprint" id="dayBar"><h3>التقرير اليومي</h3><label>اليوم</label><input type="date" id="dayD" style="margin-bottom:10px"><div class="actbar"><button class="btn ib" id="dayGo"></button><button class="btn ghost ib" id="dayEd"></button><button class="btn ghost ib" id="dayPr"></button><button class="btn ghost ib" id="daySh"></button></div></div>
   <div id="daily"></div>
+  <div id="ordersRep"></div>
   <div id="dash"></div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -31,7 +32,7 @@
 <script src="common.js"></script>
 <script src="reports.js"></script>
 <script>
-let ctl=null,lastDaily=null,ENT=[];
+let ctl=null,octl=null,lastDaily=null,ENT=[];
 [["dayGo","eye","عرض"],["dayEd","edit","تعديل"],["dayPr","print","طباعة"],["daySh","share","إرسال واتساب"]].forEach(([i,k,t])=>{document.getElementById(i).innerHTML=ib(k,t)});
 const WDN=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
 const isFri=d=>new Date(d+"T00:00:00Z").getUTCDay()===5;
@@ -39,11 +40,11 @@ async function workerTargets(){
   try{const{data,error}=await db.from("workers").select("name,daily_target").eq("active",true);if(error)return new Map();return new Map((data||[]).filter(x=>x.daily_target>0).map(x=>[x.name,x.daily_target]))}catch(e){return new Map()}
 }
 const dl=(cur,prev,lbl)=>prev>0?(()=>{const p=Math.round((cur-prev)/prev*100);return `<div class="kd ${p>0?"up":p<0?"down":"flat"}">${p>0?"▲ ":p<0?"▼ ":"= "}${Math.abs(p)}% عن ${lbl}</div>`})():"";
-async function daily(){
+async function daily(force){
   const day=document.getElementById("dayD").value||today(),box=document.getElementById("daily");
   box.innerHTML='<i class="sk" style="height:120px;border-radius:14px"></i>';
   const S=Reports.sources,keys=Object.keys(S);
-  const[res,tg]=await Promise.all([Promise.allSettled(keys.map(k=>Reports.getData(k))),workerTargets()]);
+  const[res,tg]=await Promise.all([Promise.allSettled(keys.map(k=>Reports.getData(k,force))),workerTargets()]);
   // إجمالي كل يوم (كل الأقسام) + لكل قسم: عشان المقارنة بأمس ومتوسط آخر 7 أيام شغل
   const dayTot=new Map(),secDay={};
   res.forEach((r,i)=>{if(r.status!=="fulfilled")return;const m=new Map();r.value.prod.forEach(x=>{m.set(x.d,(m.get(x.d)||0)+x.qty);dayTot.set(x.d,(dayTot.get(x.d)||0)+x.qty)});secDay[keys[i]]=m});
@@ -107,7 +108,7 @@ async function daily(){
 document.getElementById("daily").addEventListener("click",e=>{
   const b=e.target.closest("[data-act]");if(!b)return;
   const en=ENT[+b.dataset.i];if(!en)return;
-  (b.dataset.act==="edit"?Reports.editEntry:Reports.deleteEntry)(en[1],en[0],daily);
+  (b.dataset.act==="edit"?Reports.editEntry:Reports.deleteEntry)(en[1],en[0],()=>reloadAll(true));
 });
 function dailyText(o){
   const P=lastDaily.parts,T=[P.head,`إجمالي الإنتاج: ${nf(P.tot)}`];
@@ -131,8 +132,9 @@ function printDaily(){
   const L=lastDaily;if(!L)return;
   Reports.printDialog(document.getElementById("daily"),"daily",[["kpi","الأرقام الرئيسية",true],["insights","الملاحظات الذكية",L.hasI],...L.keys.map(k=>["sec_"+k,"قسم "+L.S[k].name,L.secHas[k]]),["workers","العمال والمعدل",L.hasW],["notes","ملاحظات اليوم",L.hasN]]);
 }
-async function load(){if(ctl)await ctl.refresh()}
-(async()=>{if(await requireAuth("reports.html")){renderNav("reports.html");document.getElementById("dayD").value=today();document.getElementById("dayGo").onclick=daily;document.getElementById("dayPr").onclick=printDaily;document.getElementById("daySh").onclick=shareDaily;document.getElementById("dayEd").onclick=()=>{const c=document.getElementById("editCard");if(c)c.scrollIntoView({behavior:"smooth",block:"start"});else toast("استنى التقرير يحمّل")};document.getElementById("dayD").onchange=daily;daily();ctl=Reports.dashboard("dash");settle()}})();
+async function reloadAll(force){await daily(force);if(ctl)ctl.refresh(false);if(octl)octl.refresh(false)}
+async function load(){if(ctl)await ctl.refresh();if(octl)await octl.refresh()}
+(async()=>{if(await requireAuth("reports.html")){renderNav("reports.html");document.getElementById("dayD").value=today();document.getElementById("dayGo").onclick=async()=>{await reloadAll(true);toast("تم تحديث التقرير")};document.getElementById("dayPr").onclick=printDaily;document.getElementById("daySh").onclick=shareDaily;document.getElementById("dayEd").onclick=()=>{const c=document.getElementById("editCard");if(c)c.scrollIntoView({behavior:"smooth",block:"start"});else toast("استنى التقرير يحمّل")};document.getElementById("dayD").onchange=()=>daily();daily();ctl=Reports.dashboard("dash");octl=Reports.ordersReport("ordersRep");settle()}})();
 </script>
 <script src="install.js" defer></script>
 </body>
