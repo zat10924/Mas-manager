@@ -42,7 +42,8 @@ function fromLines(orders,lines,prods,subKey,waste,tb){
   const ord=orders.map(o=>{
     const ls=byO.get(o.id)||[];
     return{id:o.id,item:o.item,sub:ls.map(l=>l[subKey]).join("، "),date:D(o.order_date),status:o.status,
-      req:ls.reduce((a,l)=>a+(+l.total_required||0),0),done:ls.reduce((a,l)=>a+Math.min(+l.produced||0,+l.total_required||0),0)};
+      req:ls.reduce((a,l)=>a+(+l.total_required||0),0),done:ls.reduce((a,l)=>a+Math.min(+l.produced||0,+l.total_required||0),0),
+      over:ls.reduce((a,l)=>a+Math.max((+l.produced||0)-(+l.total_required||0),0),0)};
   });
   const out={prod,ord};
   if(waste)out.waste=waste.map(w=>({d:D(w.waste_date),item:w.item||w.glaze_orders?.item||"-",good:+w.good_qty||0,qty:+w.qty||0}));
@@ -84,7 +85,7 @@ const SRC={
       const S=new Map(s.map(x=>[x.id,x])),fr=await freeRows("spray");
       return{
         prod:p.map(x=>{const o=S.get(x.order_id),oc=o?String(o.color??""):"";return{d:D(x.prod_date),item:o?.item||"—",sub:String(x.spray_color||""),oc,qty:+x.qty||0,w:x.worker||"",n:x.note||"",id:x.id,tb:"spray_production",raw:x,oid:x.order_id,max:o?(+o.qty_required||0)-(+o.produced||0)+(+x.qty||0):0}}).concat(fr),
-        ord:s.map(o=>({id:o.id,item:o.item,sub:String(o.color??""),date:D(o.order_date),status:o.status,req:+o.qty_required||0,done:Math.min(+o.produced||0,+o.qty_required||0)}))
+        ord:s.map(o=>({id:o.id,item:o.item,sub:String(o.color??""),date:D(o.order_date),status:o.status,req:+o.qty_required||0,done:Math.min(+o.produced||0,+o.qty_required||0),over:Math.max((+o.produced||0)-(+o.qty_required||0),0)}))
       };
     }},
   repair:{name:"تصليح",page:"repair.html",icon:"repair",color:"#5D6B7A",noun:"التصليح",sub:"",
@@ -308,12 +309,11 @@ function editEntry(row,key,done){
   openModal("تعديل تسجيل الإنتاج",
     (free?`<label>الصنف</label><input id="m-item" autocomplete="off"><label>${lab} (اختياري)</label><input id="${sid}" autocomplete="off">`
          :`<div class="nums"><b>${esc(entryTxt(row))}</b></div>`)+
-    `<label>الكمية</label><input type="number" id="m-q" min="1" ${row.max?`max="${row.max}"`:""} inputmode="numeric" value="${row.qty}">`+
-    (row.max?`<div class="hint" style="margin:0">أقصى كمية ممكنة للبند ده: ${nf(row.max)}</div>`:"")+
+    `<label>الكمية</label><input type="number" id="m-q" min="1" inputmode="numeric" value="${row.qty}">`+
+    (row.max?`<div class="hint" style="margin:0">المتاح للبند ده: ${nf(row.max)} (لو زدت عنه هيتسجل مع تنبيه في التقارير)</div>`:"")+
     `<label>التاريخ</label><input type="date" id="m-d" value="${esc(row.d||today())}">${spray?XS(raw.spray_color||""):""}${XF(deco)}`,async()=>{
     const q=parseInt(document.getElementById("m-q").value);
     if(!q||q<1){toast("اكتب كمية صحيحة");return false}
-    if(row.max&&q>row.max){toast("الكمية أكبر من المتاح ("+row.max+")");return false}
     const v=id=>((document.getElementById(id)||{}).value||"").trim();
     const patch={qty:q,prod_date:v("m-d")||row.d||today(),worker:v("m-w")||null,note:v("m-n")||null};
     if(deco)patch.design=v("m-ds")||null;
@@ -446,6 +446,9 @@ function mount(rootId,key){
     const hasW=data.prod.some(r=>r.w);
     let ins=sectionInsights({cfg,key,rows,f,t,total,prevTotal,k:st.k,hasW});
     if(bk&&!st.col&&!st.wk&&!st.item)ins=ins.concat(backlogInsights(bk,cfg));
+    {const ex=(data.ord||[]).filter(o=>o.over>0&&(!st.item||o.item===st.item)&&(!st.col||key!=="spray"||o.sub===st.col));
+      if(ex.length&&!st.wk){const tot=ex.reduce((a,o)=>a+o.over,0),nm=ex.slice(0,3).map(o=>esc(o.item)+(o.sub?" · "+esc(o.sub):"")+" (+"+nf(o.over)+")").join("، ");
+        ins.push(["warn",`<b>زيادة في الكمية:</b> ${ordN(ex.length)} اتسجّل عليها إنتاج أكتر من المطلوب بإجمالي <b>${nf(tot)}</b>: ${nm}${ex.length>3?" …":""}.`])}}
     const order={warn:0,ok:1,info:2};ins=ins.sort((a,b)=>order[a[0]]-order[b[0]]).slice(0,9);
     $(".rins").innerHTML=ins.length?insHtml(ins):'<div class="empty">مفيش بيانات كفاية للملاحظات في الفترة دي</div>';
     $('[data-ps="insights"]').toggleAttribute("data-empty",!ins.length);
@@ -463,7 +466,7 @@ function mount(rootId,key){
       $(".ro").innerHTML=ol.length?`<table><thead><tr><th>الطلبية</th><th>العمر</th><th>الإنجاز</th><th>المتبقي</th><th>التقدير</th></tr></thead><tbody>${ov.map(o=>{
         const p=o.req?Math.min(100,Math.round(o.done/o.req*100)):0,late=isLate(o.status,o.date),b=bk&&bk.by.get(o.id),rem=Math.max(o.req-o.done,0);
         const est=!b||!rem?"—":b.stalled?'<span class="tag late">راكدة</span>':b.eta!=null?"~ "+etaTxt(b.eta):'<span class="nums">لا إنتاج حديث</span>';
-        return `<tr><td><b>${esc(o.item)}</b>${o.sub?`<div class="nums" style="font-size:.8rem">${esc(o.sub)}</div>`:""}</td><td>${late?'<span class="tag late">متأخرة</span> ':""}<span class="nums">${ageTxt(o.date)}</span></td><td><div class="share"><div class="bar"><i style="width:${p}%;background:${p>=100?"var(--ok)":cfg.color}"></i></div><span>${p}%</span></div></td><td><b>${nf(rem)}</b></td><td>${est}</td></tr>`}).join("")}</tbody></table><div class="hint" style="margin-top:4px">التقدير = المتبقي ÷ معدل إنتاج الصنف في آخر 14 يوم (بأيام الشغل).</div>${ol.length>10&&!st.printing?`<button class="btn ghost sm more noprint" data-m="o">${st.moreO?"عرض أقل":`عرض الكل (${ol.length})`}</button>`:""}`:'<div class="empty">مفيش طلبيات مفتوحة</div>';
+        return `<tr><td><b>${esc(o.item)}</b>${o.sub?`<div class="nums" style="font-size:.8rem">${esc(o.sub)}</div>`:""}</td><td>${late?'<span class="tag late">متأخرة</span> ':""}<span class="nums">${ageTxt(o.date)}</span></td><td><div class="share"><div class="bar"><i style="width:${p}%;background:${p>=100?"var(--ok)":cfg.color}"></i></div><span>${p}%</span></div>${o.over>0?`<span class="tag late">زيادة +${nf(o.over)}</span>`:""}</td><td><b>${nf(rem)}</b></td><td>${est}</td></tr>`}).join("")}</tbody></table><div class="hint" style="margin-top:4px">التقدير = المتبقي ÷ معدل إنتاج الصنف في آخر 14 يوم (بأيام الشغل).</div>${ol.length>10&&!st.printing?`<button class="btn ghost sm more noprint" data-m="o">${st.moreO?"عرض أقل":`عرض الكل (${ol.length})`}</button>`:""}`:'<div class="empty">مفيش طلبيات مفتوحة</div>';
     }
     // أداء العمال
     const ws=workerStats(rows);
