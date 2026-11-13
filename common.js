@@ -763,10 +763,18 @@ const noCid=({client_id,...r})=>r;
 let WK=null;
 async function wkLoad(){
   if(WK)return;WK=[];
-  try{const{data}=await db.from("workers").select("name").eq("active",true).order("name");WK=(data||[]).map(x=>x.name)}catch(e){}
-  const l=document.getElementById("wk-list");if(l)l.innerHTML=WK.map(n=>`<option value="${esc(n)}">`).join("")
+  try{const{data}=await db.from("workers").select("name,section").eq("active",true).order("name");WKA=data||[]}catch(e){}
+  const l=document.getElementById("wk-list");if(l)l.innerHTML=wkSel().map(n=>`<option value="${esc(n)}">`).join("")
 }
-const XW=(deco)=>'<label>'+(deco?'اسم العامل':'اسم العامل (اختياري)')+'</label><input id="m-w" list="wk-list" placeholder="اختار من العمال أو اكتب اسم"><datalist id="wk-list">'+(WK||[]).map(n=>`<option value="${esc(n)}">`).join("")+'</datalist>';
+// المدير يشوف كل العمال، وغيره يشوف عمال قسمه بس (والقسم الشغال حاليًا في صفحة الإنتاج)
+let WKA=[];
+function wkSel(){
+  if(!ME||ME.role==="admin")return WKA.map(x=>x.name);
+  let ok=mySecs();
+  try{if(typeof sec==="string"&&sec&&ok.includes(sec))ok=[sec]}catch(e){}
+  return WKA.filter(x=>x.section&&ok.includes(x.section)).map(x=>x.name)
+}
+const XW=(deco)=>'<label>'+(deco?'اسم العامل':'اسم العامل (اختياري)')+'</label><input id="m-w" list="wk-list" placeholder="اختار من العمال أو اكتب اسم"><datalist id="wk-list">'+wkSel().map(n=>`<option value="${esc(n)}">`).join("")+'</datalist>';
 // الزخرفة: اسم العامل بيظهر في أول الشاشة (XT)، وباقي الحقول في آخرها (XF)
 const XT=(deco)=>{if(!deco)return "";wkLoad();return XW(true)};
 const XF=(deco)=>{wkLoad();return (deco?'<label>الرسمة — كود أو وصف (اختياري)</label><input id="m-ds" placeholder="مثال: كود 125 أو وردة بحواف ذهبي" maxlength="120">':XW(false))+'<label>ملاحظة (اختياري)</label><input id="m-n" placeholder="أي تعليق على الشغل">'};
@@ -869,7 +877,7 @@ function saveHist(root){
 }
 function cbOpts(inp){
   const k=inp.dataset.cb;
-  if(k==="worker")return(WK||[]).map(n=>[n,""]);
+  if(k==="worker")return wkSel().map(n=>[n,""]);
   if(k.startsWith("hist:"))return cbHist(k).map(n=>[n,""]);
   const out=[],seen=new Set();
   ((CAT&&CAT[k])||[]).forEach(n=>{seen.add(n);out.push([n,(CATM[k].get(n)||{}).code||""])});
