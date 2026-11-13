@@ -207,7 +207,7 @@ function editEnt(i){
   if(e.k==="waste")return editWaste(e);
   const deco=sec==="deco",free=e.k==="free",lab=deco?"كود الرسمة":sec==="spray"?"لون الصنف":"اللون",sid=deco?"m-code":"m-color",sprayLine=sec==="spray";
   openModal("تعديل تسجيل الإنتاج",
-    (free?`<label>الصنف</label><input id="m-item" autocomplete="off"><label>${lab} (اختياري)</label><input id="${sid}" autocomplete="off">`
+    XT(deco)+(free?`<label>الصنف</label><input id="m-item" autocomplete="off"><label>${lab} (اختياري)</label><input id="${sid}" autocomplete="off">`
          :`<div class="nums"><b>${esc(e.txt)}</b></div>`)+
     `<label>الكمية</label><input type="number" id="m-q" min="1" inputmode="numeric" value="${e.qty}">`+
     (e.max?`<div class="hint" style="margin:0">المتاح للبند ده: ${nf(e.max)} (لو زدت عنه هيتسجل مع تنبيه)</div>`:"")+
@@ -245,7 +245,7 @@ function quick(r){
   const lk="lq_"+sec+"_"+r.id;let last=0;try{last=+localStorage.getItem(lk)||0}catch(e){}
   const chips=[10,25,50,100].filter(n=>n<rem).map(n=>[n,"+"+n]).concat([[rem,"الكل ("+rem+")"]]);
   if(last&&last<=rem&&!chips.some(c=>c[0]===last))chips.unshift([last,"آخر مرة ("+last+")"]);
-  openModal(`${esc(r.title)} · ${esc(r.sub)}`,`${sec==="deco"&&cimg(r.code)?`<img class="dzoom" alt="" src="${cimg(r.code)}" data-zc="${esc(r.code)}">`:""}<div class="nums">المتبقي: <b>${nf(rem)}</b></div>
+  openModal(`${esc(r.title)} · ${esc(r.sub)}`,`${XT(sec==="deco")}${sec==="deco"&&cimg(r.code)?`<img class="dzoom" alt="" src="${cimg(r.code)}" data-zc="${esc(r.code)}">`:""}<div class="nums">المتبقي: <b>${nf(rem)}</b></div>
     <div class="row" style="flex-wrap:wrap;gap:6px;margin:8px 0">${chips.map(c=>`<button type="button" class="btn ghost sm" onclick="document.getElementById('m-q').value=${c[0]}">${c[1]}</button>`).join("")}</div>
     <label>الكمية</label><input type="number" id="m-q" min="1" inputmode="numeric"><label>التاريخ</label><input type="date" id="m-d" value="${today()}">${sec==="spray"?XS(""):""}${XF(sec==="deco")}`,async()=>{
     const q=parseInt(document.getElementById("m-q").value);

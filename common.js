@@ -766,7 +766,10 @@ async function wkLoad(){
   try{const{data}=await db.from("workers").select("name").eq("active",true).order("name");WK=(data||[]).map(x=>x.name)}catch(e){}
   const l=document.getElementById("wk-list");if(l)l.innerHTML=WK.map(n=>`<option value="${esc(n)}">`).join("")
 }
-const XF=(deco)=>{wkLoad();return (deco?'<label>الرسمة — كود أو وصف (اختياري)</label><input id="m-ds" placeholder="مثال: كود 125 أو وردة بحواف ذهبي" maxlength="120">':'')+'<label>'+(deco?'اسم العامل':'اسم العامل (اختياري)')+'</label><input id="m-w" list="wk-list" placeholder="اختار من العمال أو اكتب اسم"><datalist id="wk-list">'+(WK||[]).map(n=>`<option value="${esc(n)}">`).join("")+'</datalist><label>ملاحظة (اختياري)</label><input id="m-n" placeholder="أي تعليق على الشغل">'};
+const XW=(deco)=>'<label>'+(deco?'اسم العامل':'اسم العامل (اختياري)')+'</label><input id="m-w" list="wk-list" placeholder="اختار من العمال أو اكتب اسم"><datalist id="wk-list">'+(WK||[]).map(n=>`<option value="${esc(n)}">`).join("")+'</datalist>';
+// الزخرفة: اسم العامل بيظهر في أول الشاشة (XT)، وباقي الحقول في آخرها (XF)
+const XT=(deco)=>{if(!deco)return "";wkLoad();return XW(true)};
+const XF=(deco)=>{wkLoad();return (deco?'<label>الرسمة — كود أو وصف (اختياري)</label><input id="m-ds" placeholder="مثال: كود 125 أو وردة بحواف ذهبي" maxlength="120">':XW(false))+'<label>ملاحظة (اختياري)</label><input id="m-n" placeholder="أي تعليق على الشغل">'};
 // لون الرش: خانة منسدلة من قائمة الألوان، بتتملّى مسبقًا بلون الطلبية (تقدر تغيّره لو اترشّ بلون تاني)
 const XS=(def,id="m-sc")=>'<label>لون الرش</label><input id="'+id+'" data-kind="color" value="'+esc(def||"")+'" placeholder="لون الرش" autocomplete="off" maxlength="60">';
 const xfRead=()=>{const o={},w=(document.getElementById("m-w")||{}).value,n=(document.getElementById("m-n")||{}).value;if(w&&w.trim())o.worker=w.trim();if(n&&n.trim())o.note=n.trim();const d=(document.getElementById("m-ds")||{}).value;if(d&&d.trim())o.design=d.trim();const sc=(document.getElementById("m-sc")||{}).value;if(sc&&sc.trim())o.spray_color=sc.trim();return o};
@@ -1025,7 +1028,8 @@ function freeProduction(sec,done){
     <div class="two"><div><label>${lab}${spr?" (لون الصنف — اختياري)":" (اختياري)"}</label><input class="sb" data-kind="${kind}" placeholder="${lab}" autocomplete="off"></div>
     <div><label>الكمية</label><input type="number" class="mq2" min="1" inputmode="numeric"></div></div>${spr?'<label>لون الرش</label><input class="msc" data-kind="color" placeholder="لون الرش" autocomplete="off" maxlength="60">':""}</div>`;
   openModal("إنتاج بدون طلبية · "+SEC_AR[sec],
-    `<div class="hint" style="margin:0 0 6px">سجّل أكتر من صنف مرة واحدة. بيتسجّل في إنتاج القسم وتقاريره من غير ما يتربط بطلبية.</div>
+    `${XT(deco)}<div class="hint" style="margin:0 0 6px">سجّل أكتر من صنف مرة واحدة. بيتسجّل في إنتاج القسم وتقاريره من غير ما يتربط بطلبية.</div>
+    <button type="button" class="btn ghost sm" id="mclr" hidden style="margin:0 0 6px">مسح المسودة</button>
     <div id="mrows"></div>
     <button type="button" class="btn ghost sm" id="madd" style="margin:6px 0 10px">＋ إضافة صنف آخر</button>
     <label>التاريخ</label><input type="date" id="m-d" value="${today()}">${XF(deco)}`,async()=>{
@@ -1082,12 +1086,13 @@ function freeProduction(sec,done){
   // مسودة: بتتحفظ أول بأول وبترجع لو الصفحة اتقفلت أو النت قطع (24 ساعة)
   const DK="draft_free_"+sec,modal=document.getElementById("mrows").closest(".modal");
   const snap=()=>[...box.querySelectorAll(".mrow")].map(el=>({i:el.querySelector(".it").value,s:el.querySelector(".sb").value,q:el.querySelector(".mq2").value,c:spr?el.querySelector(".msc").value:""}));
-  // المسودة اتلغت: بنمسح أي مسودة قديمة ومبنحفظش جديد
-  const saveDraft=()=>{try{localStorage.removeItem(DK)}catch(e){}};
-  let draft=null;saveDraft();
-  if(draft&&draft.rows&&draft.rows.length){
+  const XID={d:"m-d",w:"m-w",n:"m-n",g:"m-ds"},snapX=()=>{const o={};for(const k in XID){const e=document.getElementById(XID[k]);if(e)o[k]=e.value}return o};
+  const saveDraft=()=>{try{const rows=snap().filter(r=>r.i||r.s||r.q||r.c);if(rows.length)localStorage.setItem(DK,JSON.stringify({at:Date.now(),rows,x:snapX()}));else localStorage.removeItem(DK)}catch(e){}};
+  let draft=null;try{draft=JSON.parse(localStorage.getItem(DK))}catch(e){}
+  if(draft&&Date.now()-draft.at<864e5&&draft.rows&&draft.rows.length){
     draft.rows.forEach((r,n)=>{if(n>0||!box.querySelector(".mrow"))add(false);const el=box.lastElementChild;el.querySelector(".it").value=r.i;el.querySelector(".sb").value=r.s;el.querySelector(".mq2").value=r.q;if(spr&&r.c)el.querySelector(".msc").value=r.c});
-    toast("رجّعنا آخر مسودة اتكتبت");
+    if(draft.x)for(const k in XID){const e=document.getElementById(XID[k]);if(e&&draft.x[k])e.value=draft.x[k]}
+    toast("رجّعنا آخر مسودة اتكتبت");const cb=document.getElementById("mclr");if(cb){cb.hidden=false;cb.onclick=()=>{try{localStorage.removeItem(DK)}catch(e){}box.innerHTML="";add(true);cb.hidden=true;toast("اتمسحت المسودة")}}
   }else add(true);
   modal.addEventListener("input",saveDraft);modal.addEventListener("click",e=>{if(e.target.closest(".rmi"))setTimeout(saveDraft,0)});
   window._clearFreeDraft=()=>{try{localStorage.removeItem(DK)}catch(e){}};window._saveFreeDraft=saveDraft;

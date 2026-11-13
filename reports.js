@@ -307,7 +307,7 @@ function editEntry(row,key,done){
   const lab=deco?"كود الرسمة":spray?"لون الصنف":"اللون",sid=deco?"m-code":"m-color";
   if(row.max)row={...row,max:Math.max(row.max,row.qty)}; // مسموح دايمًا ترجّع الكمية لقيمتها الحالية أو أقل
   openModal("تعديل تسجيل الإنتاج",
-    (free?`<label>الصنف</label><input id="m-item" autocomplete="off"><label>${lab} (اختياري)</label><input id="${sid}" autocomplete="off">`
+    XT(deco)+(free?`<label>الصنف</label><input id="m-item" autocomplete="off"><label>${lab} (اختياري)</label><input id="${sid}" autocomplete="off">`
          :`<div class="nums"><b>${esc(entryTxt(row))}</b></div>`)+
     `<label>الكمية</label><input type="number" id="m-q" min="1" inputmode="numeric" value="${row.qty}">`+
     (row.max?`<div class="hint" style="margin:0">المتاح للبند ده: ${nf(row.max)} (لو زدت عنه هيتسجل مع تنبيه في التقارير)</div>`:"")+
