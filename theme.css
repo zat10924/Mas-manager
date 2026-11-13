@@ -992,3 +992,5 @@ html.bigbtn .btn.sm{min-height:46px;font-size:1rem}
 html.bigbtn input,html.bigbtn select{min-height:52px;font-size:1.08rem}
 html.bigbtn .tabs button,html.bigbtn .seg button{min-height:48px}
 #bk_card[hidden]{display:none}
+
+.rvw{display:flex;align-items:center;gap:6px;margin-top:6px;padding:6px 10px;border-radius:10px;background:color-mix(in srgb,var(--warn,#d9a21b) 18%,var(--card));color:var(--warn-ink,inherit);font-size:.92rem}

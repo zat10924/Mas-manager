@@ -144,7 +144,7 @@ function rename(id){
       const r=await db.rpc("catalog_set_meta",{p_id:x.id,p_code:code,p_image:newImg===undefined?null:newImg,p_set_image:newImg!==undefined});
       if(r.error){toast(r.error.code==="PGRST202"||/code|image|column/i.test(r.error.message||"")?NEED:"خطأ: "+r.error.message,"bad");return false}
     }
-    if(!merged&&kind==="item"){
+    if(!merged&&kind==="item"&&document.getElementById("c-dl")){
       const nd=readDesigns(),od=(x.designs||[]);
       if(nd.length!==od.length||nd.some(n=>!od.some(o=>norm(o)===norm(n)))){
         const r=await db.rpc("catalog_set_designs",{p_id:x.id,p_designs:nd});

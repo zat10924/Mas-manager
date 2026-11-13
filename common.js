@@ -1058,7 +1058,7 @@ function freeProduction(sec,done){
     }
     if(ok&&done)await done();
     // اللي اتسجل اتشال من الشاشة؛ اللي فشل بس فاضل عشان تعيد المحاولة من غير تكرار
-    if(bad.length){toast((ok?"اتسجل "+ok+" وفشل "+bad.length+" — ":"")+bad[0],"bad");renum();return false}
+    if(bad.length){if(window._saveFreeDraft)window._saveFreeDraft();toast((ok?"اتسجل "+ok+" وفشل "+bad.length+" — ":"")+bad[0],"bad");renum();return false}
     if(window._clearFreeDraft)window._clearFreeDraft();
     toast(off?"مفيش نت: اتحفظ "+ok+" صنف على الجهاز وهيتسجلوا لما النت يرجع":"تم تسجيل "+ok+" صنف",off?"warn":undefined);
   },"تسجيل الكل");
@@ -1089,10 +1089,13 @@ function freeProduction(sec,done){
     toast("رجّعنا آخر مسودة اتكتبت");
   }else add(true);
   modal.addEventListener("input",saveDraft);modal.addEventListener("click",e=>{if(e.target.closest(".rmi"))setTimeout(saveDraft,0)});
-  window._clearFreeDraft=()=>{try{localStorage.removeItem(DK)}catch(e){}};
+  window._clearFreeDraft=()=>{try{localStorage.removeItem(DK)}catch(e){}};window._saveFreeDraft=saveDraft;
   document.getElementById("madd").onclick=()=>add(true);
 }
 /* ===== مراجعة التسجيل قبل الحفظ (تأكيد) ===== */
+const remAfter=(rem,q)=>q>rem?"0 (زيادة "+nf(q-rem)+")":nf(rem-q);
+const overWarn=(rem,q)=>q>rem?"الكمية أكبر من المتبقي ("+nf(rem)+") بـ "+nf(q-rem)+" — هتتسجل زي ما هي":"";
+const overToast=(n,x)=>toast("تم التسجيل — تنبيه: "+(n>1?n+" بنود":"الكمية")+" أعلى من المتبقي"+(x?" بـ "+nf(x):""),"warn");
 const RVX={worker:"العامل",design:"الرسمة",note:"ملاحظة",spray_color:"لون الرش"};
 const rvFields=o=>Object.keys(RVX).filter(k=>o&&o[k]).map(k=>[RVX[k],o[k]]);
 function reviewSave({title="راجع التسجيل قبل الحفظ",meta=[],items=[],total=null,totalLabel="إجمالي الكمية"}){
@@ -1102,7 +1105,7 @@ function reviewSave({title="راجع التسجيل قبل الحفظ",meta=[],i
     d.innerHTML=`<div class="modal rv" role="dialog" aria-modal="true"><h3 class="ibt">${ui("eye")}<span>${esc(title)}</span></h3>
       <div class="hint" style="margin:0 0 8px">اتأكد إن البيانات صح، وبعدها اضغط تأكيد عشان يتحفظ.</div>
       ${meta.length?`<div class="rvm">${meta.map(row).join("")}</div>`:""}
-      ${items.map((it,i)=>`<div class="rvi">${it.title?`<div class="rvt">${items.length>1?(i+1)+". ":""}${esc(it.title)}</div>`:""}${it.rows.map(row).join("")}</div>`).join("")}
+      ${items.map((it,i)=>`<div class="rvi">${it.title?`<div class="rvt">${items.length>1?(i+1)+". ":""}${esc(it.title)}</div>`:""}${it.rows.map(row).join("")}${it.warn?`<div class="rvw ibt">${ui("alert")}<span>${esc(it.warn)}</span></div>`:""}</div>`).join("")}
       ${total!==null?`<div class="rvtot"><span>${esc(totalLabel)}</span><b>${nf(total)}</b></div>`:""}
       <div class="row"><button class="btn" id="rv-ok" type="button">${ib("check","تأكيد وحفظ")}</button><button class="btn ghost" id="rv-no" type="button">${ib("edit","رجوع وتعديل")}</button></div></div>`;
     document.body.appendChild(d);

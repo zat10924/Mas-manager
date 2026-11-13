@@ -146,26 +146,27 @@ function multiModal(){
     const rem=r.req-r.done;
     return `<div class="line"><div class="r"><span style="display:flex;gap:8px;align-items:center">${sec==="deco"?cthumb(r.code):""}<b>${esc(r.title)}</b></span><span class="tag">${esc(r.sub)}</span></div>
       <div class="nums">تم <b>${nf(r.done)}</b> من <b>${nf(r.req)}</b> · المتبقي <b>${nf(rem)}</b></div>
-      <div class="row" style="flex-wrap:nowrap;margin-top:6px"><input type="number" class="mq" data-id="${r.id}" min="1" max="${rem}" inputmode="numeric" placeholder="الكمية" style="margin:0"><button type="button" class="btn ghost sm" onclick="this.previousElementSibling.value=${rem}">الكل (${rem})</button></div>${sec==="spray"?`<label style="margin-top:6px">لون الرش</label><input class="msc" data-id="${r.id}" data-kind="color" value="" placeholder="لون الرش" autocomplete="off" maxlength="60" style="margin:0">`:""}</div>`}).join(""),async()=>{
+      <div class="row" style="flex-wrap:nowrap;margin-top:6px"><input type="number" class="mq" data-id="${r.id}" min="1" inputmode="numeric" placeholder="الكمية" style="margin:0"><button type="button" class="btn ghost sm" onclick="this.previousElementSibling.value=${rem}">الكل (${rem})</button></div>${sec==="spray"?`<label style="margin-top:6px">لون الرش</label><input class="msc" data-id="${r.id}" data-kind="color" value="" placeholder="لون الرش" autocomplete="off" maxlength="60" style="margin:0">`:""}</div>`}).join(""),async()=>{
     const d=document.getElementById("m-d").value||today(),todo=[];
     for(const r of items){
       const v=document.querySelector('.mq[data-id="'+r.id+'"]').value.trim();if(!v)continue;
       const q=parseInt(v),rem=r.req-r.done;
       if(!q||q<1){toast("كمية غلط في: "+r.title+" · "+r.sub);return false}
-      if(q>rem){toast("الكمية أكبر من المتبقي ("+rem+") في: "+r.title+" · "+r.sub);return false}
       const sc=sec==="spray"?((document.querySelector('.msc[data-id="'+r.id+'"]')||{}).value||"").trim():"";
       if(sec==="spray"&&!sc){toast("اكتب لون الرش في: "+r.title+" · "+r.sub);return false}
       todo.push([r,q,sc]);
     }
     if(!todo.length){toast("اكتب كمية لبند واحد على الأقل");return false}
     if(!await reviewSave({title:"راجع الإنتاج قبل الحفظ",meta:[["التاريخ",fmtD(d)]],
-      items:todo.map(([r,q,sc])=>({title:r.title,rows:[[sec==="deco"?"كود الرسمة":"اللون",r.sub],["الكمية",nf(q)],["المتبقي بعد التسجيل",nf(r.req-r.done-q)],...(sc?[["لون الرش",sc]]:[])]})),
+      items:todo.map(([r,q,sc])=>({title:r.title,rows:[[sec==="deco"?"كود الرسمة":"اللون",r.sub],["الكمية",nf(q)],["المتبقي بعد التسجيل",remAfter(r.req-r.done,q)],...(sc?[["لون الرش",sc]]:[])],warn:overWarn(r.req-r.done,q)})),
       total:todo.reduce((a,t)=>a+t[1],0)}))return false;
+    const overN=todo.filter(([r,q])=>q>r.req-r.done).length;
     let ok=0,off=0,fin=0;const bad=[];
     for(const[r,q,sc]of todo){const x=await saveOne(r,q,d,sc);if(x.err)bad.push(r.title+" · "+r.sub+": "+x.err);else{ok++;if(x.off)off++;if(x.done)fin++}}
     multi=false;sel.clear();await load();
     if(bad.length)toast("اتسجل "+ok+" وفشل "+bad.length+": "+bad[0]);
     else if(off)toast("مفيش نت: اتحفظ "+ok+" بند على الجهاز وهيتسجلوا لما النت يرجع","warn");
+    else if(overN)toast("تم تسجيل "+ok+" بند"+(fin?" — اكتملت "+fin+" طلبية":"")+" — تنبيه: "+overN+" بند أعلى من المتبقي","warn");
     else toast("تم تسجيل "+ok+" بند"+(fin?" — اكتملت "+fin+" طلبية":""));
   },"تسجيل الكل");
 }
@@ -208,12 +209,11 @@ function editEnt(i){
   openModal("تعديل تسجيل الإنتاج",
     (free?`<label>الصنف</label><input id="m-item" autocomplete="off"><label>${lab} (اختياري)</label><input id="${sid}" autocomplete="off">`
          :`<div class="nums"><b>${esc(e.txt)}</b></div>`)+
-    `<label>الكمية</label><input type="number" id="m-q" min="1" ${e.max?`max="${e.max}"`:""} inputmode="numeric" value="${e.qty}">`+
-    (e.max?`<div class="hint" style="margin:0">أقصى كمية ممكنة للبند ده: ${nf(e.max)}</div>`:"")+
+    `<label>الكمية</label><input type="number" id="m-q" min="1" inputmode="numeric" value="${e.qty}">`+
+    (e.max?`<div class="hint" style="margin:0">المتاح للبند ده: ${nf(e.max)} (لو زدت عنه هيتسجل مع تنبيه)</div>`:"")+
     `<label>التاريخ</label><input type="date" id="m-d" value="${e.date||today()}">${sprayLine?XS(e.sc):""}${XF(deco)}`,async()=>{
     const q=parseInt(document.getElementById("m-q").value);
     if(!q||q<1){toast("اكتب كمية صحيحة");return false}
-    if(e.max&&q>e.max){toast("الكمية أكبر من المتاح ("+e.max+")");return false}
     const v=id=>((document.getElementById(id)||{}).value||"").trim();
     const d=v("m-d")||e.date||today();
     const patch={qty:q,prod_date:d,worker:v("m-w")||null,note:v("m-n")||null};
@@ -226,6 +226,7 @@ function editEnt(i){
     if(r.error){toast(isNet(r.error)?"التعديل محتاج اتصال بالإنترنت":"خطأ: "+r.error.message,"bad");return false}
     if(!r.data||!r.data.length){toast("لم يتم التعديل، راجع الصلاحيات","bad");return false}
     await resync(e);await load();
+    if(e.max&&q>e.max){toast("تم التعديل — تنبيه: الكمية أعلى من المتاح بـ "+nf(q-e.max),"warn");return}
     toast(d!==D?"تم التعديل — التسجيل اتنقل ليوم "+fmtD(d):"تم التعديل");
   },"حفظ التعديل");
   const set=(id,val)=>{const el=document.getElementById(id);if(el&&val)el.value=val};
@@ -245,14 +246,13 @@ function quick(r){
   if(last&&last<=rem&&!chips.some(c=>c[0]===last))chips.unshift([last,"آخر مرة ("+last+")"]);
   openModal(`${esc(r.title)} · ${esc(r.sub)}`,`${sec==="deco"&&cimg(r.code)?`<img class="dzoom" alt="" src="${cimg(r.code)}" data-zc="${esc(r.code)}">`:""}<div class="nums">المتبقي: <b>${nf(rem)}</b></div>
     <div class="row" style="flex-wrap:wrap;gap:6px;margin:8px 0">${chips.map(c=>`<button type="button" class="btn ghost sm" onclick="document.getElementById('m-q').value=${c[0]}">${c[1]}</button>`).join("")}</div>
-    <label>الكمية</label><input type="number" id="m-q" min="1" max="${rem}" inputmode="numeric"><label>التاريخ</label><input type="date" id="m-d" value="${today()}">${sec==="spray"?XS(""):""}${XF(sec==="deco")}`,async()=>{
+    <label>الكمية</label><input type="number" id="m-q" min="1" inputmode="numeric"><label>التاريخ</label><input type="date" id="m-d" value="${today()}">${sec==="spray"?XS(""):""}${XF(sec==="deco")}`,async()=>{
     const q=parseInt(document.getElementById("m-q").value);
     if(!q||q<1){toast("اكتب كمية صحيحة");return false}
-    if(q>rem){toast("الكمية أكبر من المتبقي ("+rem+")");return false}
     const c=SEC[sec],d=document.getElementById("m-d").value||today(),id=uuid(),tb=c.p||"spray_production";
     const xr=xfRead();if(sec==="spray"&&!xr.spray_color){toast("اكتب لون الرش");return false}
     if(!await reviewSave({title:"راجع الإنتاج قبل الحفظ",meta:[["التاريخ",fmtD(d)],...rvFields(xr)],
-      items:[{title:r.title,rows:[[sec==="deco"?"كود الرسمة":"اللون",r.sub],["الكمية",nf(q)],["المتبقي بعد التسجيل",nf(rem-q)]]}]}))return false;
+      items:[{title:r.title,rows:[[sec==="deco"?"كود الرسمة":"اللون",r.sub],["الكمية",nf(q)],["المتبقي بعد التسجيل",remAfter(rem,q)]],warn:overWarn(rem,q)}]}))return false;
     const row={...(c.p?{line_id:r.id,qty:q,prod_date:d,client_id:id}:{order_id:r.id,qty:q,prod_date:d,client_id:id}),...xr};
     const it={id,table:tb,row,sec,rid:r.id,qty:q,txt:r.title+" · "+r.sub,sync:c.o?{lv:c.l,o:c.o,oid:r.oid}:{sv:"spray_status",o:"spray_orders",oid:r.id}};
     let res;try{res=await insertRow(tb,row)}catch(e){res={error:{message:String(e)}}}
@@ -263,7 +263,7 @@ function quick(r){
     if(res.error){toast("خطأ: "+res.error.message);return false}
     try{localStorage.setItem(lk,q)}catch(e){}
     const done=await syncAfter(it);
-    await load();toast(done?"اكتملت الطلبية":"تم التسجيل");
+    await load();if(q>rem)overToast(1,q-rem);else toast(done?"اكتملت الطلبية":"تم التسجيل");
   });
 }
 function secs(){

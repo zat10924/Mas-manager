@@ -52,7 +52,7 @@ end $$;
 create or replace function public.backup_list() returns table(id bigint, created_at timestamptz, kind text, size_kb int)
 language plpgsql security definer set search_path = public as $$
 begin
-  if not exists (select 1 from public.profiles where id = auth.uid() and role = 'admin' and coalesce(active, true)) then
+  if not exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin' and coalesce(p.active, true)) then
     raise exception 'not allowed';
   end if;
   return query select s.id, s.created_at, s.kind, (pg_column_size(s.data) / 1024)::int
