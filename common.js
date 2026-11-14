@@ -1184,10 +1184,45 @@ function reviewSave({title="راجع التسجيل قبل الحفظ",meta=[],i
     try{d.querySelector("#rv-ok").focus({preventScroll:true})}catch(e){}
   });
 }
+/* ===== الهالك: السليم بيتاخد من إنتاج الجليز (الصنف + اليوم) والهالك بيتكتب يدويًا ===== */
+async function glazeProducedByItem(day){
+  const m=new Map(),add=(k,v)=>{k=String(k||"").trim();if(k)m.set(k,(m.get(k)||0)+(+v||0))};
+  try{
+    const[p,f]=await Promise.all([db.from("glaze_production").select("line_id,qty").eq("prod_date",day),db.from("free_production").select("item,qty").eq("section","glaze").eq("prod_date",day)]);
+    const pr=p.data||[],lids=[...new Set(pr.map(e=>e.line_id))];
+    if(lids.length){
+      const l=await db.from("glaze_order_lines").select("id,order_id").in("id",lids),oids=[...new Set((l.data||[]).map(x=>x.order_id))];
+      const o=oids.length?await db.from("glaze_orders").select("id,item").in("id",oids):{data:[]};
+      const lm=new Map((l.data||[]).map(x=>[x.id,x.order_id])),om=new Map((o.data||[]).map(x=>[x.id,x.item]));
+      pr.forEach(e=>add(om.get(lm.get(e.line_id)),e.qty));
+    }
+    (f.data||[]).forEach(e=>add(e.item,e.qty));
+  }catch(e){}
+  return m;
+}
+function wireWasteGood(upd,keepFirst){
+  const it=document.getElementById("m-item"),d=document.getElementById("m-d"),g=document.getElementById("m-g");
+  if(!it||!d||!g)return;
+  const hint=document.createElement("div");hint.className="hint";hint.id="m-gh";g.parentElement.appendChild(hint);
+  let cache={d:null,m:new Map()},seq=0,first=!!keepFirst;
+  const run=async()=>{
+    const day=d.value||today(),my=++seq;
+    if(cache.d!==day){const m=await glazeProducedByItem(day);if(my!==seq)return;cache={d:day,m}}
+    const dl=document.getElementById("m-items");
+    if(dl){const have=new Set([...dl.options].map(o=>o.value));cache.m.forEach((v,k)=>{if(!have.has(k)){const o=document.createElement("option");o.value=k;dl.prepend(o)}})}
+    const item=it.value.trim(),v=item?cache.m.get(item):0;
+    if(first){first=false;if(v>0)hint.textContent="إنتاج الجليز للصنف ده في اليوم ده: "+nf(v);return}
+    if(v>0){g.value=v;g.readOnly=true;hint.textContent="السليم من إنتاج الجليز في اليوم ده: "+nf(v)}
+    else{g.readOnly=false;hint.textContent=item?"مفيش إنتاج جليز مسجل للصنف ده في اليوم ده — اكتب السليم يدويًا":""}
+    upd();
+  };
+  it.addEventListener("input",run);it.addEventListener("change",run);d.addEventListener("change",run);
+  run();
+}
 /* ===== تسجيل هالك سريع (جليز) — من غير طلبية ===== */
 function quickWaste(done){
   openModal("تسجيل هالك · جليز",
-    `<label>الصنف</label><input id="m-item" placeholder="اسم الصنف" autocomplete="off">
+    `<label>الصنف</label><input id="m-item" list="m-items" placeholder="اسم الصنف" autocomplete="off"><datalist id="m-items"></datalist>
     <div class="two"><div><label>الكمية السليمة</label><input type="number" id="m-g" min="0" inputmode="numeric"></div><div><label>الكمية الهالكة</label><input type="number" id="m-q" min="0" inputmode="numeric"></div></div>
     <div class="nums" id="m-pct"></div>
     <label>التاريخ</label><input type="date" id="m-d" value="${today()}">
@@ -1203,6 +1238,7 @@ function quickWaste(done){
   });
   const upd=()=>{const g=parseInt(document.getElementById("m-g").value)||0,q=parseInt(document.getElementById("m-q").value)||0;document.getElementById("m-pct").innerHTML=g+q>0?`الإجمالي <b>${g+q}</b> · نسبة الهالك <b>${(q/(g+q)*100).toFixed(1)}%</b>`:""};
   document.getElementById("m-g").oninput=upd;document.getElementById("m-q").oninput=upd;
+  wireWasteGood(upd,false);
 }
 
 

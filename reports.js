@@ -366,7 +366,7 @@ function printDialog(root,scope,secs,hooks={}){
     const ph=root.querySelector(".print-head"),h2=ph&&ph.querySelector("h2");
     if(h2&&pt){h2.dataset.ot=h2.textContent;h2.textContent=pt}
     if(ph&&pn){const n=document.createElement("div");n.className="ps-note";n.textContent=pn;ph.appendChild(n)}
-    const land=om==="landscape"||(om==="auto"&&ids.includes("log"));
+    const land=om==="landscape"||(om==="auto"&&(ids.includes("log")||(scope==="orders"&&ids.includes("list")))); // جدول الطلبيات 8 أعمدة: عرضي تلقائي
     window.__po=land?"landscape":(om==="portrait"||om==="auto"?"portrait":null);
     secs.forEach(([id])=>root.querySelectorAll('[data-ps="'+id+'"]').forEach(el=>el.classList.toggle("ps-off",!ids.includes(id))));
     root.querySelectorAll("[data-empty]").forEach(el=>el.classList.add("ps-empty"));

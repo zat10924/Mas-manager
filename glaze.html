@@ -41,8 +41,8 @@
       <label>الصنف</label><select id="f-item"><option value="">الكل</option></select>
       <div class="row"><button class="btn" id="f-go">عرض</button><button class="btn ghost" id="f-csv">تصدير Excel</button><button class="btn ghost" onclick="window.print()">طباعة</button></div>
     </div>
-    <div class="total" id="wTotal"></div>
-    <div class="scroll"><table><thead><tr><th>التاريخ</th><th>الصنف</th><th>سليم</th><th>هالك</th><th>النسبة</th><th>السبب</th><th class="noprint"></th></tr></thead><tbody id="wBody"></tbody></table></div>
+    <div class="kpis" id="wTotal"></div>
+    <div class="card"><div class="sec-head"><h3>تفاصيل الهالك</h3></div><div class="scroll"><table><thead><tr><th>التاريخ</th><th>الصنف</th><th>سليم</th><th>هالك</th><th>النسبة</th><th>السبب</th><th class="noprint"></th></tr></thead><tbody id="wBody"></tbody></table></div></div>
   </div>
   <div id="prodRep" style="display:none"></div>
 </div>
@@ -243,6 +243,7 @@ function waste(orderId,rec){
   });
   const upd=()=>{const g=parseInt(document.getElementById("m-g").value)||0,q=parseInt(document.getElementById("m-q").value)||0;document.getElementById("m-pct").innerHTML=g+q>0?`الإجمالي <b>${g+q}</b> · نسبة الهالك <b>${(q/(g+q)*100).toFixed(1)}%</b>`:""};
   document.getElementById("m-g").oninput=upd;document.getElementById("m-q").oninput=upd;upd();
+  wireWasteGood(upd,!!rec);
 }
 function editW(id){waste(0,wRows.find(r=>r.id===id))}
 async function delW(id){
@@ -298,15 +299,17 @@ function setTab(){
   document.getElementById("repView").style.display=tab==="rep"?"block":"none";
   document.getElementById("prodRep").style.display=tab==="prod"?"block":"none";
   try{history.replaceState(null,"","#"+tab);window.markSub&&markSub()}catch(e){}
-  if(tab==="rep"){skel("wBody",4);report()}
+  if(tab==="rep"){if(wRows.length)drawReport();else skel("wBody",4);report()} // لو فيه بيانات معروضة نسيبها لحد ما التحديث يوصل (بدل ما نمسحها ونظهر خطأ لو النت ضعف)
   else if(tab==="prod"){repCtl?repCtl.refresh():repCtl=Reports.mount("prodRep","glaze")}
   else renderOrders();
 }
 
 async function report(){
   /* select("*") بس: الربط القديم مع glaze_orders(item) كان بيفشل بعد ما الأصناف اتنقلت لجدول بنود الطلبية */
-  const{data,error}=await db.from("glaze_waste").select("*").order("waste_date",{ascending:false});
-  if(error){fail("wBody",report);return}
+  let r=await db.from("glaze_waste").select("*").order("waste_date",{ascending:false});
+  if(r.error){await new Promise(x=>setTimeout(x,700));r=await db.from("glaze_waste").select("*").order("waste_date",{ascending:false})} // محاولة تانية تلقائيًا لو النت ضعف
+  const{data,error}=r;
+  if(error){console.warn("glaze_waste:",error.message);if(!wRows.length)document.getElementById("wTotal").innerHTML="";fail("wBody",report);return}
   wRows=(data||[]).map(w=>({id:w.id,d:String(w.waste_date||"").slice(0,10),item:w.item||"-",good:+w.good_qty||0,qty:+w.qty||0,reason:w.reason||""}));
   const s=document.getElementById("f-item"),cur=s.value;
   s.innerHTML='<option value="">الكل</option>'+[...new Set(wRows.map(r=>r.item))].map(v=>`<option>${esc(v)}</option>`).join("");
@@ -321,7 +324,7 @@ const pct=(w,g)=>g+w>0?(w/(g+w)*100).toFixed(1)+"%":"-";
 function drawReport(){
   {const f=document.getElementById("f-from").value,t=document.getElementById("f-to").value,i=document.getElementById("f-item").value,el=document.getElementById("wPd");if(el)el.textContent=(f||t?`من ${f?fmtD(f):"البداية"} إلى ${t?fmtD(t):"اليوم"}`:"كل الفترات")+(i?" · الصنف: "+i:"")}
   const rs=filtered(),W=rs.reduce((a,r)=>a+r.qty,0),G=rs.reduce((a,r)=>a+r.good,0);
-  document.getElementById("wTotal").innerHTML=`سليم: ${G} · هالك: ${W} · الإجمالي: ${G+W}<br>نسبة الهالك: ${pct(W,G)}`;
+  document.getElementById("wTotal").innerHTML=`<div class="kpi"><div class="kv">${nf(G)}</div><small>سليم</small></div><div class="kpi"><div class="kv" style="color:var(--bad)">${nf(W)}</div><small>هالك</small></div><div class="kpi"><div class="kv">${nf(G+W)}</div><small>الإجمالي</small></div><div class="kpi"><div class="kv" style="color:${W&&(W/(G+W))>=.1?"var(--bad)":"inherit"}">${pct(W,G)}</div><small>نسبة الهالك</small></div>`;
   document.getElementById("wBody").innerHTML=rs.length?rs.map(r=>`<tr><td>${r.d?fmtD(r.d):"-"}</td><td>${esc(r.item)}</td><td>${r.good}</td><td>${r.qty}</td><td>${pct(r.qty,r.good)}</td><td>${esc(r.reason)}</td><td class="noprint" style="white-space:nowrap"><button class="btn ghost sm" onclick="editW(${r.id})">تعديل</button> <button class="btn ghost sm" onclick="delW(${r.id})">حذف</button></td></tr>`).join(""):'<tr><td colspan="7" class="empty">مفيش هالك مسجل</td></tr>';
 }
 function exportCsv(){

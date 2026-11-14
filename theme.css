@@ -1116,3 +1116,34 @@ body:not(.sideopen) .side{will-change:auto}
 /* حركات متكررة للزينة */
 .topbar::after,.logoframe::after,.side .sh.on svg,.tile .ico,.tile:hover .ico,#wel .wsp i{animation:none!important}
 #splash img{animation:pop .7s cubic-bezier(.2,.9,.3,1.3) both!important}
+
+/* ===== تحسين الـ PDF / الطباعة: جداول مش مقطوعة ومش مكبوسة ===== */
+@media print{
+  /* الجدول ما يتقصّش ولا يبقى له سكرول على الورق */
+  .scroll,.rb,.rlg,.rwk{overflow:visible!important;max-width:none!important}
+  table{table-layout:auto!important;width:100%!important}
+  th,td{word-break:normal;overflow-wrap:anywhere;vertical-align:top;text-align:start}
+  th{white-space:nowrap}
+  /* الكارت اللي جواه جدول طويل ينفع ينقسم على صفحات (بدل ما يسيب فراغ كبير أو يتقص) */
+  .card:has(table){break-inside:auto!important;page-break-inside:auto!important}
+  tr,.line,.ins{break-inside:avoid;page-break-inside:avoid}
+  thead{display:table-header-group!important}
+  /* خلايا التاريخ والقسم والحالة في سطر واحد، واسم الطلبية ياخد مساحة أكبر */
+  .badge,.tag{white-space:nowrap;display:inline-block}
+  .ok-list td:nth-child(n+2):not(:nth-child(5)):not(:nth-child(8)){white-space:nowrap}
+  .ok-list td:first-child,.ok-list th:first-child{width:34%}
+  .ok-list td:last-child{font-size:8.5pt}
+  td .nums{font-size:8.5pt!important;line-height:1.5}
+  .share{display:flex;align-items:center;gap:6px}
+  .share .bar{min-width:40px}
+  .ps-note,.print-sign{break-inside:avoid}
+}
+/* الشاشة (موبايل): اسم الطلبية ما يتكسرش كلمة كلمة داخل جدول الطلبيات */
+.ok-list td:first-child,.ok-list th:first-child{min-width:190px}
+
+/* تقرير هالك الجليز: نفس شكل باقي التقارير في الطباعة */
+@media print{
+  #repView .kpis{display:grid!important;grid-template-columns:repeat(4,1fr)!important}
+  #repView .card:has(table){break-inside:auto!important}
+  #repView th:nth-child(n+3):nth-child(-n+5),#repView td:nth-child(n+3):nth-child(-n+5){text-align:center;white-space:nowrap}
+}
