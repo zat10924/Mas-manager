@@ -540,10 +540,10 @@ function mount(rootId,key){
 
 /* ---------- تقرير الطلبيات (كل الأقسام) ---------- */
 const ORD_SECS=["glaze","deco","spray"];
-const ORD_ST=[["open","مفتوحة"],["late","متأخرة"],["stalled","راكدة"],["pp","اتأجلت"],["done","مكتملة"],["dlv","تم التسليم"],["all","الكل"]];
+const ORD_ST=[["open","مفتوحة"],["late","متأخرة"],["stalled","راكدة"],["pp","اتأجلت"],["done","مكتملة"],["dlv","تم التسليم"],["part","تسليم جزئي"],["all","الكل"]];
 
 /* ---------- الطلبية كيان واحد: دمج أصناف نفس الطلبية في صف واحد ---------- */
-const GT={t:0,m:new Map(),x:new Map()};
+const GT={t:0,m:new Map(),x:new Map(),d:new Map()};
 async function groupTitles(force){
   if(!force&&Date.now()-GT.t<30000)return GT.m;
   try{let r;
@@ -551,6 +551,9 @@ async function groupTitles(force){
     catch(e){try{r=await all("order_groups","id,title,order_no,customer_phone")}catch(e2){r=await all("order_groups","id,title")}}
     GT.m=new Map(r.map(x=>[x.id,(x.title||"").trim()]));
     GT.x=new Map(r.map(x=>[x.id,{no:x.order_no||"",ph:(x.customer_phone||"").trim(),dv:x.delivered_at||null,dn:(x.delivery_note||"").trim()}]));
+    try{const dr=await all("order_deliveries","id,group_id,delivered_on,qty_done,qty_short,is_final,note,created_at");
+      const M=new Map();dr.sort((a,b)=>String(a.delivered_on).localeCompare(String(b.delivered_on))||String(a.created_at).localeCompare(String(b.created_at)));
+      dr.forEach(d=>{(M.get(d.group_id)||M.set(d.group_id,[]).get(d.group_id)).push({d:d.delivered_on,q:d.qty_done,s:d.qty_short,f:!!d.is_final,n:(d.note||"").trim()})});GT.d=M}catch(e){GT.d=new Map()}
     GT.t=Date.now()}catch(e){}
   return GT.m;
 }
@@ -567,7 +570,7 @@ function mergeGroups(rows,titles){
     const L=x.list,r0=L[0],open=L.filter(r=>r.status==="open"),dues=L.map(r=>r.due).filter(Boolean).sort(),dds=L.map(r=>r.dd).filter(v=>v!=null);
     const req=L.reduce((a,r)=>a+r.req,0),done=L.reduce((a,r)=>a+r.done,0),rem=L.reduce((a,r)=>a+r.rem,0),title=titles&&titles.get(r0.gid)||"";
     const names=[...new Set(L.map(r=>r.item))],X=GT.x.get(r0.gid)||{},dv=!!X.dv;
-    return{k:r0.k,delivered:dv,dvDate:X.dv||null,dvNote:X.dn||"",sec:r0.sec,color:r0.color,gid:r0.gid,id:"g"+r0.gid,
+    return{k:r0.k,delivered:dv,dvList:GT.d.get(r0.gid)||[],dvDate:X.dv||null,dvNote:X.dn||"",sec:r0.sec,color:r0.color,gid:r0.gid,id:"g"+r0.gid,
       item:title||names.join("، "),sub:title?names.join("، "):"",
       date:L.map(r=>r.date).filter(Boolean).sort()[0]||"",due:dues[0]||null,pc:Math.max(...L.map(r=>r.pc||0)),
       status:dv?"done":open.length?"open":r0.status,req,done,over:L.reduce((a,r)=>a+(r.over||0),0),rem,
@@ -623,6 +626,7 @@ function ordersReport(rootId){
       case"pp":return r.pc>0;
       case"done":return r.status!=="open";
       case"dlv":return !!r.delivered;
+      case"part":return !r.delivered&&!!(r.dvList&&r.dvList.length);
     }
     return true;
   }
@@ -632,7 +636,10 @@ function ordersReport(rootId){
     const d=r.dd;
     return `${fmtD(r.due)}<div>${d<0?`<span class="tag late">متأخرة ${-d} يوم</span>`:d===0?'<span class="tag late">النهارده</span>':`<span class="tag">باقي ${d} يوم</span>`}</div>`;
   };
-  const stateTag=r=>r.delivered?`<span class="tag ok">تم تسليم الطلبية</span>${r.secOpen?`<div><span class="tag">لسه مفتوحة في الأقسام</span></div>`:""}${r.dvDate?`<div class="nums" style="font-size:.78rem">${fmtD(r.dvDate)}</div>`:""}${r.rem>0?`<div><span class="tag late">بعجز ${nf(r.rem)}</span></div>`:""}${r.dvNote?`<div class="nums" style="font-size:.78rem">${esc(r.dvNote)}</div>`:""}`:r.status!=="open"?'<span class="tag ok">مكتملة</span>':(r.late?'<span class="tag late">متأخرة</span> ':"")+(r.stalled?'<span class="tag late">راكدة</span> ':"")+(r.pc?`<span class="tag">اتأجلت ${r.pc}</span>`:"")||'<span class="nums">شغّالة</span>';
+  const stateTag0=r=>r.delivered?`<span class="tag ok">تم تسليم الطلبية</span>${r.secOpen?`<div><span class="tag">لسه مفتوحة في الأقسام</span></div>`:""}${dvDates(r)}${r.rem>0?`<div><span class="tag late">بعجز ${nf(r.rem)}</span></div>`:""}${r.dvNote?`<div class="nums" style="font-size:.78rem">${esc(r.dvNote)}</div>`:""}`:r.status!=="open"?'<span class="tag ok">مكتملة</span>':(r.late?'<span class="tag late">متأخرة</span> ':"")+(r.stalled?'<span class="tag late">راكدة</span> ':"")+(r.pc?`<span class="tag">اتأجلت ${r.pc}</span>`:"")||'<span class="nums">شغّالة</span>';
+  const dvTimes=n=>n===1?"مرة واحدة":n===2?"مرتين":n<=10?n+" مرات":n+" مرة";
+  const dvDates=r=>r.dvList&&r.dvList.length?`<div class="nums" style="font-size:.78rem">على ${dvTimes(r.dvList.length)}: ${r.dvList.map(x=>fmtD(x.d)).join(" · ")}</div>`:(r.dvDate?`<div class="nums" style="font-size:.78rem">${fmtD(r.dvDate)}</div>`:"");
+  const stateTag=r=>{const b=stateTag0(r);return !r.delivered&&r.dvList&&r.dvList.length?b+`<div><span class="tag">تسليم جزئي · ${dvTimes(r.dvList.length)}</span></div>${dvDates(r)}`:b};
   const etaCell=r=>r.status!=="open"||!r.rem?"—":r.stalled?'<span class="tag late">راكدة</span>':r.eta!=null?"~ "+etaTxt(r.eta):'<span class="nums">لا إنتاج حديث</span>';
 
   function draw(){
@@ -675,7 +682,7 @@ function ordersReport(rootId){
   $(".ok-x").onclick=()=>{
     if(!st.last)return;
     csvDownload(`تقرير-الطلبيات-${today()}.csv`,["القسم","الطلبية","الصنف","اللون/الكود","تاريخ الطلبية","تاريخ التسليم","المطلوب","المنتج","المتبقي","الإنجاز %","الحالة","مرات التأجيل"],
-      st.last.list.flatMap(r=>r.items?r.items.map(i=>[r.sec,r.item,i.item,i.sub,r.date,r.due||"",i.req,i.done,i.rem,i.req?Math.min(100,Math.round(i.done/i.req*100)):0,r.delivered?(i.rem>0?"تم التسليم بعجز "+i.rem:"تم التسليم"):i.st!=="open"?"مكتملة":r.late?"متأخرة":r.stalled?"راكدة":"شغّالة",r.pc]):[[r.sec,"",r.item,r.sub,r.date,r.due||"",r.req,Math.min(r.done,r.req),r.rem,r.pct,r.status!=="open"?"مكتملة":r.late?"متأخرة":r.stalled?"راكدة":"شغّالة",r.pc]]));
+      st.last.list.flatMap(r=>r.items?r.items.map(i=>[r.sec,r.item,i.item,i.sub,r.date,r.due||"",i.req,i.done,i.rem,i.req?Math.min(100,Math.round(i.done/i.req*100)):0,r.delivered?(i.rem>0?"تم التسليم بعجز "+i.rem:"تم التسليم"):(r.dvList&&r.dvList.length&&i.st==="open")?"تسليم جزئي ("+r.dvList.length+")":i.st!=="open"?"مكتملة":r.late?"متأخرة":r.stalled?"راكدة":"شغّالة",r.pc]):[[r.sec,"",r.item,r.sub,r.date,r.due||"",r.req,Math.min(r.done,r.req),r.rem,r.pct,r.status!=="open"?"مكتملة":r.late?"متأخرة":r.stalled?"راكدة":"شغّالة",r.pc]]));
   };
   $(".ok-p").onclick=()=>{
     if(!st.last)return;const L=st.last;

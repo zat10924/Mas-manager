@@ -1045,3 +1045,59 @@ td .tag,th .tag,.scroll .tag{white-space:nowrap;display:inline-block;line-height
 .tile.soon{cursor:default;opacity:.78;border-style:dashed}
 .tile.soon:hover,.tile.soon:active{transform:none;border-color:var(--line);box-shadow:var(--sh)}
 .tile.soon .sum{color:var(--ink2);font-size:.82rem;font-weight:600}
+
+/* ===== قائمة الطلبيات المنسدلة ===== */
+.side .sg.dd .sub{display:none;margin:2px 26px 8px 0}
+.side .sg.dd.open .sub{display:flex;animation:nasIn .2s var(--ease) both}
+.side .sg.dd .ddt .chev{margin-inline-start:auto;width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+.side .sg.dd.open .ddt .chev{transform:rotate(180deg)}
+.side .sg.dd .ddt .chev *{animation:none!important}
+
+/* ===== شاشات التابلت والكمبيوتر: عرض أوسع وتوزيع مناسب ===== */
+@media(min-width:900px){.wrap{max-width:960px}}
+@media(min-width:1200px){.wrap{max-width:1120px}.kpis{grid-template-columns:repeat(4,1fr)}}
+@media(min-width:1500px){.wrap{max-width:1280px}}
+
+/* ===== إصلاح أعطال الأنيميشن ===== */
+/* 1) الكروت والجداول كانت بتومض وتتحرك من جديد مع كل تحديث أو كتابة في البحث: الأنيميشن بس عند فتح الصفحة */
+html.settled .card,html.settled .kpi,html.settled .seccard,html.settled tbody tr,html.settled .line,html.settled .bar i,html.settled .itemblk,html.settled .tile,html.settled .stabs button,html.settled .wrap>.pagehead{animation:none!important}
+/* 2) رفع الكارت عند المرور بالماوس كان بيعمل اهتزاز في الحواف */
+.card:hover{transform:none!important}
+/* 3) على اللمس: ما فيش hover يفضل عالق ويشغّل حركة */
+@media(hover:none){.side .sh:hover svg,.topbar .iconbtn.lbl:hover svg,.tile:hover .ico,.card:hover::after,.kpi:hover::after{animation:none!important}.tile:hover{transform:none!important}}
+/* 4) القائمة الجانبية: حركة هادية بدل ما كل عنصر يتحرك لوحده فوق انزلاق القائمة */
+.sideopen .side nav>*,.sideopen .side .side-foot>*{animation:nasIn .2s var(--ease) both!important;animation-delay:0s!important}
+.side{will-change:transform}
+body:not(.sideopen) .side{will-change:auto}
+
+/* ===== صفحة الدخول: تابلت وكمبيوتر ===== */
+.loginpage{align-items:safe center}
+.lbrand{display:none}
+@media(max-height:640px){.loginpage{align-items:start}}
+/* تابلت (عمودي) */
+@media(min-width:600px) and (max-width:899px){
+  .loginpage{padding:48px 24px}
+  .loginpage .login{max-width:500px;padding:40px 36px 28px}
+  .loginpage .login .logo{width:108px;height:108px;margin-top:-76px;border-radius:28px}
+  .loginpage .login h3{font-size:1.9rem}
+  .loginpage .login .sub{font-size:1.05rem}
+  .fld input{min-height:54px;font-size:1.05rem}
+  .loginpage .login #go{min-height:54px;font-size:1.1rem}
+}
+/* تابلت (أفقي) وكمبيوتر: لوحة تعريف جنب نموذج الدخول */
+@media(min-width:900px){
+  .loginpage{grid-template-columns:minmax(0,500px) minmax(380px,460px);justify-content:center;align-items:safe center;column-gap:clamp(40px,7vw,110px);padding:40px}
+  .lbrand{display:block;text-align:start;color:#fff;animation:rise .7s .1s both}
+  .lbrand img{display:block;width:clamp(104px,11vw,148px);height:auto;aspect-ratio:1;border-radius:30px;margin-bottom:22px;border:3px solid rgba(215,185,111,.7);box-shadow:0 0 0 6px rgba(215,185,111,.12),0 18px 44px rgba(0,0,0,.4)}
+  .lbrand h2{margin:0;font-size:clamp(2.4rem,4vw,3.4rem);font-weight:800;letter-spacing:.16em;color:#fff;line-height:1.1}
+  .lbrand .lb-sub{margin:6px 0 28px;font-size:1.3rem;font-weight:700;color:#E8D49B}
+  .lbrand ul{list-style:none;margin:0;padding:0;display:grid;gap:16px}
+  .lbrand li{display:flex;align-items:center;gap:12px;font-size:1.08rem;line-height:1.6;color:rgba(255,255,255,.92)}
+  .lbrand li svg{flex:none;width:28px;height:28px;padding:5px;border-radius:50%;background:rgba(215,185,111,.2);stroke:#E8D49B;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+  .loginpage .login{max-width:460px;margin:0;padding:38px 34px 26px}
+  .loginpage .login .logoframe{display:none}
+  .loginpage .login h3{font-size:1.9rem;margin-top:0}
+  .fld input{min-height:52px;font-size:1.05rem}
+  .loginpage .login #go{min-height:52px;font-size:1.1rem}
+}
+@media(prefers-reduced-motion:reduce){.lbrand{animation:none}}

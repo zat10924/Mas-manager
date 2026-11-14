@@ -17,6 +17,9 @@
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="theme.css">
 <style>.rpane[hidden]{display:none!important}#rtabs{margin:6px 0 12px}</style>
+<style>
+@media(min-width:1100px){#orders{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}#orders .card{margin-bottom:0}#orders>.empty,#orders>.card.empty{grid-column:1/-1}}
+</style>
 </head>
 <body>
 <div id="splash"><svg class="gears" viewBox="0 0 120 80" aria-hidden="true"><path class="g1" fill-rule="evenodd" fill="#D7B96F" d="M56.5,42.0 L63.4,44.7 L62.8,48.1 L55.4,48.3 L54.0,51.2 L58.6,57.0 L56.4,59.7 L49.9,56.1 L47.2,58.0 L48.4,65.3 L45.1,66.5 L41.3,60.2 L38.0,60.5 L35.3,67.4 L31.9,66.8 L31.7,59.4 L28.8,58.0 L23.0,62.6 L20.3,60.4 L23.9,53.9 L22.0,51.2 L14.7,52.4 L13.5,49.1 L19.8,45.3 L19.5,42.0 L12.6,39.3 L13.2,35.9 L20.6,35.7 L22.0,32.8 L17.4,27.0 L19.6,24.3 L26.1,27.9 L28.8,26.0 L27.6,18.7 L30.9,17.5 L34.7,23.8 L38.0,23.5 L40.7,16.6 L44.1,17.2 L44.3,24.6 L47.2,26.0 L53.0,21.4 L55.7,23.6 L52.1,30.1 L54.0,32.8 L61.3,31.6 L62.5,34.9 L56.2,38.7Z M45,42 a7,7 0 1,0 -14,0 a7,7 0 1,0 14,0Z"/><path class="g2" fill-rule="evenodd" fill="#E8D49B" d="M85.6,30.0 L90.2,32.7 L89.3,36.2 L83.9,36.2 L81.9,38.9 L83.2,44.1 L80.2,45.9 L76.3,42.2 L73.0,42.6 L70.3,47.2 L66.8,46.3 L66.8,40.9 L64.1,38.9 L58.9,40.2 L57.1,37.2 L60.8,33.3 L60.4,30.0 L55.8,27.3 L56.7,23.8 L62.1,23.8 L64.1,21.1 L62.8,15.9 L65.8,14.1 L69.7,17.8 L73.0,17.4 L75.7,12.8 L79.2,13.7 L79.2,19.1 L81.9,21.1 L87.1,19.8 L88.9,22.8 L85.2,26.7Z M78,30 a5,5 0 1,0 -10,0 a5,5 0 1,0 10,0Z"/><path class="g3" fill-rule="evenodd" fill="#B9984C" d="M95.2,52.5 L98.6,54.8 L97.7,57.6 L93.7,57.7 L91.8,59.7 L92.0,63.7 L89.3,64.8 L86.7,61.7 L83.9,61.5 L81.0,64.2 L78.4,62.8 L79.3,58.8 L77.7,56.5 L73.7,55.9 L73.2,53.0 L76.9,51.2 L77.7,48.5 L75.7,45.0 L77.7,42.8 L81.3,44.5 L83.9,43.5 L85.4,39.8 L88.4,40.0 L89.3,43.9 L91.8,45.3 L95.6,44.1 L97.3,46.6 L94.8,49.7Z M90,52.5 a4,4 0 1,0 -8,0 a4,4 0 1,0 8,0Z"/></svg><img src="icon.svg" alt=""><b>إدارة الأقسام</b><div class="ld"><i></i></div><small class="ldt">جاري التحميل…</small></div>
@@ -71,8 +74,8 @@ async function load(){
   if(dtab)(dr.data||[]).forEach(d=>{const m=M.get(d.group_id);if(m)m.dvs.push({id:d.id,d:d.delivered_on,q:d.qty_done,s:d.qty_short,f:!!d.is_final,n:(d.note||"").trim()})});
   const by=(a,k)=>{const m=new Map();(a||[]).forEach(x=>{if(!m.has(x[k]))m.set(x[k],[]);m.get(x[k]).push(x)});return m};
   const glL=by(gl.data,"order_id"),dlL=by(dl.data,"order_id");
-  go.data.forEach(o=>{const m=M.get(o.group_id);if(!m)return;m.secs.glaze.push(mkItem(o.item,o.status,o.order_date,o.due_date,(glL.get(o.id)||[]).map(l=>({l:l.color,req:+l.total_required||0,done:+l.produced||0})),[o.id]))});
-  dO.data.forEach(o=>{const m=M.get(o.group_id);if(!m)return;m.secs.deco.push(mkItem(o.item,o.status,o.order_date,o.due_date,(dlL.get(o.id)||[]).map(l=>({l:l.code,req:+l.total_required||0,done:+l.produced||0})),[o.id]))});
+  go.data.forEach(o=>{const m=M.get(o.group_id);if(!m)return;m.secs.glaze.push(mkItem(o.item,o.status,o.order_date,o.due_date,(glL.get(o.id)||[]).map(l=>({id:l.id,l:l.color,req:+l.total_required||0,done:+l.produced||0})),[o.id]))});
+  dO.data.forEach(o=>{const m=M.get(o.group_id);if(!m)return;m.secs.deco.push(mkItem(o.item,o.status,o.order_date,o.due_date,(dlL.get(o.id)||[]).map(l=>({id:l.id,l:l.code,req:+l.total_required||0,done:+l.produced||0})),[o.id]))});
   const sm=new Map(so.data.map(x=>[x.id,x])),tmp=new Map();
   (sp.data||[]).forEach(r=>{const x=sm.get(r.id);if(!x||!M.has(x.group_id))return;const k=x.group_id+"|"+r.item;let t=tmp.get(k);if(!t){t={g:x.group_id,item:r.item,st:"done",date:x.order_date,due:x.due_date,lines:[],ids:[]};tmp.set(k,t)}if(r.status==="open")t.st="open";t.lines.push({l:r.color,sc:(x.spray_color||"").trim(),req:+r.qty_required||0,done:+r.produced||0});t.ids.push(r.id)});
   tmp.forEach(t=>M.get(t.g).secs.spray.push(mkItem(t.item,t.st,t.date,t.due,t.lines,t.ids)));
@@ -111,7 +114,7 @@ function card(o){
     <div class="bar"><i style="width:${o.pct}%"></i></div>
     ${dvHtml(o)}
     ${ks.length?ks.map(k=>`<div class="line"><div class="r"><span class="badge" style="--c:${SECK[k].c}">${SECK[k].n}</span><a class="tag" href="${SECK[k].page}">فتح القسم</a></div>${o.secs[k].map(itemHtml).join("")}</div>`).join(""):'<div class="empty">لسه ما اتوزعتش على قسم</div>'}
-    <div class="row">${o.deliv?`${o.all.some(i=>i.status==="open")?`<button class="btn sm" onclick="closeSecs('${o.id}')">قفل في الأقسام</button>`:""}<button class="btn sm" onclick="undoDeliver('${o.id}')">${o.dvs.length?"إلغاء آخر تسليم":"إلغاء التسليم"}</button>`:`<button class="btn sm" onclick="openForm('${o.id}')">+ توزيع صنف</button>${dlv&&ks.length?`<button class="btn sm" onclick="deliverG('${o.id}')">${o.dvs.length?"تسليم جديد":"تسليم الطلبية"}</button>`:""}${o.dvs.length?`<button class="btn ghost sm" onclick="undoDeliver('${o.id}')">إلغاء آخر تسليم</button>`:""}`}<button class="btn ghost sm" onclick="editG('${o.id}')">تعديل البيانات</button><button class="btn ghost sm" onclick="delG('${o.id}')">حذف الطلبية كلها</button></div></div>`;
+    <div class="row">${o.deliv?`${o.all.some(i=>i.status==="open")?`<button class="btn sm" onclick="closeSecs('${o.id}')">قفل في الأقسام</button>`:""}<button class="btn sm" onclick="undoDeliver('${o.id}')">${o.dvs.length?"إلغاء آخر تسليم":"إلغاء التسليم"}</button>`:`<button class="btn sm" onclick="openForm('${o.id}')">+ توزيع صنف</button>${ks.length?`<button class="btn sm" onclick="increaseG('${o.id}')">زيادة الطلبية</button><button class="btn ghost sm" onclick="editItems('${o.id}')">تعديل الأصناف</button>`:""}${dlv&&ks.length?`<button class="btn sm" onclick="deliverG('${o.id}')">${o.dvs.length?"تسليم جديد":"تسليم الطلبية"}</button>`:""}${o.dvs.length?`<button class="btn ghost sm" onclick="undoDeliver('${o.id}')">إلغاء آخر تسليم</button>`:""}`}<button class="btn ghost sm" onclick="editG('${o.id}')">تعديل البيانات</button><button class="btn ghost sm" onclick="delG('${o.id}')">حذف الطلبية كلها</button></div></div>`;
 }
 function draw(){
   const box=document.getElementById("orders");
@@ -130,7 +133,7 @@ function openForm(gid){
   const blk=n=>{const k=curK();return `<div class="itemblk" data-k="${k}"><div class="ih"><b>الصنف ${n}</b><button type="button" class="rmi" style="display:${n>1?"block":"none"}">${ib("trash","حذف الصنف")}</button></div><input class="it" placeholder="اسم الصنف"><label class="ll">${llt(k)}</label><div class="rows">${crow(k)}</div><button class="btn ghost sm addc" type="button">+ سطر</button></div>`};
   const XF=`<label>موبايل العميل (اختياري)</label><input id="m-ph" type="tel" inputmode="tel" maxlength="20" dir="ltr"><label>ملاحظات (اختياري)</label><input id="m-nt" maxlength="300">`;
   const SEC=`<label>يتوزع على قسم</label><select id="m-sec">${Object.keys(SECK).map(k=>`<option value="${k}">${SECK[k].n}</option>`).join("")}</select>`;
-  const top=g?`<div class="hint" style="margin:0 0 8px">التوزيع على الطلبية: <b>${esc(g.title||"بدون اسم")}</b></div>${SEC}`:`<label>اسم الطلبية / العميل</label><input id="m-gt" placeholder="مثال: طلبية أحمد" maxlength="80" list="m-cl" autocomplete="off"><datalist id="m-cl">${CUS.map(c=>`<option value="${esc(c.name)}">`).join("")}</datalist>${ext?XF:""}<label>تاريخ الطلبية</label><input type="date" id="m-od" value="${today()}"><label>تاريخ التسليم (اختياري)</label><input type="date" id="m-due">${SEC}`;
+  const top=g?`<div class="hint" style="margin:0 0 8px">التوزيع على الطلبية: <b>${esc(g.title||"بدون اسم")}</b></div>${SEC}`:`<label>اسم الطلبية / العميل</label><input id="m-gt" placeholder="مثال: طلبية أحمد" maxlength="80" autocomplete="off">${ext?XF:""}<label>تاريخ الطلبية</label><input type="date" id="m-od" value="${today()}"><label>تاريخ التسليم (اختياري)</label><input type="date" id="m-due">${SEC}`;
   openModal(g?"توزيع صنف على الأقسام":"طلبية جديدة",`${top}<div id="m-items">${blk(1)}</div><button class="btn sm" id="m-addi" type="button" style="width:100%;margin-top:4px">+ إضافة صنف</button>`,async()=>{
     const blocks=[...document.querySelectorAll("#m-items .itemblk")].map(b=>({k:document.getElementById("m-sec").value,item:b.querySelector(".it").value.trim(),rs:[...b.querySelectorAll(".nr")].map(r=>({v:r.querySelector(".c").value.trim(),sc:((r.querySelector(".msc")||{}).value||"").trim(),q:parseInt(r.querySelector(".q").value)})).filter(r=>r.v||r.q||r.sc)})).filter(b=>b.item||b.rs.length);
     if(!blocks.length){toast("اكتب الصنف");return false}
@@ -232,6 +235,125 @@ async function undoDeliver(id){
     await syncSec(g,false);
   }
   await load();toast("تم الإلغاء");
+}
+
+/* ===== تعديل أصناف الطلبية + زيادة الطلبية ===== */
+const LT={glaze:{ord:"glaze_orders",line:"glaze_order_lines",inc:"glaze_order_increases",col:"color"},deco:{ord:"deco_orders",line:"deco_lines",inc:"deco_increases",col:"code"}};
+async function reSync(gid){
+  const g=G.find(x=>x.id===gid);if(!g||g.deliv)return;
+  let ch=false;
+  try{for(const k of Object.keys(g.secs))for(const it of g.secs[k]){
+    if(k==="spray"){for(let n=0;n<it.ids.length;n++){await db.from("spray_orders").update({status:it.lines[n].done>=it.lines[n].req?"done":"open"}).eq("id",it.ids[n]);ch=true}}
+    else{const want=it.lines.length>0&&it.lines.every(l=>l.done>=l.req)?"done":"open";
+      if(want!==it.status){await db.from(LT[k].ord).update({status:want}).eq("id",it.ids[0]);ch=true}}
+  }}catch(e){}
+  if(ch)await load();
+}
+async function editItems(id){
+  const g=G.find(x=>x.id===id);if(!g)return;
+  const base=new Map();
+  for(const k of ["glaze","deco"]){
+    const ids=g.secs[k].flatMap(i=>i.ids);if(!ids.length)continue;
+    const r=await db.from(LT[k].line).select("id,qty_required").in("order_id",ids);
+    if(r.error){toast("خطأ: "+r.error.message);return}
+    (r.data||[]).forEach(x=>base.set(k+x.id,+x.qty_required||0));
+  }
+  const rowH=(k,it,n)=>{
+    const l=it.lines[n],rid=k==="spray"?it.ids[n]:l.id;
+    const b=k==="spray"?l.req:(base.has(k+l.id)?base.get(k+l.id):l.req),inc=k==="spray"?0:Math.max(l.req-b,0);
+    const canDel=l.done===0&&it.lines.length>1;
+    return `<div class="nr" data-id="${rid}" data-prod="${l.done}" data-inc="${inc}" style="margin-bottom:10px;padding-bottom:8px;border-bottom:1px dashed var(--line,#ddd)"><div class="two"><input class="c" data-kind="${k==="deco"?"code":"color"}" value="${esc(l.l)}" placeholder="${k==="deco"?"الكود":"لون الصنف"}">${k==="spray"?`<input class="msc" data-kind="color" maxlength="60" value="${esc(l.sc||"")}" placeholder="لون الرش المطلوب">`:""}</div><div class="two"><input class="q" type="number" min="1" inputmode="numeric" value="${b}"><span class="nums">تم ${nf(l.done)}${inc?` · زيادات +${nf(inc)}`:""}</span></div>${canDel?'<button type="button" class="btn ghost sm rml">حذف السطر</button>':""}</div>`;
+  };
+  const blocks=Object.keys(SECK).flatMap(k=>g.secs[k].map((it,ix)=>`<div class="itemblk" data-k="${k}" data-ix="${ix}"><div class="ih"><b>${SECK[k].n}</b>${it.lines.every(l=>l.done===0)?'<button type="button" class="btn ghost sm rmi2">حذف الصنف</button>':""}</div><input class="it" maxlength="80" value="${esc(it.item)}"><div class="rows">${it.lines.map((l,n)=>rowH(k,it,n)).join("")}</div></div>`)).join("");
+  openModal("تعديل أصناف الطلبية",`<div id="m-eb">${blocks}</div><div class="hint">عدّل الاسم أو اللون أو الكمية مباشرة. الكمية لازم تكون أكبر من أو تساوي اللي اتنتج. الحذف متاح للي لسه ما اتنتجش منه، وبيتنفذ عند الحفظ.</div>`,async()=>{
+    const ops=[];
+    for(const b of document.querySelectorAll("#m-eb .itemblk")){
+      const k=b.dataset.k,it=g.secs[k][+b.dataset.ix],name=b.querySelector(".it").value.trim();
+      if(b.dataset.del){ops.push({t:"delItem",k,it});continue}
+      if(!name){toast("اكتب اسم الصنف");return false}
+      const live=[],gone=[];
+      for(const r of b.querySelectorAll(".nr")){
+        const row={id:+r.dataset.id,v:r.querySelector(".c").value.trim(),sc:((r.querySelector(".msc")||{}).value||"").trim(),q:parseInt(r.querySelector(".q").value),prod:+r.dataset.prod,inc:+r.dataset.inc};
+        if(r.dataset.del){gone.push(row);continue}
+        if(!row.v||!(row.q>0)){toast("كمّل البيانات للصنف: "+name);return false}
+        if(k==="spray"&&!row.sc){toast("اكتب لون الرش للصنف: "+name);return false}
+        if(row.q+row.inc<row.prod){toast("الكمية أقل من اللي اتنتج ("+nf(row.prod)+") في: "+row.v);return false}
+        live.push(row);
+      }
+      if(!live.length){toast("لازم يفضل سطر واحد على الأقل في الصنف: "+it.item);return false}
+      ops.push({t:"item",k,it,name,live,gone});
+    }
+    try{
+      for(const o of ops){
+        const k=o.k,it=o.it;
+        if(o.t==="delItem"){
+          if(k==="spray"){for(const rid of it.ids){const r=await db.from("spray_orders").delete().eq("id",rid);if(r.error)throw r.error}}
+          else{const r=await db.from(LT[k].ord).delete().eq("id",it.ids[0]);if(r.error)throw r.error}
+          continue;
+        }
+        if(k==="spray"){
+          for(const r of o.live){
+            const n=it.ids.indexOf(r.id),l=it.lines[n];
+            if(o.name===it.item&&r.v===l.l&&r.q===l.req&&r.sc===(l.sc||""))continue;
+            const up={item:o.name,color:r.v,qty_required:r.q,spray_color:r.sc};
+            let e=(await db.from("spray_orders").update(up).eq("id",r.id)).error;
+            if(e&&/spray_color/.test(e.message||"")){delete up.spray_color;e=(await db.from("spray_orders").update(up).eq("id",r.id)).error}
+            if(e)throw e;
+          }
+          for(const r of o.gone){const e=(await db.from("spray_orders").delete().eq("id",r.id)).error;if(e)throw e}
+        }else{
+          if(o.name!==it.item){const e=(await db.from(LT[k].ord).update({item:o.name}).eq("id",it.ids[0])).error;if(e)throw e}
+          for(const r of o.live){
+            const l=it.lines.find(x=>x.id===r.id),b=base.has(k+r.id)?base.get(k+r.id):l.req;
+            if(r.v===l.l&&r.q===b)continue;
+            const e=(await db.from(LT[k].line).update({[LT[k].col]:r.v,qty_required:r.q}).eq("id",r.id)).error;if(e)throw e;
+          }
+          for(const r of o.gone){const e=(await db.from(LT[k].line).delete().eq("id",r.id)).error;if(e)throw e}
+        }
+      }
+    }catch(e){toast("خطأ: "+(e.message||e));await load();return false}
+    await load();await reSync(id);toast("تم تعديل الأصناف");
+  });
+  document.getElementById("m-eb").addEventListener("click",e=>{
+    const t=e.target.closest("button");if(!t)return;
+    const row=t.classList.contains("rml")?t.closest(".nr"):t.classList.contains("rmi2")?t.closest(".itemblk"):null;if(!row)return;
+    const on=!row.dataset.del;
+    if(on)row.dataset.del="1";else delete row.dataset.del;
+    row.style.opacity=on?".4":"";
+    t.textContent=on?"تراجع":(t.classList.contains("rml")?"حذف السطر":"حذف الصنف");
+  });
+}
+function increaseG(id){
+  const g=G.find(x=>x.id===id);if(!g)return;
+  const items=Object.keys(SECK).flatMap(k=>g.secs[k].map(it=>({k,it})));
+  if(!items.length){openForm(id);return}
+  openModal("زيادة الطلبية",`<label>الصنف</label><select id="m-iz">${items.map((x,n)=>`<option value="${n}">${SECK[x.k].n} · ${esc(x.it.item)}</option>`).join("")}</select><label>${"اللون / الكود"}</label><select id="m-lz"></select><div id="m-nw" style="display:none"><label id="m-nwl"></label><input id="m-nwc" maxlength="60"><div id="m-nws"><label>لون الرش المطلوب</label><input id="m-nsc" data-kind="color" maxlength="60"></div></div><label>الكمية المضافة</label><input type="number" id="m-zq" min="1" inputmode="numeric"><div class="hint">لو العميل طلب صنف جديد خالص، استخدم «+ توزيع صنف».</div>`,async()=>{
+    const x=items[+document.getElementById("m-iz").value],q=parseInt(document.getElementById("m-zq").value),v=document.getElementById("m-lz").value;
+    if(!(q>0)){toast("اكتب كمية صحيحة");return false}
+    let r;
+    if(v==="new"){
+      const c=document.getElementById("m-nwc").value.trim();if(!c){toast("اكتب "+(x.k==="deco"?"الكود":"اللون"));return false}
+      if(x.k==="spray"){
+        const sc=document.getElementById("m-nsc").value.trim();if(!sc){toast("اكتب لون الرش");return false}
+        const row={item:x.it.item,color:c,qty_required:q,order_date:x.it.date||today(),due_date:x.it.due||null,group_id:id,spray_color:sc};
+        r=await db.from("spray_orders").insert(row);
+        if(r.error&&/spray_color/.test(r.error.message||"")){delete row.spray_color;r=await db.from("spray_orders").insert(row)}
+      }else r=await db.from(LT[x.k].line).insert({order_id:x.it.ids[0],[LT[x.k].col]:c,qty_required:q});
+    }else{
+      const n=+v,l=x.it.lines[n];
+      r=x.k==="spray"?await db.from("spray_orders").update({qty_required:l.req+q}).eq("id",x.it.ids[n]):await db.from(LT[x.k].inc).insert({line_id:l.id,qty:q});
+    }
+    if(r.error){toast("خطأ: "+r.error.message);return false}
+    await load();await reSync(id);toast("تمت الزيادة");
+  },"تأكيد الزيادة");
+  const iz=document.getElementById("m-iz"),lz=document.getElementById("m-lz"),nw=document.getElementById("m-nw");
+  const fillLines=()=>{const x=items[+iz.value];
+    lz.innerHTML=x.it.lines.map((l,n)=>`<option value="${n}">${esc(l.l)}${l.sc?" ← رش "+esc(l.sc):""} (مطلوب ${nf(l.req)})</option>`).join("")+`<option value="new">+ ${x.k==="deco"?"كود":"لون"} جديد</option>`;
+    showNew()};
+  const showNew=()=>{const x=items[+iz.value],on=lz.value==="new";nw.style.display=on?"block":"none";
+    document.getElementById("m-nwl").textContent=x.k==="deco"?"الكود الجديد":"اللون الجديد";
+    document.getElementById("m-nws").style.display=x.k==="spray"?"block":"none"};
+  iz.onchange=fillLines;lz.onchange=showNew;fillLines();
 }
 function editG(id){
   const g=G.find(x=>x.id===id);if(!g)return;

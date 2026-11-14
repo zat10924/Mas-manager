@@ -245,12 +245,13 @@ body.sideopen{overflow:hidden}
 .pagehead~h1{display:none}
 
 /* الشاشات الكبيرة: القائمة ثابتة */
-@media(min-width:900px){
+@media(min-width:1200px){
   .side{transform:none;visibility:visible;box-shadow:none}
   .scrim{display:none}
-  body.hasside{padding-inline-start:290px}
+  body.hasside{padding-inline-start:290px;transition:padding-inline-start .28s cubic-bezier(.2,.8,.2,1)}
   body.sideopen{overflow:auto}
-  .topbar #mn{display:none}
+  body.navhide.hasside{padding-inline-start:0}
+  body.navhide .side{transform:translateX(105%);visibility:hidden}
 }
 
 /* الطباعة */

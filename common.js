@@ -241,6 +241,11 @@ function renderNav(active){
   const h=document.createElement("header");h.className="topbar";
   h.innerHTML=`<button class="iconbtn lbl" id="mn" aria-label="القائمة">${MENU}<span>القائمة</span></button><span class="brand"><img src="icon.svg" alt="MAS"><span class="bt"><b>MAS</b><small>الماس للخزف والصيني</small></span></span><span class="sp"></span><button class="iconbtn lbl" id="rf" aria-label="تحديث">${ico("refresh")}<span>تحديث</span></button><span class="tbw"><button ${avAttr(ME.avatar,"avatar")} id="av" aria-label="حسابي" aria-haspopup="true">${avText(ME.avatar,initialOf())}</button><small>حسابي</small></span>`;
   const sg=s=>`<div class="sg" style="--c:${s[3]}"><a class="sh ${s[0]===active?"on":""}" href="${s[0]}">${ico(s[2])}<span>${s[1]}</span></a></div>`;
+  const ddOrders=()=>{
+    const on=active===ORDERS[0];
+    const links=SUBS["orders.html"].map(x=>`<a href="orders.html#${x[1]}" data-h="${x[1]}">${x[0]}</a>`).join("")+'<a href="reports.html#orders">تقرير الطلبيات</a>';
+    return `<div class="sg dd${on?" cur open":""}" style="--c:${ORDERS[3]}"><button type="button" class="sh${on?" on":""} ddt" aria-expanded="${on}">${ico(ORDERS[2])}<span>${ORDERS[1]}</span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><div class="sub">${links}</div></div>`;
+  };
   const NAVG=(()=>{try{return JSON.parse(localStorage.getItem("navg")||"{}")}catch(e){return{}}})();
   const grp=(t,a)=>{
     if(!a.length)return"";
@@ -261,9 +266,16 @@ function renderNav(active){
   const scrim=document.createElement("div");scrim.className="scrim";scrim.id="scrim";
   document.body.prepend(h);document.body.appendChild(side);document.body.appendChild(scrim);
   const open=v=>{document.body.classList.toggle("sideopen",v);const m=h.querySelector("#mn");m&&m.setAttribute("aria-expanded",v?"true":"false")};
-  h.querySelector("#mn").setAttribute("aria-expanded","false");h.querySelector("#mn").setAttribute("aria-controls","side");
-  h.querySelector("#mn").onclick=()=>open(true);scrim.onclick=()=>open(false);
+  const mnB=h.querySelector("#mn"),wide=()=>matchMedia("(min-width:1200px)").matches;
+  try{if(localStorage.getItem("navhide")==="1")document.body.classList.add("navhide")}catch(e){}
+  const syncMn=()=>mnB.setAttribute("aria-expanded",String(wide()?!document.body.classList.contains("navhide"):document.body.classList.contains("sideopen")));
+  mnB.setAttribute("aria-controls","side");syncMn();
+  /* الكمبيوتر: القائمة بتظهر وتختفي بالضغط على زر القائمة (ومحفوظة). التابلت والموبايل: بتنزلق فوق الصفحة وتقفل لوحدها */
+  mnB.onclick=()=>{if(wide()){const v=document.body.classList.toggle("navhide");try{localStorage.setItem("navhide",v?"1":"0")}catch(e){}syncMn()}else open(true)};
+  scrim.onclick=()=>open(false);
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&document.body.classList.contains("sideopen"))open(false)});
+  side.querySelectorAll(".ddt").forEach(b=>b.onclick=()=>{const g=b.parentElement,on=g.classList.toggle("open");b.setAttribute("aria-expanded",String(on))});
+  side.querySelectorAll(".sg.dd .sub a").forEach(a=>a.addEventListener("click",()=>setTimeout(()=>open(false),60)));
   side.querySelectorAll(".sgt").forEach(b=>b.onclick=()=>{
     const g=b.parentElement,shut=g.classList.toggle("shut");b.setAttribute("aria-expanded",String(!shut));
     NAVG[g.dataset.g]=!shut;try{localStorage.setItem("navg",JSON.stringify(NAVG))}catch(e){}
@@ -305,6 +317,7 @@ function renderNav(active){
   window.addEventListener("hashchange",()=>apply(false));apply(true);
   if(_today&&_today!==new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10))setTimeout(()=>toast("تاريخ تليفونك مختلف عن السيرفر، البرنامج هيستخدم تاريخ السيرفر","warn"),1200);
   applyPerms();hideSplash();updateBadge();
+  setTimeout(()=>document.documentElement.classList.add("settled"),1600);
 }
 // ===== طباعة / PDF احترافي: ترويسة بالشعار واسم الجهة + ترقيم صفحات + تذييل =====
 const _cssStr=t=>String(t).replace(/\\/g,"\\\\").replace(/"/g,'\\"').replace(/\n/g," ");
@@ -874,9 +887,9 @@ db.auth.onAuthStateChange(ev=>{
    ===================================================================== */
 
 /* ===== قوائم منسدلة (سهم ▾) لكل خانات الاختيار: صنف / لون / كود / عامل / سبب ===== */
-const HIST_SEL="#m-r,#m-pr,#m-n";
+const HIST_SEL="#m-r,#m-pr,#m-n,#m-nt,#m-dn";
 const CBX={p:null,inp:null,act:-1};
-const cbKind=el=>el.id==="m-w"?"worker":el.matches(HIST_SEL)?"hist:"+el.id:kindOf(el);
+const cbKind=el=>el.id==="m-w"?"worker":(el.id==="m-gt"||el.id==="m-rn")?"cust":el.id==="m-ph"?"cphone":el.matches(HIST_SEL)?"hist:"+el.id:kindOf(el);
 function cbHist(k){try{return JSON.parse(localStorage.getItem("hist_"+k.slice(5))||"[]")}catch(e){return[]}}
 function saveHist(root){
   try{root.querySelectorAll("[data-cb^='hist:']").forEach(el=>{
@@ -888,6 +901,8 @@ function saveHist(root){
 function cbOpts(inp){
   const k=inp.dataset.cb;
   if(k==="worker")return wkSel().map(n=>[n,""]);
+  if(k==="cust")return(typeof CUS!=="undefined"?CUS:[]).map(c=>[c.name,c.phone||""]);
+  if(k==="cphone")return(typeof CUS!=="undefined"?CUS:[]).filter(c=>c.phone).map(c=>[c.phone,c.name]);
   if(k.startsWith("hist:"))return cbHist(k).map(n=>[n,""]);
   const out=[],seen=new Set();
   ((CAT&&CAT[k])||[]).forEach(n=>{seen.add(n);out.push([n,(CATM[k].get(n)||{}).code||""])});
@@ -994,7 +1009,7 @@ function enhanceCombo(inp){
 }
 function enhanceAll(root){
   if(!root||!root.querySelectorAll)return;
-  root.querySelectorAll(NAME_SEL+",#m-w,"+HIST_SEL).forEach(enhanceCombo);
+  root.querySelectorAll(NAME_SEL+",#m-w,#m-gt,#m-rn,#m-ph,"+HIST_SEL).forEach(enhanceCombo);
 }
 addEventListener("scroll",e=>{if(CBX.p&&!CBX.p.hidden&&!CBX.p.contains(e.target))cbPlace()},true);
 addEventListener("resize",cbPlace);
@@ -1005,7 +1020,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   new MutationObserver(ms=>{
     for(const m of ms)for(const n of m.addedNodes){
       if(n.nodeType!==1)continue;
-      if(n.matches&&n.matches(NAME_SEL+",#m-w,"+HIST_SEL))enhanceCombo(n);
+      if(n.matches&&n.matches(NAME_SEL+",#m-w,#m-gt,#m-rn,#m-ph,"+HIST_SEL))enhanceCombo(n);
       else if(n.querySelector)enhanceAll(n);
     }
   }).observe(document.body,{childList:true,subtree:true});
