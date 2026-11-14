@@ -1,258 +1,144 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="utf-8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>تحميل برنامج الماس لإدارة الإنتاج</title>
-<meta name="description" content="برنامج الماس لإدارة الإنتاج والطلبيات والتقارير في مصنع الماس للخزف والصيني. حمّله على أندرويد أو ويندوز أو ثبّته من المتصفح.">
-<meta name="theme-color" content="#421B24">
-<link rel="manifest" href="manifest.json">
-<link rel="icon" href="icon-192.png">
+<meta name="theme-color" content="#642631">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap">
+<title>تحميل تطبيق إدارة الأقسام</title>
+<meta name="description" content="حمّل تطبيق إدارة الأقسام (MAS الماس للخزف والصيني) لأندرويد وويندوز.">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#F7F5F1;--card:#fff;--ink:#34343A;--mute:#6b6a70;--line:#E9E7E4;--pri:#642631;--pri-d:#421B24;--gold:#D7B96F;--gold-l:#E8D49B;
---g-pri:linear-gradient(135deg,#7d3243 0%,#642631 48%,#421B24 100%);--g-gold:linear-gradient(135deg,#B9984C,#E8D49B 45%,#D7B96F 70%,#B9984C);
---sh:0 1px 2px rgba(66,27,36,.06),0 10px 28px rgba(66,27,36,.09);--ease:cubic-bezier(.2,.8,.2,1);--link:#642631}
-@media (prefers-color-scheme:dark){:root{--bg:#150e10;--card:#211719;--ink:#f1ece8;--mute:#b3a9ab;--line:#352c2f;--sh:0 10px 28px rgba(0,0,0,.4);--link:#E8D49B}}
-*{box-sizing:border-box;margin:0}
-[hidden]{display:none!important}
-html{scroll-behavior:smooth;scroll-padding-top:84px}
-body{font-family:"Tajawal",system-ui,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);line-height:1.75;padding-bottom:env(safe-area-inset-bottom,0px)}
-:focus-visible{outline:3px solid var(--gold);outline-offset:3px;border-radius:8px}
-.wrap{max-width:1040px;margin:0 auto;padding:0 18px}
-
-/* الشريط العلوي */
-.bar{position:sticky;top:0;z-index:10;background:rgba(66,27,36,.94);backdrop-filter:blur(10px);color:#fff;border-bottom:1px solid rgba(215,185,111,.35);padding-top:env(safe-area-inset-top,0px)}
-.bar .wrap{display:flex;align-items:center;gap:12px;height:62px}
-.bar img{width:40px;height:40px;border-radius:11px;border:1px solid rgba(215,185,111,.6)}
-.bar b{font-size:1.15rem;font-weight:900;letter-spacing:.14em;line-height:1}
-.bar small{display:block;color:var(--gold-l);font-size:.8rem;font-weight:500;letter-spacing:0;margin-top:3px}
-.bar a.go{margin-inline-start:auto;padding:7px 18px;border-radius:99px;background:var(--g-gold);color:var(--pri-d);font-weight:800;text-decoration:none;font-size:.95rem}
-
-/* الواجهة الرئيسية */
-.hero{position:relative;overflow:hidden;background:var(--g-pri);color:#fff}
-.hero::before{content:"";position:absolute;inset:0;opacity:.06;background:repeating-linear-gradient(60deg,var(--gold) 0 1px,transparent 1px 46px),repeating-linear-gradient(-60deg,var(--gold) 0 1px,transparent 1px 46px)}
-.hero .wrap{position:relative;display:grid;gap:34px;align-items:center;padding-top:44px;padding-bottom:64px}
-@media (min-width:860px){.hero .wrap{grid-template-columns:1.1fr .9fr;padding-top:70px;padding-bottom:84px}}
-.hero h1{font-size:clamp(1.9rem,6vw,3.1rem);font-weight:900;line-height:1.28}
-.hero h1 span{display:block;color:var(--gold-l)}
-.hero p.lead{margin-top:14px;max-width:30em;color:#eadde0;font-size:1.1rem}
-.cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:26px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:54px;padding:12px 26px;border:0;border-radius:16px;font:inherit;font-size:1.08rem;font-weight:800;text-decoration:none;cursor:pointer;transition:transform .2s var(--ease),box-shadow .2s}
-.btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-.btn:hover{transform:translateY(-2px)}.btn:active{transform:none}
-.btn.gold{background:var(--g-gold);color:var(--pri-d);box-shadow:0 10px 26px rgba(0,0,0,.3)}
-.btn.line{background:none;color:#fff;border:1.5px solid rgba(215,185,111,.7)}
-.btn.dark{background:var(--g-pri);color:#fff;width:100%}
-.btn.ghost{background:none;color:var(--link);border:1.5px solid var(--gold);width:100%}
-.meta{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:20px;color:#d9c9cd;font-size:.92rem}
-.meta span{display:inline-flex;align-items:center;gap:7px}
-.meta i{width:7px;height:7px;border-radius:50%;background:var(--gold)}
-
-/* موبايل توضيحي بنفس شكل البرنامج */
-.stage{display:grid;place-items:center}
-.phone{width:min(262px,70vw);border-radius:38px;padding:9px;background:#14090c;border:1px solid rgba(215,185,111,.55);box-shadow:0 30px 70px rgba(0,0,0,.5);animation:rise .8s var(--ease) both}
-@keyframes rise{from{opacity:0;transform:translateY(26px)}}
-.scr{border-radius:30px;overflow:hidden;background:#F7F5F1;color:#34343A;aspect-ratio:9/15}
-.sh{display:flex;align-items:center;gap:9px;background:var(--g-pri);color:#fff;padding:20px 14px 12px;border-radius:0 0 22px 22px}
-.sh img{width:30px;height:30px;border-radius:9px;border:1px solid rgba(215,185,111,.7)}
-.sh b{font-size:.95rem;font-weight:900;letter-spacing:.14em;line-height:1.1}.sh small{display:block;font-size:.58rem;color:var(--gold-l);letter-spacing:0;font-weight:500}
-.tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px}
-.t{background:#fff;border-radius:14px;padding:9px;box-shadow:0 2px 8px rgba(66,27,36,.08);border-top:3px solid var(--c);font-size:.72rem;font-weight:800}
-.t i{display:block;width:26px;height:26px;border-radius:9px;background:var(--c);margin-bottom:8px}
-.t.w{grid-column:1/-1;display:flex;align-items:center;gap:9px}.t.w i{margin:0}
-.chart{margin:0 12px;background:#fff;border-radius:14px;padding:9px 10px 8px;font-size:.66rem;font-weight:800;box-shadow:0 2px 8px rgba(66,27,36,.08)}
-.bars{display:flex;align-items:flex-end;gap:6px;height:50px;margin-top:6px}
-.bars b{flex:1;border-radius:4px 4px 0 0;background:var(--pri);height:var(--h)}.bars b:nth-child(odd){background:var(--gold)}
-
-main{padding-bottom:30px}
-section.blk{padding-top:56px}
-h2.h{font-size:clamp(1.4rem,4.2vw,1.9rem);font-weight:900;line-height:1.35}
-p.sub{color:var(--mute);margin-top:6px;max-width:38em}
-
+:root{--bg:#F7F5F1;--card:#fff;--ink:#34343A;--mute:#6b6a70;--line:#E9E7E4;--pri:#642631;--pri-d:#421B24;--gold:#D7B96F;--gold-l:#E8D49B;--sh:0 1px 2px rgba(66,27,36,.06),0 10px 28px rgba(66,27,36,.10)}
+@media(prefers-color-scheme:dark){:root{--bg:#1a1214;--card:#251a1d;--ink:#f1ebe6;--mute:#b3a6a8;--line:#3a2a2e}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:'Tajawal',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.7}
+a{color:inherit}
+.wrap{max-width:980px;margin:0 auto;padding:0 16px}
+/* الغلاف */
+.hero{background:linear-gradient(135deg,#642631,#421B24);color:#F7F5F1;border-bottom:3px solid var(--gold);padding:calc(28px + env(safe-area-inset-top)) 0 48px;text-align:center}
+.hero img.logo{width:min(230px,60vw);height:auto;border-radius:18px;background:#fff;padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.28)}
+.hero h1{margin:18px 0 4px;font-size:clamp(1.7rem,5vw,2.4rem);font-weight:800}
+.hero p{margin:0 auto;max-width:520px;color:var(--gold-l);font-size:1.05rem}
+.cta{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:26px}
+.dl{display:inline-flex;align-items:center;gap:10px;font:inherit;font-weight:700;font-size:1.05rem;text-decoration:none;padding:13px 26px;border-radius:14px;transition:transform .15s,box-shadow .2s}
+.dl svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.dl.main{background:var(--gold);color:var(--pri-d);box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.dl.alt{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(215,185,111,.55)}
+.dl:hover{transform:translateY(-2px)}
+.ver{margin-top:14px;font-size:.88rem;color:rgba(247,245,241,.7)}
+/* اللقطات */
+section{padding:40px 0 4px}
+h2{margin:0 0 6px;font-size:1.5rem;color:var(--pri)}
+@media(prefers-color-scheme:dark){h2{color:var(--gold-l)}}
+.sub{margin:0 0 22px;color:var(--mute)}
+.shots{display:flex;gap:18px;overflow-x:auto;scroll-snap-type:x mandatory;padding:6px 16px 22px;margin:0 -16px;-webkit-overflow-scrolling:touch}
+.shots::-webkit-scrollbar{height:8px}.shots::-webkit-scrollbar-thumb{background:var(--gold);border-radius:8px}
+.shot{flex:0 0 auto;width:min(230px,62vw);scroll-snap-align:center;text-align:center;margin:0}
+.shot button{display:block;width:100%;padding:0;border:0;background:none;cursor:zoom-in}
+.phone{border-radius:26px;border:5px solid #2a1a1e;background:#2a1a1e;box-shadow:var(--sh);overflow:hidden}
+.phone img{display:block;width:100%;height:auto;aspect-ratio:9/20;object-fit:cover;background:#ddd}
+.shot figcaption{margin-top:12px;font-weight:700;font-size:.98rem}
+.bwrap{margin-top:-26px;position:relative;z-index:2}
+.banner{display:block;width:100%;padding:0;border:2px solid var(--gold);border-radius:18px;overflow:hidden;background:none;cursor:zoom-in;box-shadow:var(--sh)}
+.banner img{display:block;width:100%;height:auto}
+.banner.info{max-width:560px;margin:0 auto}
 /* المميزات */
-.feat{display:grid;gap:14px;margin-top:22px;grid-template-columns:1fr}
-@media (min-width:640px){.feat{grid-template-columns:1fr 1fr}}
-@media (min-width:960px){.feat{grid-template-columns:repeat(4,1fr)}}
-.f{padding:18px;border-radius:20px;background:var(--card);border:1px solid var(--line);box-shadow:var(--sh)}
-.ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:var(--g-pri);color:var(--gold-l);margin-bottom:12px}
-.ic svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-.f h3{font-size:1.05rem;font-weight:800}.f p{color:var(--mute);font-size:.94rem;margin-top:4px}
-
-/* التحميل */
-.grid{display:grid;gap:16px;margin-top:22px;grid-template-columns:1fr}
-@media (min-width:760px){.grid{grid-template-columns:1fr 1fr}}
-.card{display:flex;flex-direction:column;gap:14px;background:var(--card);border:1px solid var(--line);border-top:4px solid var(--gold);border-radius:22px;padding:22px;box-shadow:var(--sh)}
-.card.rec{border-color:var(--gold);box-shadow:0 0 0 3px rgba(215,185,111,.32),var(--sh)}
-.top{display:flex;align-items:center;gap:14px}
-.top .ic{margin:0;width:56px;height:56px;border-radius:17px}
-.top h3{font-size:1.3rem;font-weight:800;line-height:1.2}.top small{display:block;color:var(--mute);font-size:.9rem}
-.tag{margin-inline-start:auto;padding:2px 11px;border-radius:99px;background:var(--g-gold);color:var(--pri-d);font-size:.8rem;font-weight:800;white-space:nowrap}
-.tag[hidden]{display:none}
-.btn.gold.full{width:100%}
-details{border-top:1px solid var(--line);padding-top:11px}
-summary{cursor:pointer;font-weight:700;color:var(--link);list-style:none;display:flex;justify-content:space-between;align-items:center}
-summary::-webkit-details-marker{display:none}
-summary::after{content:"";width:9px;height:9px;border:solid currentColor;border-width:0 2.5px 2.5px 0;transform:rotate(45deg);transition:transform .2s var(--ease);margin-inline-end:4px}
-details[open] summary::after{transform:rotate(-135deg)}
-ol{padding-inline-start:22px;margin-top:10px;display:grid;gap:6px}ol li::marker{color:var(--gold);font-weight:800}
-.note{font-size:.92rem;color:var(--mute)}
-.web{margin-top:16px;display:grid;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:var(--sh)}
-.web h3{font-size:1.15rem;font-weight:800}
-.row{display:grid;gap:10px;grid-template-columns:1fr}@media (min-width:560px){.row{grid-template-columns:1fr 1fr}}
-#hint{display:none;padding:12px 14px;border-radius:14px;background:color-mix(in srgb,var(--gold) 16%,transparent);border:1px dashed var(--gold);font-size:.95rem}
-#hint.on{display:block}
-
-/* أسئلة */
-.faq{margin-top:20px;display:grid;gap:10px}
-.faq details{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 18px}
-.faq summary{color:var(--ink)}.faq p{margin-top:8px;color:var(--mute)}
-
-footer{margin-top:56px;background:var(--g-pri);color:#eadde0;text-align:center;padding:30px 18px calc(30px + env(safe-area-inset-bottom,0px))}
-footer img{width:64px;height:64px;border-radius:18px;border:1px solid rgba(215,185,111,.6);margin-bottom:10px}
-footer b{display:block;color:#fff;font-size:1.1rem}
-footer button{margin-top:12px;background:none;border:1.5px solid rgba(215,185,111,.7);border-radius:99px;color:var(--gold-l);font:inherit;font-weight:700;padding:6px 20px;cursor:pointer}
-@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+.feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--gold);border-radius:14px;padding:18px;box-shadow:var(--sh)}
+.card b{display:block;color:var(--pri);margin-bottom:4px;font-size:1.05rem}
+@media(prefers-color-scheme:dark){.card b{color:var(--gold-l)}}
+.card span{color:var(--mute);font-size:.95rem}
+/* خطوات التثبيت */
+ol.steps{list-style:none;counter-reset:s;margin:0;padding:0;display:grid;gap:12px}
+ol.steps li{counter-increment:s;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 64px 14px 16px;position:relative}
+ol.steps li::before{content:counter(s);position:absolute;right:14px;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:50%;background:var(--pri);color:var(--gold-l);display:grid;place-items:center;font-weight:800}
+footer{margin-top:48px;padding:22px 16px calc(22px + env(safe-area-inset-bottom));text-align:center;color:var(--mute);font-size:.9rem;border-top:1px solid var(--line)}
+/* عرض الصورة */
+#lb{position:fixed;inset:0;background:rgba(20,8,12,.92);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+#lb.on{display:flex}
+#lb img{max-height:92vh;max-width:100%;border-radius:18px}
+#lb .x{position:absolute;top:calc(12px + env(safe-area-inset-top));left:14px;background:var(--gold);color:var(--pri-d);border:0;border-radius:50%;width:42px;height:42px;font-size:1.5rem;cursor:pointer}
 </style>
 </head>
 <body>
-<header class="bar">
+<header class="hero">
   <div class="wrap">
-    <img src="icon-192.png" alt="" width="40" height="40">
-    <div><b>MAS</b><small>الماس للخزف والصيني</small></div>
-    <a class="go" href="#get">تحميل</a>
+    <img class="logo" src="logo-full.png" alt="MAS الماس للخزف والصيني">
+    <h1>تطبيق إدارة الأقسام</h1>
+    <p>تابع الإنتاج والطلبيات والهالك والتقارير لكل الأقسام من مكان واحد.</p>
+    <div class="cta">
+      <a class="dl main" id="apk" href="MAS-Manager.apk" download>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+        تحميل لأندرويد (APK)
+      </a>
+      <a class="dl alt" id="win" href="#">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+        تحميل لويندوز
+      </a>
+    </div>
+    <div class="ver" id="ver"></div>
   </div>
 </header>
 
-<section class="hero">
-  <div class="wrap">
-    <div>
-      <h1>إدارة الإنتاج في مصنعك،<span>من موبايلك أو كمبيوترك</span></h1>
-      <p class="lead">سجّل الإنتاج، تابع الطلبيات وتواريخ التسليم، واطلع تقارير جاهزة للطباعة. كل قسم في المصنع له صفحته ومسؤوله.</p>
-      <div class="cta">
-        <a class="btn gold" id="main-cta" href="#get"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l-5-5m5 5l5-5M5 20h14"/></svg><span id="main-txt">حمّل البرنامج</span></a>
-        <a class="btn line" href="#get">كل طرق التحميل</a>
-      </div>
-      <div class="meta"><span><i></i>أندرويد وويندوز</span><span><i></i>تحديثات تلقائية</span><span id="ver" hidden><i></i>الإصدار <bdi id="vn" dir="ltr"></bdi></span></div>
+<div class="wrap bwrap"><button type="button" class="banner" data-src="screens/banner-wide.jpg" aria-label="تكبير الصورة"><img src="screens/banner-wide.jpg" alt="إدارة مصنعك بذكاء — MAS"></button></div>
+
+<main class="wrap">
+  <section>
+    <h2>لقطات من التطبيق</h2>
+    <p class="sub">اسحب لتتصفح الشاشات، واضغط على أي صورة لتكبيرها.</p>
+    <div class="shots" id="shots"></div>
+  </section>
+
+  <section>
+    <h2>تعرّف على التطبيق</h2>
+    <p class="sub">كل ما تحتاجه لإدارة المصنع في صورة واحدة.</p>
+    <button type="button" class="banner info" data-src="screens/banner-info.jpg" aria-label="تكبير الصورة"><img loading="lazy" src="screens/banner-info.jpg" alt="مميزات تطبيق MAS"></button>
+  </section>
+
+  <section>
+    <h2>أهم المميزات</h2>
+    <div class="feat">
+      <div class="card"><b>تسجيل الإنتاج</b><span>سجّل إنتاج اليوم لكل قسم بخطوات سريعة وبحث بالصنف أو اللون.</span></div>
+      <div class="card"><b>متابعة الطلبيات</b><span>الطلبيات المفتوحة والمكتملة مع المتبقي للإنجاز ونسب الاكتمال.</span></div>
+      <div class="card"><b>الهالك والتصليح</b><span>سجل الهالك والتصليح مع التصدير إلى Excel والطباعة.</span></div>
+      <div class="card"><b>تقارير ورسوم بيانية</b><span>إنتاج آخر ٧ أيام وتقارير الأقسام في أي فترة تختارها.</span></div>
     </div>
-    <div class="stage" aria-hidden="true">
-      <div class="phone"><div class="scr">
-        <div class="sh"><img src="icon-192.png" alt=""><div><b>MAS</b><small>الماس للخزف والصيني</small></div></div>
-        <div class="tiles">
-          <div class="t" style="--c:#8f84b5"><i></i>الجليز</div><div class="t" style="--c:#5f9a8a"><i></i>الزخرفة</div>
-          <div class="t" style="--c:#cf7a58"><i></i>الرش</div><div class="t" style="--c:#c9a24e"><i></i>التصليح</div>
-          <div class="t w" style="--c:#7a4f9e"><i></i>الطلبيات</div>
-        </div>
-        <div class="chart">الإنتاج آخر 7 أيام<div class="bars"><b style="--h:40%"></b><b style="--h:70%"></b><b style="--h:55%"></b><b style="--h:90%"></b><b style="--h:62%"></b><b style="--h:80%"></b><b style="--h:48%"></b></div></div>
-      </div></div>
-    </div>
-  </div>
-</section>
+  </section>
 
-<main>
-  <div class="wrap">
-    <section class="blk" aria-labelledby="h-feat">
-      <h2 class="h" id="h-feat">كل اللي يحتاجه المصنع في مكان واحد</h2>
-      <div class="feat">
-        <div class="f"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></svg></span><h3>أقسام مستقلة</h3><p>الجليز والزخرفة والرش والتصليح، ومسؤول كل قسم بيشوف قسمه بس.</p></div>
-        <div class="f"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 12.5l3 3 5.5-6.5"/></svg></span><h3>الطلبيات والتسليم</h3><p>وزّع أصناف الطلبية على الأقسام، وحدد تاريخ التسليم وأجّله لما تحتاج.</p></div>
-        <div class="f"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><h3>تقارير جاهزة</h3><p>تقرير يومي بالإنتاج والهالك والعمال، وتقارير PDF للطباعة والمشاركة.</p></div>
-        <div class="f"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9zM10 20a2 2 0 0 0 4 0"/></svg></span><h3>إشعارات وتسجيل آمن</h3><p>لو النت ضعف، التسجيلات بتتحفظ على الجهاز وتتبعت لما يرجع.</p></div>
-      </div>
-    </section>
-
-    <section class="blk" id="get" aria-labelledby="h-get">
-      <h2 class="h" id="h-get">اختار جهازك وحمّل</h2>
-      <p class="sub">الروابط دي بتجيب أحدث نسخة دايمًا.</p>
-      <div class="grid">
-        <article class="card" id="c-android">
-          <div class="top"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.6"/><path d="M10.5 18.5h3"/></svg></span><div><h3>أندرويد</h3><small>الموبايل والتابلت</small></div><span class="tag" hidden>الأنسب لجهازك</span></div>
-          <a class="btn gold full" id="dl-apk" href="MAS-Manager.apk" download="MAS-Manager.apk"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l-5-5m5 5l5-5M5 20h14"/></svg>تحميل لأندرويد</a>
-          <details><summary>خطوات التثبيت</summary><ol>
-            <li>اضغط «تحميل لأندرويد» وانتظر لحد ما الملف ينزل.</li>
-            <li>افتح الملف من إشعار التحميل أو من مجلد التنزيلات.</li>
-            <li>لو الموبايل سأل، اسمح بالتثبيت من المتصفح اللي نزّلت منه.</li>
-            <li>اضغط «تثبيت» وبعدها افتح «MAS» من الشاشة الرئيسية.</li></ol></details>
-          <p class="note">التحديثات بتوصل جوه البرنامج نفسه، ومش هتحتاج تحمّله تاني.</p>
-        </article>
-        <article class="card" id="c-windows">
-          <div class="top"><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.5l7.5-1v7H3zM12 4.3L21 3v8.5h-9zM3 13h7.5v7l-7.5-1zM12 13h9v8l-9-1.3z"/></svg></span><div><h3>ويندوز</h3><small>كمبيوتر ولابتوب</small></div><span class="tag" hidden>الأنسب لجهازك</span></div>
-          <a class="btn gold full" id="dl-win" href="https://github.com/zat10924/zat10924.github.io/releases/latest/download/MAS-Setup.exe"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l-5-5m5 5l5-5M5 20h14"/></svg>تحميل لويندوز</a>
-          <details><summary>خطوات التثبيت</summary><ol>
-            <li>اضغط «تحميل لويندوز» وانتظر انتهاء التحميل.</li>
-            <li>شغّل ملف <bdi dir="ltr">MAS-Setup.exe</bdi> من مجلد التنزيلات.</li>
-            <li>لو ظهرت رسالة حماية من ويندوز، اضغط «مزيد من المعلومات» ثم «تشغيل على أي حال».</li>
-            <li>افتح «MAS» من سطح المكتب أو من قائمة ابدأ.</li></ol></details>
-          <p class="note">البرنامج بيشتغل في نافذته الخاصة وبيتحدث لوحده.</p>
-        </article>
-      </div>
-      <div class="web" id="web">
-        <h3>معاك آيفون أو ماك أو لينكس؟</h3>
-        <p class="note">ثبّت البرنامج من المتصفح وهيظهر كأي تطبيق، أو افتحه على الويب مباشرة.</p>
-        <div class="row">
-          <button class="btn ghost" id="pwa" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l-5-5m5 5l5-5M5 20h14"/></svg>تثبيت من المتصفح</button>
-          <a class="btn ghost" href="index.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg>فتح على الويب</a>
-        </div>
-        <div id="hint" role="status"></div>
-      </div>
-    </section>
-
-    <section class="blk" aria-labelledby="h-faq">
-      <h2 class="h" id="h-faq">أسئلة شائعة</h2>
-      <div class="faq">
-        <details><summary>ظهرت رسالة «الملف قد يكون ضارًا» عند التحميل. هل أكمل؟</summary><p>الرسالة بتظهر لأن الملف مش من متجر التطبيقات. لو نزّلته من الصفحة دي، اختار «تنزيل على أي حال» وكمّل خطوات التثبيت.</p></details>
-        <details><summary>هل لازم أحمّل كل مرة فيه تحديث؟</summary><p>لا. البرنامج بيتحدث لوحده، وبيبلّغك لما يكون فيه جديد.</p></details>
-        <details><summary>إزاي أدخل بعد التثبيت؟</summary><p>استخدم الاسم وكلمة السر اللي أخدتهم من مدير المصنع. صلاحياتك بتحدد الأقسام اللي بتظهر لك.</p></details>
-        <details><summary>إزاي أبعت الرابط لزميلي؟</summary><p>اضغط «مشاركة رابط التحميل» في آخر الصفحة، واختار واتساب أو أي تطبيق تاني.</p></details>
-      </div>
-    </section>
-  </div>
+  <section>
+    <h2>طريقة التثبيت على أندرويد</h2>
+    <p class="sub">أول مرة فقط.</p>
+    <ol class="steps">
+      <li>اضغط زر «تحميل لأندرويد» وانتظر انتهاء التحميل.</li>
+      <li>افتح الملف المُحمّل، ولو ظهرت رسالة «مصدر غير معروف» اضغط <b>السماح من هذا المصدر</b>.</li>
+      <li>اضغط «تثبيت» ثم افتح التطبيق وسجّل الدخول بحسابك.</li>
+    </ol>
+  </section>
 </main>
 
-<footer>
-  <img src="icon-192.png" alt="" width="64" height="64">
-  <b>الماس للخزف والصيني</b>
-  <div>برنامج إدارة الإنتاج</div>
-  <button type="button" id="share">مشاركة رابط التحميل</button>
-</footer>
+<footer>MAS — الماس للخزف والصيني · إدارة الأقسام</footer>
+
+<div id="lb" role="dialog" aria-modal="true" aria-label="عرض الصورة"><button class="x" type="button" aria-label="إغلاق">×</button><img alt=""></div>
 
 <script>
-(()=>{
-const $=id=>document.getElementById(id);
-const ua=navigator.userAgent||"",
-  android=/Android/i.test(ua),
-  ios=/iPhone|iPad|iPod/i.test(ua)||(/Macintosh/i.test(ua)&&navigator.maxTouchPoints>1),
-  win=/Windows NT/i.test(ua)&&!/Mobile/i.test(ua);
-const rec=android?"c-android":win?"c-windows":"";
-if(rec){const c=$(rec);c.classList.add("rec");c.querySelector(".tag").hidden=false;c.parentNode.prepend(c)}
-// زر التحميل الرئيسي بيتظبط على جهاز الزائر
-const mc=$("main-cta"),mt=$("main-txt");
-if(android){mc.href="MAS-Manager.apk";mc.setAttribute("download","MAS-Manager.apk");mt.textContent="تحميل لأندرويد"}
-else if(win){mc.href=$("dl-win").href;mt.textContent="تحميل لويندوز"}
-else if(ios){mc.href="#web";mt.textContent="تثبيت على الآيفون"}
-fetch("config.js?_chk="+Date.now(),{cache:"no-store"}).then(r=>r.text()).then(t=>{
-  const m=/APP_VERSION\s*=\s*"([^"]+)"/.exec(t);
-  if(m){$("vn").textContent=m[1];$("ver").hidden=false}
-}).catch(()=>{});
-let ev=null;const hint=$("hint");
-const say=h=>{hint.innerHTML=h;hint.classList.add("on")};
-addEventListener("beforeinstallprompt",e=>{e.preventDefault();ev=e});
-addEventListener("appinstalled",()=>say("اتثبّت البرنامج. هتلاقيه في تطبيقاتك."));
-$("pwa").onclick=async()=>{
-  if(ev){ev.prompt();await ev.userChoice.catch(()=>{});ev=null;return}
-  if(matchMedia("(display-mode: standalone)").matches){say("البرنامج متثبّت ومفتوح كتطبيق بالفعل.");return}
-  if(ios)say("افتح الصفحة من <b>Safari</b>، اضغط زر المشاركة، ثم اختار <b>إضافة إلى الشاشة الرئيسية</b>.");
-  else say("من قائمة المتصفح (⋮) اختار <b>تثبيت التطبيق</b> أو <b>إضافة إلى الشاشة الرئيسية</b>. لو الخيار مش ظاهر، افتح الصفحة من Chrome أو Edge.");
-};
-$("share").onclick=async()=>{
-  const url=location.href.split("#")[0],data={title:"برنامج الماس",text:"حمّل برنامج الماس من هنا",url};
-  try{if(navigator.share){await navigator.share(data);return}}catch(e){if(e&&e.name==="AbortError")return}
-  try{await navigator.clipboard.writeText(url);alert("اتنسخ رابط التحميل.")}catch(e){prompt("انسخ الرابط:",url)}
-};
-if("serviceWorker"in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
-})();
+const SHOTS=[["الرئيسية وملخص الأقسام"],["التقارير والرسوم البيانية"],["تسجيل الإنتاج اليومي"],["الطلبيات المفتوحة"],["الطلبيات المكتملة"],["القائمة الجانبية"],["تسجيل التصليح"],["الأصناف والأكواد"]];
+const box=document.getElementById("shots"),lb=document.getElementById("lb"),lbi=lb.querySelector("img");
+SHOTS.forEach(([cap],i)=>{
+  const f=document.createElement("figure");f.className="shot";
+  f.innerHTML='<button type="button" aria-label="تكبير: '+cap+'"><div class="phone"><img loading="lazy" src="screens/screen-'+(i+1)+'.jpg" alt="'+cap+'"></div></button><figcaption>'+cap+'</figcaption>';
+  f.querySelector("button").onclick=()=>{lbi.src="screens/screen-"+(i+1)+".jpg";lbi.alt=cap;lb.classList.add("on")};
+  box.appendChild(f);
+});
+document.querySelectorAll(".banner").forEach(b=>b.onclick=()=>{lbi.src=b.dataset.src;lbi.alt=b.querySelector("img").alt;lb.classList.add("on")});
+lb.onclick=()=>lb.classList.remove("on");
+addEventListener("keydown",e=>{if(e.key==="Escape")lb.classList.remove("on")});
+fetch("config.js",{cache:"no-store"}).then(r=>r.text()).then(t=>{const m=t.match(/APP_VERSION\s*=\s*"([^"]+)"/);if(m)document.getElementById("ver").textContent="الإصدار "+m[1]}).catch(()=>{});
+const w=document.getElementById("win");
+w.href="https://github.com/zat10924/zat10924.github.io/releases/latest/download/MAS-Setup.exe";
 </script>
 </body>
 </html>
