@@ -68,6 +68,7 @@ document.addEventListener("pointerdown",e=>{
 
 /* ===== الأيقونات (SVG) ===== */
 const ICONS={
+  checksq:'<rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 12.5l3 3 5.5-6.5"/>',
   plus:'<path d="M12 5v14M5 12h14"/>',
   clip:'<rect class="f" width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11v6M9 14h6"/>',
   tag:'<path class="f" d="M20 12l-8 8-9-9V3h8z"/><path d="M7.5 7.5h.01"/>',
