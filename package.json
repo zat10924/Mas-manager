@@ -1,0 +1,29 @@
+{
+  "name": "mas-manager",
+  "version": "1.0.0",
+  "description": "إدارة الأقسام",
+  "main": "main.js",
+  "author": "MAS",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.mas.manager.desktop",
+    "productName": "إدارة الأقسام",
+    "files": ["main.js", "app/**/*"],
+    "win": {
+      "target": ["nsis", "portable"],
+      "icon": "app/icon-512.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  }
+}
