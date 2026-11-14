@@ -565,6 +565,8 @@ function openModal(title,body,onSave,saveText="حفظ"){
 }
 function today(){return _today||new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10)}
 function fmtD(d){return new Date(d+"T00:00:00").toLocaleDateString("ar-EG")}
+// التاريخ مع اسم اليوم (الخميس ١٣‏/١١‏/٢٠٢٦) — بيُستخدم في التقارير
+function fmtDW(d){if(!d)return"";const x=new Date(d+"T00:00:00");return isNaN(x)?String(d):x.toLocaleDateString("ar-EG",{weekday:"long"})+" "+fmtD(d)}
 function ask(msg,yes="نعم، احذف"){return new Promise(res=>{
   const d=document.createElement("div");d.className="ov";d.style.zIndex=40;
   d.innerHTML=`<div class="modal"><h3>${msg}</h3><div class="row"><button class="btn" id="yes">${yes}</button><button class="btn ghost" id="no">إلغاء</button></div></div>`;
@@ -888,6 +890,8 @@ db.auth.onAuthStateChange(ev=>{
 
 /* ===== قوائم منسدلة (سهم ▾) لكل خانات الاختيار: صنف / لون / كود / عامل / سبب ===== */
 const HIST_SEL="#m-r,#m-pr,#m-n,#m-nt,#m-dn";
+// كل الخانات اللي تتحول لقائمة منسدلة (أي خانة عليها data-kind بتتفعّل تلقائيًا، وده بيشمل البحث الشامل)
+const COMBO_SEL=NAME_SEL+",#m-w,#m-gt,#m-rn,#m-ph,"+HIST_SEL+",#m-tsc,#m-nwc,input[data-kind]";
 const CBX={p:null,inp:null,act:-1};
 const cbKind=el=>el.id==="m-w"?"worker":(el.id==="m-gt"||el.id==="m-rn")?"cust":el.id==="m-ph"?"cphone":el.matches(HIST_SEL)?"hist:"+el.id:kindOf(el);
 function cbHist(k){try{return JSON.parse(localStorage.getItem("hist_"+k.slice(5))||"[]")}catch(e){return[]}}
@@ -1009,22 +1013,24 @@ function enhanceCombo(inp){
 }
 function enhanceAll(root){
   if(!root||!root.querySelectorAll)return;
-  root.querySelectorAll(NAME_SEL+",#m-w,#m-gt,#m-rn,#m-ph,"+HIST_SEL).forEach(enhanceCombo);
+  root.querySelectorAll(COMBO_SEL).forEach(enhanceCombo);
 }
 addEventListener("scroll",e=>{if(CBX.p&&!CBX.p.hidden&&!CBX.p.contains(e.target))cbPlace()},true);
 addEventListener("resize",cbPlace);
 if(window.visualViewport)visualViewport.addEventListener("resize",cbPlace);
 document.addEventListener("pointerdown",e=>{if(CBX.p&&!CBX.p.hidden&&!e.target.closest(".cbl,.cbw"))cbHide()},true);
 // أي خانة جديدة تتضاف للصفحة (صف لون جديد مثلًا) بتبقى منسدلة تلقائيًا
-document.addEventListener("DOMContentLoaded",()=>{
+const _cbInit=()=>{
+  enhanceAll(document); // الخانات الموجودة في الصفحة من أول ما تفتح (زي البحث الشامل)
   new MutationObserver(ms=>{
     for(const m of ms)for(const n of m.addedNodes){
       if(n.nodeType!==1)continue;
-      if(n.matches&&n.matches(NAME_SEL+",#m-w,#m-gt,#m-rn,#m-ph,"+HIST_SEL))enhanceCombo(n);
+      if(n.matches&&n.matches(COMBO_SEL))enhanceCombo(n);
       else if(n.querySelector)enhanceAll(n);
     }
   }).observe(document.body,{childList:true,subtree:true});
-});
+};
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",_cbInit);else _cbInit();
 
 /* ===== واتساب / اتصال ===== */
 const WA_CC="20"; // كود الدولة الافتراضي (مصر) للأرقام اللي بتبدأ بـ 0

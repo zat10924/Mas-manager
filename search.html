@@ -23,7 +23,7 @@
 <div class="wrap" style="overflow-x:hidden">
   <h1>بحث شامل عن صنف</h1>
   <div class="card noprint">
-    <label>الصنف</label><input id="q" list="itl" placeholder="اكتب جزء من اسم الصنف (فاضي = كل الأصناف)" autocomplete="off"><datalist id="itl"></datalist>
+    <label>الصنف</label><input id="q" data-kind="item" list="itl" placeholder="اكتب جزء من اسم الصنف (فاضي = كل الأصناف)" autocomplete="off"><datalist id="itl"></datalist>
     <div class="seg" id="rg" style="margin-top:8px"><button data-r="today">اليوم</button><button data-r="7">٧ أيام</button><button data-r="month">الشهر</button><button data-r="all" class="on">الكل</button></div>
     <div class="two" style="margin-top:8px"><div><label>من تاريخ</label><input type="date" id="f"></div><div><label>إلى تاريخ</label><input type="date" id="t"></div></div>
     <button class="btn" id="go" style="width:100%;margin-top:10px">بحث</button>
@@ -68,15 +68,15 @@ async function run(){
       h+=`<b>ملخص حسب الصنف${sk?" و"+sk:""}</b>`+tbl(["الصنف",...(sk?[sk]:[]),"الكمية"],(()=>{const m=new Map();prod.forEach(x=>{const kk=x.item+"|"+x.sub;m.set(kk,(m.get(kk)||0)+x.qty)});return[...m].sort((a,b)=>b[1]-a[1]).map(([kk,v])=>{const[it,sb]=kk.split("|");return[esc(it),...(sk?[esc(sb||"—")]:[]),"<b>"+nf(v)+"</b>"]})})());
       const det=[...prod].sort((a,b)=>b.d.localeCompare(a.d));
       const cols=k==="deco"?["التاريخ","الصنف","كود الرسمة","الكمية","العامل","وصف/ملاحظة"]:k==="repair"?["التاريخ","الصنف","الكمية"]:["التاريخ","الصنف","اللون","الكمية","العامل"];
-      h+=`<details style="margin-top:8px"><summary><b>التفاصيل بالتاريخ (${nf(det.length)})</b></summary>`+tbl(cols,det.map(x=>k==="deco"?[fmtD(x.d),esc(x.item),esc(x.sub||"—"),"<b>"+nf(x.qty)+"</b>",esc(x.w||"—"),esc(x.n||"—")]:k==="repair"?[fmtD(x.d),esc(x.item),"<b>"+nf(x.qty)+"</b>"]:[fmtD(x.d),esc(x.item),esc(x.sub||"—"),"<b>"+nf(x.qty)+"</b>",esc(x.w||"—")]))+`</details>`;
+      h+=`<details style="margin-top:8px"><summary><b>التفاصيل بالتاريخ (${nf(det.length)})</b></summary>`+tbl(cols,det.map(x=>k==="deco"?[fmtDW(x.d),esc(x.item),esc(x.sub||"—"),"<b>"+nf(x.qty)+"</b>",esc(x.w||"—"),esc(x.n||"—")]:k==="repair"?[fmtDW(x.d),esc(x.item),"<b>"+nf(x.qty)+"</b>"]:[fmtDW(x.d),esc(x.item),esc(x.sub||"—"),"<b>"+nf(x.qty)+"</b>",esc(x.w||"—")]))+`</details>`;
     }
     if(waste.length){
-      h+=`<div style="margin-top:10px"><b style="color:var(--bad,#c0392b)">الهالك</b></div>`+tbl(["التاريخ","الصنف","هالك","سليم"],[...waste].sort((a,b)=>b.d.localeCompare(a.d)).map(x=>[fmtD(x.d),esc(x.item),"<b>"+nf(x.qty)+"</b>",nf(x.good)]));
+      h+=`<div style="margin-top:10px"><b style="color:var(--bad,#c0392b)">الهالك</b></div>`+tbl(["التاريخ","الصنف","هالك","سليم"],[...waste].sort((a,b)=>b.d.localeCompare(a.d)).map(x=>[fmtDW(x.d),esc(x.item),"<b>"+nf(x.qty)+"</b>",nf(x.good)]));
     }
     html+=h+"</div>";
   });
   if(!any){box.innerHTML='<div class="empty">مفيش نتائج للصنف ده في الفترة دي</div>';return}
-  box.innerHTML=`<div class="card"><h3 style="margin-top:0">النتيجة${$("q").value.trim()?" — «"+esc($("q").value.trim())+"»":""}</h3><div class="nums">${Reports.sources&&(f||t?(f?"من "+fmtD(f):"")+(t?" إلى "+fmtD(t):""):"كل الفترات")}</div>${head.map(h=>`<div class="r" style="display:flex;justify-content:space-between;padding:4px 0"><span>${h[0]}</span><span><b>${nf(h[1])}</b>${h[2]?` <span class="nums">· هالك ${nf(h[2])}</span>`:""}</span></div>`).join("")}</div>`+html;
+  box.innerHTML=`<div class="card"><h3 style="margin-top:0">النتيجة${$("q").value.trim()?" — «"+esc($("q").value.trim())+"»":""}</h3><div class="nums">${Reports.sources&&(f||t?(f?"من "+fmtDW(f):"")+(t?" إلى "+fmtDW(t):""):"كل الفترات")}</div>${head.map(h=>`<div class="r" style="display:flex;justify-content:space-between;padding:4px 0"><span>${h[0]}</span><span><b>${nf(h[1])}</b>${h[2]?` <span class="nums">· هالك ${nf(h[2])}</span>`:""}</span></div>`).join("")}</div>`+html;
   if(q&&(exact&&others||PART&&names.has(q))){
     box.insertAdjacentHTML("afterbegin",`<div class="hint" style="margin:0 0 8px">${exact?"معروض الصنف المطابق «"+esc($("q").value.trim())+"» بس. فيه "+others+" صنف تاني اسمه فيه نفس الكلمة. ":"معروض كل الأصناف اللي اسمها فيه «"+esc($("q").value.trim())+"». "}<button type="button" class="btn ghost sm" id="partT">${exact?"عرض كل الأصناف اللي فيها الكلمة":"عرض المطابق بس"}</button></div>`);
     $("partT").onclick=()=>{PART=!PART;run()};
@@ -85,7 +85,7 @@ async function run(){
 async function loadNames(){
   try{const{data}=await db.from("catalog").select("name").eq("kind","item").order("name");$("itl").innerHTML=(data||[]).map(x=>`<option value="${esc(x.name)}">`).join("")}catch(e){}
 }
-$("go").onclick=()=>{PART=false;run()};$("q").onkeydown=e=>{if(e.key==="Enter"){PART=false;run()}};
+$("go").onclick=()=>{PART=false;run()};$("q").onkeydown=e=>{if(e.key==="Enter"){if(typeof CBX!=="undefined"&&CBX.p&&!CBX.p.hidden&&CBX.act>=0)return;PART=false;run()}};
 document.querySelectorAll("#rg button").forEach(b=>b.onclick=()=>{$("f").value="";$("t").value="";document.querySelectorAll("#rg button").forEach(x=>x.classList.toggle("on",x===b))});
 ["f","t"].forEach(i=>$(i).onchange=()=>document.querySelectorAll("#rg button").forEach(x=>x.classList.remove("on")));
 (async()=>{if(await requireAuth("search.html")){renderNav("search.html");loadNames();settle()}})();

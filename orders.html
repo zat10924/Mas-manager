@@ -354,6 +354,7 @@ function increaseG(id){
     showNew()};
   const showNew=()=>{const x=items[+iz.value],on=lz.value==="new";nw.style.display=on?"block":"none";
     document.getElementById("m-nwl").textContent=x.k==="deco"?"الكود الجديد":"اللون الجديد";
+      {const nc=document.getElementById("m-nwc"),k=x.k==="deco"?"code":"color";nc.dataset.kind=k;if(nc.dataset.cb)nc.dataset.cb=k}
     document.getElementById("m-nws").style.display=x.k==="spray"?"block":"none"};
   iz.onchange=fillLines;lz.onchange=showNew;fillLines();
 }

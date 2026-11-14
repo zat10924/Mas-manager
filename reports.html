@@ -97,7 +97,7 @@ async function daily(force){
   });
   const wp=wq+wg?(wq/(wq+wg)*100):0;
   // ملاحظات ذكية عامة
-  if(prevDay&&dayTot.get(prevDay)>0){const p=Math.round((tot-dayTot.get(prevDay))/dayTot.get(prevDay)*100);if(Math.abs(p)>=10)I.unshift([p>0?"ok":"warn",`إجمالي النهارده ${p>0?"أعلى":"أقل"} من ${prevDay===addDays(day,-1)?"أمس":"آخر يوم شغل ("+fmtD(prevDay)+")"} بـ ${Math.abs(p)}%.`])}
+  if(prevDay&&dayTot.get(prevDay)>0){const p=Math.round((tot-dayTot.get(prevDay))/dayTot.get(prevDay)*100);if(Math.abs(p)>=10)I.unshift([p>0?"ok":"warn",`إجمالي النهارده ${p>0?"أعلى":"أقل"} من ${prevDay===addDays(day,-1)?"أمس":"آخر يوم شغل ("+fmtDW(prevDay)+")"} بـ ${Math.abs(p)}%.`])}
   if(avg7>0&&tot>0){const p=Math.round((tot-avg7)/avg7*100);if(Math.abs(p)>=15)I.push([p>0?"ok":"warn",`الإجمالي ${p>0?"فوق":"تحت"} متوسط آخر ${last7.length} أيام شغل (${nf(Math.round(avg7))}) بـ ${Math.abs(p)}%.`])}
   if(wq&&wp>=10)I.push(["warn",`نسبة هالك الجليز <b>${wp.toFixed(1)}%</b> (${nf(wq)} قطعة) — أعلى من الحد المعتاد.`]);
   const wl=[...WT].sort((a,b)=>b[1]-a[1]);
