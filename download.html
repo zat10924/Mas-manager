@@ -522,6 +522,12 @@ footer{padding-bottom:0!important}
 .mq{-webkit-mask:none;mask:none}
 .mq .track{-webkit-mask:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
 </style>
+<style>
+/* منع الإزاحة الأفقية على الجوال */
+html,body{overflow-x:clip;max-width:100%}
+main,.hero,.mq,footer{overflow-x:clip}
+@media(max-width:700px){.devs.pre .tab{transform:translateX(36px) rotate(4deg)}.devs.pre .pho{transform:translateX(-36px) rotate(-4deg)}}
+</style>
 </head>
 
 
