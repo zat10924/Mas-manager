@@ -156,7 +156,7 @@ seg("s_digits",[["mix","الافتراضي"],["latn","إنجليزي 123"],["ara
 seg("s_paper",[["A4","A4"],["A5","A5"],["Letter","Letter"]],SET.get("paper","A4"),v=>SET.set("paper",v));
 seg("s_orient",[["portrait","طولي"],["landscape","عرضي"]],SET.get("orient","portrait"),v=>SET.set("orient",v));
 const chk=(id,key,def)=>{const el=document.getElementById(id);el.checked=!!SET.get(key,def);el.onchange=()=>{SET.set(key,el.checked);if(key==="calm"||key==="bigbtn")applyLook()}};
-chk("s_calm","calm",false);chk("s_big","bigbtn",false);chk("s_sign","psign",true);chk("s_logo","plogo",true);chk("s_nums","pnums",true);chk("s_bw","pbw",false);
+chk("s_calm","calm",matchMedia("(max-width:700px)").matches);chk("s_big","bigbtn",false);chk("s_sign","psign",true);chk("s_logo","plogo",true);chk("s_nums","pnums",true);chk("s_bw","pbw",false);
 s_org.value=SET.get("org","");s_org.oninput=()=>SET.set("org",s_org.value);
 s_note.value=SET.get("pnote","");s_note.oninput=()=>SET.set("pnote",s_note.value);
 

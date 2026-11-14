@@ -36,6 +36,8 @@
 <script src="common.js"></script>
 <script>
 const SECK={glaze:{n:"جليز",page:"glaze.html",c:"#2E6F80",lbl:"اللون"},deco:{n:"زخرفة",page:"decoration.html",c:"#5E5A8C",lbl:"الكود"},spray:{n:"رش",page:"spray.html",c:"#B8862B",lbl:"اللون"}};
+// أيقونة القسم (جليز/زخرفة/رش) بلونه، بتتعرض جنب اسمه
+const secIco=k=>`<span class="ico" style="display:inline-flex;vertical-align:middle;margin-inline-end:5px;color:${SECK[k].c}">${ico(k).replace("<svg",'<svg style="width:16px;height:16px"')}</span>`;
 let G=[],tab="open",Q="",broken=false,ext=false,dlv=false,dtab=false,CUS=[],cusOk=false;
 const sum=(a,f)=>a.reduce((x,y)=>x+f(y),0);
 function mkItem(item,status,date,due,lines,ids){
@@ -113,7 +115,7 @@ function card(o){
     <div class="nums">الإجمالي: مطلوب <b>${nf(o.req)}</b> · تم <b>${nf(o.done)}</b> · متبقي <b>${nf(o.rem)}</b></div>
     <div class="bar"><i style="width:${o.pct}%"></i></div>
     ${dvHtml(o)}
-    ${ks.length?ks.map(k=>`<div class="line"><div class="r"><span class="badge" style="--c:${SECK[k].c}">${SECK[k].n}</span><a class="tag" href="${SECK[k].page}">فتح القسم</a></div>${o.secs[k].map(itemHtml).join("")}</div>`).join(""):'<div class="empty">لسه ما اتوزعتش على قسم</div>'}
+    ${ks.length?ks.map(k=>`<div class="line"><div class="r"><span class="badge" style="--c:${SECK[k].c};display:inline-flex;align-items:center">${secIco(k)}${SECK[k].n}</span><a class="tag" href="${SECK[k].page}">فتح القسم</a></div>${o.secs[k].map(itemHtml).join("")}</div>`).join(""):'<div class="empty">لسه ما اتوزعتش على قسم</div>'}
     <div class="row">${o.deliv?`${o.all.some(i=>i.status==="open")?`<button class="btn sm" onclick="closeSecs('${o.id}')">قفل في الأقسام</button>`:""}<button class="btn sm" onclick="undoDeliver('${o.id}')">${o.dvs.length?"إلغاء آخر تسليم":"إلغاء التسليم"}</button>`:`<button class="btn sm" onclick="openForm('${o.id}')">+ توزيع صنف</button>${ks.length?`<button class="btn sm" onclick="increaseG('${o.id}')">زيادة الطلبية</button><button class="btn ghost sm" onclick="editItems('${o.id}')">تعديل الأصناف</button>`:""}${dlv&&ks.length?`<button class="btn sm" onclick="deliverG('${o.id}')">${o.dvs.length?"تسليم جديد":"تسليم الطلبية"}</button>`:""}${o.dvs.length?`<button class="btn ghost sm" onclick="undoDeliver('${o.id}')">إلغاء آخر تسليم</button>`:""}`}<button class="btn ghost sm" onclick="editG('${o.id}')">تعديل البيانات</button><button class="btn ghost sm" onclick="delG('${o.id}')">حذف الطلبية كلها</button></div></div>`;
 }
 function draw(){
@@ -264,7 +266,7 @@ async function editItems(id){
     const canDel=l.done===0&&it.lines.length>1;
     return `<div class="nr" data-id="${rid}" data-prod="${l.done}" data-inc="${inc}" style="margin-bottom:10px;padding-bottom:8px;border-bottom:1px dashed var(--line,#ddd)"><div class="two"><input class="c" data-kind="${k==="deco"?"code":"color"}" value="${esc(l.l)}" placeholder="${k==="deco"?"الكود":"لون الصنف"}">${k==="spray"?`<input class="msc" data-kind="color" maxlength="60" value="${esc(l.sc||"")}" placeholder="لون الرش المطلوب">`:""}</div><div class="two"><input class="q" type="number" min="1" inputmode="numeric" value="${b}"><span class="nums">تم ${nf(l.done)}${inc?` · زيادات +${nf(inc)}`:""}</span></div>${canDel?'<button type="button" class="btn ghost sm rml">حذف السطر</button>':""}</div>`;
   };
-  const blocks=Object.keys(SECK).flatMap(k=>g.secs[k].map((it,ix)=>`<div class="itemblk" data-k="${k}" data-ix="${ix}"><div class="ih"><b>${SECK[k].n}</b>${it.lines.every(l=>l.done===0)?'<button type="button" class="btn ghost sm rmi2">حذف الصنف</button>':""}</div><input class="it" maxlength="80" value="${esc(it.item)}"><div class="rows">${it.lines.map((l,n)=>rowH(k,it,n)).join("")}</div></div>`)).join("");
+  const blocks=Object.keys(SECK).flatMap(k=>g.secs[k].map((it,ix)=>`<div class="itemblk" data-k="${k}" data-ix="${ix}"><div class="ih"><b>${secIco(k)}${SECK[k].n}</b>${it.lines.every(l=>l.done===0)?'<button type="button" class="btn ghost sm rmi2">حذف الصنف</button>':""}</div><input class="it" maxlength="80" value="${esc(it.item)}"><div class="rows">${it.lines.map((l,n)=>rowH(k,it,n)).join("")}</div></div>`)).join("");
   openModal("تعديل أصناف الطلبية",`<div id="m-eb">${blocks}</div><div class="hint">عدّل الاسم أو اللون أو الكمية مباشرة. الكمية لازم تكون أكبر من أو تساوي اللي اتنتج. الحذف متاح للي لسه ما اتنتجش منه، وبيتنفذ عند الحفظ.</div>`,async()=>{
     const ops=[];
     for(const b of document.querySelectorAll("#m-eb .itemblk")){

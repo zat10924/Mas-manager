@@ -11,7 +11,7 @@ function applyLook(){
   loadFont(k);const r=document.documentElement;
   r.style.setProperty("--font",'"'+FONTS[k][0]+'"');
   r.style.setProperty("--fs",SET.get("size",100)+"%");
-  r.classList.toggle("calm",!!SET.get("calm",false));
+  r.classList.toggle("calm",!!SET.get("calm",matchMedia("(max-width:700px)").matches)); // الافتراضي: تقليل الحركة على الموبايل
   r.classList.toggle("bigbtn",!!SET.get("bigbtn",false));
 }
 applyLook();
